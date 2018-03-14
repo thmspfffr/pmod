@@ -1,40 +1,36 @@
-clear all;
+clear
 
-
-% VERSION 9
 % -------------------------------
-v    = 1;
-GAIN = -2:0.2:2;
+% VERSION 1: Baseline Rest/Task
+% -------------------------------
+% v       = 1;
+% GAIN    = 0;
+% SIG     = 0.002;
+% INPUT   = -1:0.05:-0.2;
+% -------------------------------
+% VERSION 2
+% -------------------------------
+v    = 2;
+GAIN = -0.3:0.05:0.3;
 SIG  = 0.002;
-% Iis  = -5:0.2:-3;
-Ies  = -5:.1:-1;
-% -------------------------------
-% VERSION 10
-% -------------------------------
-% v    = 10;
-% % GAIN = 0:.1:2;
-% SIG  = 0.001:0.001:0.002;
-% % Iis  = -5:0.2:-3;
-% Ies  = -6:.2:-1.4;
+INPUT   = -1:0.05:-0.2;
 % -------------------------------
 
 % fixed params:
-
 N = 4;
 % Connectivity:
-wII=4;
-wIE=16;
-wEI=12;
-wEE=12;
+wII = 4;
+wIE = 16;
+wEI = 10;
+wEE = 12;
 
 g = 1;
 
 % nareas = 90;
 
 tauE = 1;
-tauI = 2; %1
+tauI = 1; %1
 tau = [tauE;tauI;tauE;tauI];
-
 
 Ii = -4;
 Io=zeros(N,1);
@@ -61,7 +57,7 @@ W = [W11 W12; W21 W22];
 
 p = 1.01;
 
-numIes = length(Ies);
+numIes = length(INPUT);
 
 Rc     = zeros(numIes,4);
 RcAmpl = zeros(numIes,4);
@@ -73,167 +69,170 @@ Transf = zeros(length(uu),2,4);
 
 %%
 
-for Q = 1:2  % conditions (no gain change, equivalent gain change, daE<daI, daE>daI)
-  for k = 1:numIes
-    for ig = 1: length(GAIN)
-      for ip = 1 : length(SIG)
+for Q = 2:2  % conditions (no gain change, equivalent gain change, daE<daI, daE>daI)
+  for ig = 1: length(GAIN)
+    for ip = 1 : length(SIG)
+      
+      if ~exist(['~/pmod/proc/' sprintf('pmod_wc_excbif_q%d_g%d_p%d_v%d.txt',Q,ig,ip,v)])
+        system(['touch ' '~/pmod/proc/' sprintf('pmod_wc_excbif_q%d_g%d_p%d_v%d.txt',Q,ig,ip,v)]);
+      else
+        continue
+      end
+      
+      Gain  = GAIN(ig);
+      sigma = SIG(ip);
+      sdt   = sqrt(dt)*sigma;
+      
+      fprintf('Starting computation trial 1 ...\n');
+      
+      % transfer functions:
+      % gains are given by 1/aE and 1/aI
+      if Q == 1
+        gE = 1;
+        gI = 1;
+      elseif Q == 2
+        gE = 1+Gain;
+        gI = 1+Gain;
+      elseif Q == 3
+        gE = 1+p*Gain;
+        gI = 1+Gain;
+      elseif Q == 4
+        gE = 1+Gain;
+        gI = 1+p*Gain;
+      end
+      
+      aE = 1/gE;
+      aI = 1/gI;
+      
+      Fe = @(x) 1./(1 + exp(-x/aE) );
+      Fi = @(x) 1./(1 + exp(-x/aI) );
+      F = @(x) [feval(Fe,x(1));feval(Fi,x(2));feval(Fe,x(3));feval(Fi,x(4))];
+      
+      % store functions:
+      Transf(:,1,Q) = feval(Fe,uu);
+      Transf(:,2,Q) = feval(Fi,uu);
+      
+      if ~exist(sprintf('~/pmod/proc/pmod_wc_excbif_transfun_q%d_v%d.mat',Q,v))
+        save(sprintf('~/pmod/proc/pmod_wc_excbif_transfun_q%d_v%d.mat',Q,v),'Transf');
+      end
+      
+      for inp = 1:length(INPUT)
         
-        if ~exist(['~/pmod/proc/' sprintf('pmod_wc_excbif_q%d_ie%d_g%d_p%d_v%d.txt',Q,k,ig,ip,v)])
-          system(['touch ' '~/pmod/proc/' sprintf('pmod_wc_excbif_q%d_ie%d_g%d_p%d_v%d.txt',Q,k,ig,ip,v)]);
-        else
-          continue
-        end
+        Ie = INPUT(inp);
+        Io(1) = Ie;
+        Io(3) = Ie;
+        Io(2) = Ie;
+        Io(4) = Ii;
         
-        Gain  = GAIN(ig);
-        sigma = SIG(ip);
-        sdt   = sqrt(dt)*sigma;
-
         Rc     = 0;
         RcAmpl = 0;
-        
-        fprintf('Starting computation trial 1 ...\n');
-        
-        % transfer functions:
-        % gains are given by 1/aE and 1/aI
-        if Q == 1
-          gE = 1;
-          gI = 1;
-        elseif Q == 2
-          gE = 1+Gain;
-          gI = 1+Gain;
-        elseif Q == 3
-          gE = 1+p*Gain;
-          gI = 1+Gain;
-        elseif Q == 4
-          gE = 1+Gain;
-          gI = 1+p*Gain;
-        end
-        
-        aE = 1/gE;
-        aI = 1/gI;
-        
-        Fe = @(x) 1./(1 + exp(-x/aE) );
-        Fi = @(x) 1./(1 + exp(-x/aI) );
-        F = @(x) [feval(Fe,x(1));feval(Fi,x(2));feval(Fe,x(3));feval(Fi,x(4))];
-        
-        % store functions:
-        Transf(:,1,Q) = feval(Fe,uu);
-        Transf(:,2,Q) = feval(Fi,uu);
-        
-        if ~exist(sprintf('~/pmod/proc/pmod_wc_excbif_transfun_q%d_v%d.mat',Q,v))
-          save(sprintf('~/pmod/proc/pmod_wc_excbif_transfun_q%d_v%d.mat',Q,v),'Transf');
-        end
-        
-        for k = 1:numIes
+      
+        for trial = 1:nTrials
           
-          Ie = Ies(k);
-          Io(1) = Ie;
-          Io(3) = Ie;
+          fprintf('Computing Gain%d, Ie%d, trial%d ...\n',Q,inp,trial)
           
-          for trial = 1:nTrials
-            
-            fprintf('Computing Gain%d, Ie%d, trial%d ...\n',Q,k,trial)
-            
-            r = rand(N,1);
-            R = zeros(Tds,N);
-            tt = 0;
-            
-            % Warm-up:
-            for t = 1:6000
-              u = W*r + Io;
-              K = feval(F,u);
-              r = r + dt*(-r + K)./tau + sdt*randn(N,1);
-            end
-            
-            for t = 1:L
-%               t
-              u = W*r + Io;
-              K = feval(F,u);
-              r = r + dt*(-r+ K)./tau + sdt*randn(N,1);
-              if mod(t,ds)==0
-                tt=tt+1;
-                R(tt,:)=r;
-              end
-            end
-            
-            RstatE = R(:,[1 3]);
-            Ampl(:,1)=abs(R(:,1) + 1i*R(:,2));
-            Ampl(:,2)=abs(R(:,3) + 1i*R(:,4));
-            
-            rc = corr(RstatE);
-            Rc = Rc+rc(2)/nTrials;
-            
-            rc = corr(RstatE);
-            RcAmpl = RcAmpl+rc(2)/nTrials;
-            
+          r = rand(N,1);
+          R = zeros(Tds,N);
+          tt = 0;
+          
+          % Warm-up:
+          for t = 1:6000
+            u = W*r + Io;
+            K = feval(F,u);
+            r = r + dt*(-r + K)./tau + sdt*randn(N,1);
           end
           
-          fprintf('Saving...\n');
-          save(sprintf('~/pmod/proc/pmod_wc_excbif_q%d_ie%d_g%d_p%d_v%d.mat',Q,k,ig,ip,v),'R','Rc','RcAmpl','-v7.3')
-          
-          try
-            load(sprintf('~/pmod/proc/pmod_wc_excbif_q%d_ie%d_g%d_p%d_v%d.mat',Q,k,ig,ip,v));
-          catch me
-            pause(randi(10))
-            save(sprintf('~/pmod/proc/pmod_wc_excbif_q%d_ie%d_g%d_p%d_v%d.mat',Q,k,ig,ip,v),'R','Rc','RcAmpl','-v7.3')
+          for t = 1:L
+            %               t
+            u = W*r + Io;
+            K = feval(F,u);
+            r = r + dt*(-r+ K)./tau + sdt*randn(N,1);
+            if mod(t,ds)==0
+              tt=tt+1;
+              R(tt,:)=r;
+            end
           end
-                  
-        end      
+          
+          ei(:,1) = R(:,1)./R(:,2);
+          ei(:,2) = R(:,3)./R(:,4);
+          
+          RstatE = R(:,[1 3]);
+          Ampl(:,1)=abs(R(:,1) + 1i*R(:,2));
+          Ampl(:,2)=abs(R(:,3) + 1i*R(:,4));
+          
+          rc = corr(RstatE);
+          Rc = Rc+rc(2)/nTrials;
+          
+          rc = corr(RstatE);
+          RcAmpl = RcAmpl+rc(2)/nTrials;
+          
+        end
+        
+        fprintf('Saving...\n');
+        save(sprintf('~/pmod/proc/pmod_wc_excbif_q%d_inp%d_g%d_p%d_v%d.mat',Q,inp,ig,ip,v),'R','Rc','ei','RcAmpl','-v7.3')
+        
+        try
+          load(sprintf('~/pmod/proc/pmod_wc_excbif_q%d_inp%d_g%d_p%d_v%d.mat',Q,inp,ig,ip,v));
+        catch me
+          pause(randi(10))
+          save(sprintf('~/pmod/proc/pmod_wc_excbif_q%d_inp%d_g%d_p%d_v%d.mat',Q,inp,ig,ip,v),'R','Rc','ei','RcAmpl','-v7.3')
+        end
+        
+        clear rc Rc rc RcAmpl
+        
       end
     end
   end
 end
+
+
+error('!')
 %%
 clear Rc RcAmpl
 
-tmp_rc = zeros(numIes,2,length(GAIN),length(SIG));
-tmp_rcamp = zeros(numIes,2,length(GAIN),length(SIG));
+tmp_rc = zeros(length(INPUT),length(GAIN),length(SIG));
+tmp_rcamp = zeros(length(INPUT),length(GAIN),length(SIG));
+ei = zeros(length(INPUT),length(GAIN),length(SIG));
 
-for Q = 1 : 4
-  Q
-    for k = 1 : numIes
-    for ig = 1 : length(GAIN)
-      for ip = 1 : length(SIG)
-        
-        try
-          load(sprintf('~/pmod/proc/pmod_wc_excbif_q%d_ie%d_g%d_p%d_v%d.mat',Q,k,ig,ip,v))
-        catch me
-          delete(sprintf('~/pmod/proc/pmod_wc_excbif_q%d_ie%d_g%d_p%d_v%d.txt',Q,k,ig,ip,v))
-          warning(sprintf('%s',me.message))
-        end
-        
-        tmp_rc(k,Q,ig,ip)    = Rc;
-        tmp_rcamp(k,Q,ig,ip) = RcAmpl;
-        
-      end
-      end
+Q = 2
+for ig = 1 : length(GAIN)
+  for ip = 1 : length(SIG)
+    for inp = 1 : length(INPUT)
+      
+      load(sprintf('~/pmod/proc/pmod_wc_excbif_q%d_inp%d_g%d_p%d_v%d.mat',Q,inp,ig,ip,v))
+      
+      tmp_rc(inp,ig,ip)    = Rc;
+      tmp_rcamp(inp,ig,ip) = RcAmpl;
+      ei(inp,ig,ip)    = mean(mean(ei));
     end
   end
+end
+
 %%
 addpath ~/Documents/MATLAB/cbrewer/cbrewer/
 cmap = cbrewer('div', 'RdBu', 100,'pchip');% colormap(autumn)
 cmap = cmap(end:-1:1,:);
-  Rc_all = tmp_rc;
+Rc_all = tmp_rc;
 
 figure
 for isig = 1 : length(SIG)
-d = squeeze(Rc_all(:,2,:,isig)-Rc_all(:,1,:,isig));
-
-subplot(length(SIG),2,(isig-1)*2+1); colormap(cmap)
-imagesc(d',[-0.2 0.2])
-xlabel('Input'); ylabel('Gain')
-
-d = squeeze(Rc_all(:,2,:,isig)-Rc_all(:,1,:,isig));
-
- d=d.*(d>0.03 & squeeze(Rc_all(:,1,:,isig))<0.75 & squeeze(Rc_all(:,2,:,isig))>0.5);
-%   d=d.*(d<0.03 & squeeze(Rc_all(:,1,:,isig))>-0.2 & squeeze(Rc_all(:,2,:,isig))>-0.2);
-
-subplot(length(SIG),2,(isig-1)*2+2)
-imagesc(d',[-0.2 0.2])
-clear d
-
-xlabel('Input'); ylabel('Gain')
-
+  d = squeeze(Rc_all(:,2,:,isig)-Rc_all(:,1,:,isig));
+  
+  subplot(length(SIG),2,(isig-1)*2+1); colormap(cmap)
+  imagesc(d',[-0.2 0.2])
+  xlabel('Input'); ylabel('Gain')
+  
+  d = squeeze(Rc_all(:,2,:,isig)-Rc_all(:,1,:,isig));
+  
+  d=d.*(d>0.03 & squeeze(Rc_all(:,1,:,isig))<0.75 & squeeze(Rc_all(:,2,:,isig))>0.5);
+  %   d=d.*(d<0.03 & squeeze(Rc_all(:,1,:,isig))>-0.2 & squeeze(Rc_all(:,2,:,isig))>-0.2);
+  
+  subplot(length(SIG),2,(isig-1)*2+2)
+  imagesc(d',[-0.2 0.2])
+  clear d
+  
+  xlabel('Input'); ylabel('Gain')
+  
 end
 
 % RcAmpl = tmp_rcamp;

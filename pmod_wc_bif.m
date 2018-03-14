@@ -39,9 +39,8 @@ FinvE = @(x) log( aE*x./(1-aE*x) );
 
 FinvI = @(x) log( aI*x./(1-aI*x) );
 
-
-Iis = -30:.1:30;
-Ies = -30:.1:30;
+Iis = -4;
+Ies = -6:.1:4;
 
 numIis = length(Iis);
 numIes = length(Ies);
@@ -64,7 +63,7 @@ for k = 1:numIis
   clear Ie
   
   for l = 1 : numIes
-    
+    l
     
     Ie = Ies(l);
     Io(1) = Ie;
@@ -154,7 +153,7 @@ for k = 1:numIis
     %
   end
   
-  try
+  
     figure
     xSize = 15; ySize = 4.8;
     xLeft = (21-xSize)/2; yTop = (30-ySize)/2;
@@ -173,8 +172,7 @@ for k = 1:numIis
     text(-.2,1.1,'A','units','normalized','fontsize',14)
     
     print(gcf,'-djpeg100',sprintf('~/pmod/plots/pmod_wc_bif_l%d.jpeg',l));
-  catch me
-  end
+ 
 end
 
 % axes('position',[.42 .2 .22 .69])
