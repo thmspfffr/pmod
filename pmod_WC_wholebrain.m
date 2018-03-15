@@ -93,6 +93,7 @@ for Drug = 1:2 % Loop over drugs ------------------------------------------
     Gain_E = .10; %0.07;
     Gain_I = .10; %0.07;
   end
+  
   dI_drug = zeros(2*N,1);
   dI_drug(1:N) = dIe_drug;
   dI_drug(N+1:2*N) = dIi_drug;

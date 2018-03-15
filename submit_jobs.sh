@@ -21,5 +21,5 @@ sleep "$var"
 
 # matlab -nodisplay -nodesktop -r "pconn_sens_pup_dfa($RANDOM); exit"  1> ~/jobs/$PBS_JOBID.out 2> ~/jobs/$PBS_JOBID.err
 
-matlab -nodisplay -nodesktop -r "pmod_wc_original_with_i; exit"  1> ~/jobs/$PBS_JOBID.out 2> ~/jobs/$PBS_JOBID.err
+matlab -nodisplay -nodesktop -r "pmod_WC_wholebrain_taskvsrest; exit"  1> ~/jobs/$PBS_JOBID.out 2> ~/jobs/$PBS_JOBID.err
 
