@@ -16,10 +16,8 @@ cd $PBS_O_WORKDIR
 chmod g=wx $PBS_JOBNAME
 
 # FILE TO EXECUTE
+
 sleep "$var"
 
-
-# matlab -nodisplay -nodesktop -r "pconn_sens_pup_dfa($RANDOM); exit"  1> ~/jobs/$PBS_JOBID.out 2> ~/jobs/$PBS_JOBID.err
-
-matlab -nodisplay -nodesktop -r "pmod_WC_wholebrain_taskvsrest; exit"  1> ~/jobs/$PBS_JOBID.out 2> ~/jobs/$PBS_JOBID.err
+matlab -nodisplay -nodesktop -r "pmod_WC_wholebrain_rest; exit"  1> ~/jobs/$PBS_JOBID.out 2> ~/jobs/$PBS_JOBID.err
 

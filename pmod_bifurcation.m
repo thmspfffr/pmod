@@ -19,7 +19,6 @@ tau = [tauE;tauI];
 Ies = -2:0.05:4;
 Io=zeros(N,1);
 
-
 dt=0.01;
 tmax = 1000;
 tspan=0:dt:tmax;
