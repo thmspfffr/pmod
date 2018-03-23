@@ -30,10 +30,18 @@ clear
 % VERSION 4
 %-------------------------------------------------------------------------
 v = 4;
-Ies = -2.5:0.1:1;
-Iis = -3:0.1:-2;
-Gg = 0.5:0.05:0.8; % 0.62
-nTrials = 5;
+Ies = -3.5:0.2:0.8;
+Iis = -5:0.2:-1;
+Gg = 0.4:0.1:0.9; % 0.62
+nTrials = 3;
+%-------------------------------------------------------------------------
+% VERSION 5
+%-------------------------------------------------------------------------
+% v = 5;
+% Ies = -3:0.2:1;
+% Iis = -4:0.2:-2;
+% Gg = 0.5:0.05:0.8; % 0.62
+% nTrials = 3;
 %-------------------------------------------------------------------------
 
 
@@ -46,7 +54,7 @@ nTrials = 5;
 % fc_emp_dpz(:,:,2) = squeeze(nanmean(cleandat(:,:,:,3,2,7),3))-squeeze(nanmean(cleandat(:,:,:,1,2,7),3));
 
 % load connectome
-load EC %Matt_EC
+load ~/pmod/matlab/EC.mat %Matt_EC
 C = EC;
 C = C/max(C(C>0));
 N = size(C,1);
@@ -237,43 +245,60 @@ error('!')
 load(sprintf(['~/pconn/proc/dfa/' 'pconn_src_dfa_aal_f%d_m%d_v%d.mat'],2,1,2),'dfa');
 dfa_emp = dfa; clear dfa
 
-clear dfa r
+clear dfa r dfa_r dist_fc fc_sim
 v=1;
-vv = 3;
+vv = 4;
 load(sprintf('~/pupmod/proc/conn/pupmod_src_powcorr_cleaned_v%d.mat',v));
 mask    = logical(tril(ones(90,90),-1));
-fc_rest =  squeeze(nanmean(cleandat(:,:,:,1,2,6),3));
+fc_rest =  squeeze(nanmean(cleandat(:,:,:,1,1,6),3));
 
 for iies = 1 : length(Ies)
   for iiis = 1 : length(Iis)
     for iG = 1 : length(Gg)
       
+%       try
       load(sprintf('~/pmod/proc/pmod_WC_wholebrain_rest_Ie%d_Ii%d_G%d_v%d.mat',iies,iiis,iG,vv))
       dfa(:,iies,iiis,iG) = squeeze(mean(out.dfa));
       pars = [];
       pars.grid = 'medium';
       pars.N = 90;
       
-      fc_diff = tp_match_aal(pars,out.FC(:,:,1)./max(max(out.FC(:,:,1))));
+      fc_diff = tp_match_aal(pars,out.FC(:,:,1));
       r(iies,iiis,iG)=corr(fc_diff(mask),fc_rest(mask));
+      
 
+      
       idx = find(~isnan(dfa_emp(1:90)'));
       dfa_r (iies,iiis,iG) = corr(dfa_emp(idx)',dfa(idx,iies,iiis,iG));
       dist_fc (iies,iiis,iG)  = abs(mean(fc_diff(mask))-mean(fc_rest(mask)));
       fc_sim(iies,iiis,iG) = mean(fc_diff(mask));
+      
+%       catch 
+%         dist_fc(iies,iiis,iG)  = nan;
+%         fc_sim(iies,iiis,iG)  = nan;
+%         dfa_r (iies,iiis,iG) = nan;
+%         r(iies,iiis,iG) = nan;
+%       end
     end
   end
 end
+
+% pars.N = 90;
+% dfa_emp  =  tp_match_aal(pars,dfa_emp');
+
 %%
-j = 22;
-i = 6;
+j = 24;
+i = 4;
 h = figure; set(gcf,'color','white'); hold on
 set(h,'Position',[10,10,1200,400])
 
+gg = 1;
+
 subplot(1,4,1);
 % imagesc(flipud(squeeze(r)'),[0 0.25]); axis square tight
-imagesc(flipud(squeeze(r)'),[0 0.25]); axis square tight
+imagesc(flipud(squeeze(r(:,:,gg))'),[0 0.4]); axis square tight
 % contourc(Ies,Gg,squeeze(r)',[0 0.25]); axis square tight
+
 
 if length(Iis)== 1
   set(gca,'xtick',1:4:length(Ies),'xticklabel',Ies(1:4:length(Ies)),'tickdir','out')
@@ -281,9 +306,10 @@ if length(Iis)== 1
   xlabel('Exc. input I_E'); ylabel('Global coupling G');
 else
   set(gca,'xtick',1:4:length(Ies),'xticklabel',Ies(1:4:length(Ies)),'tickdir','out')
-  set(gca,'ytick',1:3:length(Iis),'yticklabel',Iis(length(Gg):-3:1),'tickdir','out')
+  set(gca,'ytick',1:2:length(Iis),'yticklabel',Iis(length(Iis):-2:1),'tickdir','out')
   xlabel('Exc. input I_E'); ylabel('Inh. input I_I');
 end
+
 title('Correlation with FC')
 colormap(inferno)
 
@@ -292,7 +318,8 @@ scatter(j,length(Gg)-i+1,20,'markerfacecolor','w','markeredgecolor','k')
 
 h=subplot(1,4,2);
 
-imagesc(flipud(squeeze(mean(dfa,1))'),[0.5 0.9]);  axis square tight
+imagesc(flipud(squeeze(mean(dfa(:,:,:,gg),1))'),[0.5 1]);  axis square tight
+
 
 if length(Iis)== 1
   set(gca,'xtick',1:4:length(Ies),'xticklabel',Ies(1:4:length(Ies)),'tickdir','out')
@@ -300,9 +327,10 @@ if length(Iis)== 1
   xlabel('Exc. input I_E'); ylabel('Global coupling G');
 else
   set(gca,'xtick',1:4:length(Ies),'xticklabel',Ies(1:4:length(Ies)),'tickdir','out')
-  set(gca,'ytick',1:3:length(Iis),'yticklabel',Iis(length(Gg):-3:1),'tickdir','out')
+  set(gca,'ytick',1:2:length(Iis),'yticklabel',Iis(length(Iis):-2:1),'tickdir','out')
   xlabel('Exc. input I_E'); ylabel('Inh. input I_I');
 end
+
 colormap(inferno)
 title('DFA')
 tp_editplots
@@ -330,7 +358,7 @@ scatter(j,length(Gg)-i+1,20,'markerfacecolor','w','markeredgecolor','k')
 % figure; set(gcf,'color','white'); hold on
 % 
 k=subplot(1,4,3);
-imagesc(flipud(squeeze(dfa_r)'),[0 0.4]);  axis square tight
+imagesc(flipud(squeeze(dfa_r(:,:,gg))'),[-1 0.4]);  axis square tight
 
 if length(Iis)== 1
   set(gca,'xtick',1:4:length(Ies),'xticklabel',Ies(1:4:length(Ies)),'tickdir','out')
@@ -338,7 +366,7 @@ if length(Iis)== 1
   xlabel('Exc. input I_E'); ylabel('Global coupling G');
 else
   set(gca,'xtick',1:4:length(Ies),'xticklabel',Ies(1:4:length(Ies)),'tickdir','out')
-  set(gca,'ytick',1:3:length(Iis),'yticklabel',Iis(length(Gg):-3:1),'tickdir','out')
+  set(gca,'ytick',1:2:length(Iis),'yticklabel',Iis(length(Iis):-2:1),'tickdir','out')
   xlabel('Exc. input I_E'); ylabel('Inh. input I_I');
 end
 
@@ -353,8 +381,8 @@ scatter(j,length(Gg)-i+1,20,'markerfacecolor','w','markeredgecolor','k')
 
 l = subplot(1,4,4);
 % 
-idx = squeeze(mean(dfa))>0.57 & squeeze(mean(dfa))<1;
-par = (log(abs(squeeze(r./(max(r(:))))'))+log(abs(squeeze(dfa_r./max(dfa_r(:)))))')/2;
+idx = squeeze(mean(dfa(:,:,:,gg)))>0 & squeeze(mean(dfa(:,:,:,gg)))<2;
+par = (log(abs(squeeze(r(:,:,gg)./(max(r(:))))'))+log(abs(squeeze(dfa_r(:,:,gg)./max(dfa_r(:)))))')/2;
 par(~idx') = -4;
 
 imagesc(flipud(par),[-4 0]);  axis square tight
@@ -365,7 +393,7 @@ if length(Iis)== 1
   xlabel('Exc. input I_E'); ylabel('Global coupling G');
 else
   set(gca,'xtick',1:4:length(Ies),'xticklabel',Ies(1:4:length(Ies)),'tickdir','out')
-  set(gca,'ytick',1:3:length(Iis),'yticklabel',Iis(length(Gg):-3:1),'tickdir','out')
+  set(gca,'ytick',1:2:length(Iis),'yticklabel',Iis(length(Iis):-2:1),'tickdir','out')
   xlabel('Exc. input I_E'); ylabel('Inh. input I_I');
 end
 
