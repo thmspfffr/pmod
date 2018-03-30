@@ -29,19 +29,19 @@ clear
 %-------------------------------------------------------------------------
 % VERSION 4
 %-------------------------------------------------------------------------
-v = 4;
-Ies = -3.5:0.2:0.8;
-Iis = -5:0.2:-1;
-Gg = 0.4:0.1:0.9; % 0.62
-nTrials = 3;
+% v = 4;
+% Ies = -5:0.2:1;
+% Iis = -6:0.2:0;
+% Gg  = 0.62; % 0.62
+% nTrials = 5;
 %-------------------------------------------------------------------------
 % VERSION 5
 %-------------------------------------------------------------------------
-% v = 5;
-% Ies = -3:0.2:1;
-% Iis = -4:0.2:-2;
-% Gg = 0.5:0.05:0.8; % 0.62
-% nTrials = 3;
+v = 5;
+Ies = -4:0.1:-0.5;
+Iis = -6:0.1:-1.5;
+Gg  = 0.62; % 0.62
+nTrials = 50;
 %-------------------------------------------------------------------------
 
 
@@ -59,6 +59,9 @@ C = EC;
 C = C/max(C(C>0));
 N = size(C,1);
 
+addpath ~/Documents/MATLAB/Colormaps/'Colormaps (5)'/Colormaps/
+addpath ~/pconn/matlab
+addpath ~/Documents/MATLAB/cbrewer/cbrewer/
 %--------------------------------------------------------------------------
 % PARAMETER DEFINITIONS
 %--------------------------------------------------------------------------
@@ -101,11 +104,11 @@ for iies = 1 : length(Ies)
   for iiis = 1 : length(Iis)
     for iG = 1 : length(Gg)
       
-      if ~exist(sprintf(['~/pmod/proc/' 'pmod_WC_wholebrain_rest_Ie%d_Ii%d_G%d_v%d_processing.txt'],iies,iiis,iG,v))
-        system(['touch ' '~/pmod/proc/' sprintf('pmod_WC_wholebrain_rest_Ie%d_Ii%d_G%d_v%d_processing.txt',iies,iiis,iG,v)]);
-      else
-        continue
-      end
+%       if ~exist(sprintf(['~/pmod/proc/' 'pmod_WC_wholebrain_rest_Ie%d_Ii%d_G%d_v%d_processing.txt'],iies,iiis,iG,v))
+%         system(['touch ' '~/pmod/proc/' sprintf('pmod_WC_wholebrain_rest_Ie%d_Ii%d_G%d_v%d_processing.txt',iies,iiis,iG,v)]);
+%       else
+%         continue
+%       end
       
       g = Gg(iG);
       W = [wEE*eye(N)+g*C -wEI*eye(N); wIE*eye(N) -wII*eye(N)];
@@ -190,7 +193,8 @@ for iies = 1 : length(Ies)
         KOP           = abs(ku);
         KOPsd(tr,1)   = std(KOP);
         KOPmean(tr,1) = mean(KOP);
-        tmp = tp_dfa(R,[3 50],ds,0.5,15);
+        tmp = tp_dfa(R(:,1),[3 50],ds,0.5,15);
+%         DFA_fourier_all(R(:,1),[50*400])
         dfa(tr,:,1) = tmp.exp;
         
         rc              = corrcoef(rE);
@@ -242,15 +246,19 @@ error('!')
 
 %%
 
-load(sprintf(['~/pconn/proc/dfa/' 'pconn_src_dfa_aal_f%d_m%d_v%d.mat'],2,1,2),'dfa');
-dfa_emp = dfa; clear dfa
+% load(sprintf(['~/pconn/proc/dfa/' 'pconn_src_dfa_aal_f%d_m%d_v%d.mat'],2,1,2),'dfa');
+% dfa_emp = dfa; clear dfa
+load(sprintf(['~/pupmod/proc/conn/' 'pupmod_src_dfa_aal_v%d.mat'],1));
+dfa_emp = nanmean(dfa_all(:,:,1,1,1),2);
+dfa_emp_task = nanmean(dfa_all(:,:,1,1,2),2);
 
 clear dfa r dfa_r dist_fc fc_sim
 v=1;
-vv = 4;
+vv = 5;
 load(sprintf('~/pupmod/proc/conn/pupmod_src_powcorr_cleaned_v%d.mat',v));
 mask    = logical(tril(ones(90,90),-1));
 fc_rest =  squeeze(nanmean(cleandat(:,:,:,1,1,6),3));
+fc_task =  squeeze(nanmean(cleandat(:,:,:,1,2,6),3));
 
 for iies = 1 : length(Ies)
   for iiis = 1 : length(Iis)
@@ -265,14 +273,19 @@ for iies = 1 : length(Ies)
       
       fc_diff = tp_match_aal(pars,out.FC(:,:,1));
       r(iies,iiis,iG)=corr(fc_diff(mask),fc_rest(mask));
+      r_task(iies,iiis,iG)=corr(fc_diff(mask),fc_task(mask));
       
 
       
-      idx = find(~isnan(dfa_emp(1:90)'));
-      dfa_r (iies,iiis,iG) = corr(dfa_emp(idx)',dfa(idx,iies,iiis,iG));
-      dist_fc (iies,iiis,iG)  = abs(mean(fc_diff(mask))-mean(fc_rest(mask)));
+%       idx = find(~isnan(dfa_emp(1:90)'));
+      dfa_r (iies,iiis,iG) = corr(dfa_emp(:),dfa(:,iies,iiis,iG));
+      dfa_r_task (iies,iiis,iG) = corr(dfa_emp_task(:),dfa(:,iies,iiis,iG));
+
+      dist_fc_rest (iies,iiis,iG)  = mean(fc_diff(mask))-mean(fc_rest(mask));
+      dist_fc_task (iies,iiis,iG)  = mean(fc_diff(mask))-mean(fc_task(mask));
+
       fc_sim(iies,iiis,iG) = mean(fc_diff(mask));
-      
+     
 %       catch 
 %         dist_fc(iies,iiis,iG)  = nan;
 %         fc_sim(iies,iiis,iG)  = nan;
@@ -280,46 +293,33 @@ for iies = 1 : length(Ies)
 %         r(iies,iiis,iG) = nan;
 %       end
     end
+    
   end
 end
 
 % pars.N = 90;
 % dfa_emp  =  tp_match_aal(pars,dfa_emp');
 
+
+
 %%
-j = 24;
-i = 4;
+idx = [find(Ies==-2.25) find(Iis==-4.25) ];
+% idx = [-2.25 -4]';
+
+% i = 4;
 h = figure; set(gcf,'color','white'); hold on
-set(h,'Position',[10,10,1200,400])
+set(h,'Position',[10,10,1200,800])
 
 gg = 1;
 
-subplot(1,4,1);
-% imagesc(flipud(squeeze(r)'),[0 0.25]); axis square tight
-imagesc(flipud(squeeze(r(:,:,gg))'),[0 0.4]); axis square tight
-% contourc(Ies,Gg,squeeze(r)',[0 0.25]); axis square tight
 
-
-if length(Iis)== 1
-  set(gca,'xtick',1:4:length(Ies),'xticklabel',Ies(1:4:length(Ies)),'tickdir','out')
-  set(gca,'ytick',1:3:length(Gg),'yticklabel',Gg(length(Gg):-3:1),'tickdir','out')
-  xlabel('Exc. input I_E'); ylabel('Global coupling G');
-else
-  set(gca,'xtick',1:4:length(Ies),'xticklabel',Ies(1:4:length(Ies)),'tickdir','out')
-  set(gca,'ytick',1:2:length(Iis),'yticklabel',Iis(length(Iis):-2:1),'tickdir','out')
-  xlabel('Exc. input I_E'); ylabel('Inh. input I_I');
-end
-
-title('Correlation with FC')
-colormap(inferno)
-
-tp_editplots; hold on
-scatter(j,length(Gg)-i+1,20,'markerfacecolor','w','markeredgecolor','k')
-
-h=subplot(1,4,2);
-
-imagesc(flipud(squeeze(mean(dfa(:,:,:,gg),1))'),[0.5 1]);  axis square tight
-
+% -------------------------------
+% CORRELATION OF SIM FC WITH EMP FC (RESTING STATE)
+% -------------------------------
+ax1 = subplot(2,4,1); 
+mask1 = fc_sim(:,:,gg) > 0.1 & fc_sim(:,:,gg) < 0.9;
+% imagesc(flipud((squeeze(fc_sim(:,:,gg)).*mask1)'),[0.00 1]); axis square tight
+imagesc(flipud((squeeze(fc_sim(:,:,gg)))'),[0.00 1]); axis square tight
 
 if length(Iis)== 1
   set(gca,'xtick',1:4:length(Ies),'xticklabel',Ies(1:4:length(Ies)),'tickdir','out')
@@ -330,35 +330,153 @@ else
   set(gca,'ytick',1:2:length(Iis),'yticklabel',Iis(length(Iis):-2:1),'tickdir','out')
   xlabel('Exc. input I_E'); ylabel('Inh. input I_I');
 end
-
-colormap(inferno)
-title('DFA')
-tp_editplots
 hold on
-scatter(j,length(Gg)-i+1,20,'markerfacecolor','w','markeredgecolor','k')
+scatter(idx(1),length(Ies)-idx(2),20,'markerfacecolor','w','markeredgecolor','k')
 
-%
-% subplot(1,4,2);
-% figure; set(gcf,'color','white')
-%
-% imagesc(squeeze(dist_fc)',[0 0.5]); axis square
-%
+title('FC_{sim}')
+
+cmap = cbrewer('div', 'RdBu', 100,'pchip');
+cmap = cmap(end:-1:1,:);
+
+colormap(ax1,plasma)
+
+tp_editplots;
+
+ax2 = subplot(2,4,2); 
+mask2 = r(:,:,gg)>0.15;
+% imagesc(flipud(squeeze(r(:,:,gg)).*mask2'),[-0.3 0.3]); axis square tight
+imagesc(flipud(squeeze(r(:,:,gg))'),[-0.3 0.3]); axis square tight
+% set(ax2,'YDir','reverse')
+if length(Iis)== 1
+  set(gca,'xtick',1:4:length(Ies),'xticklabel',Ies(1:4:length(Ies)),'tickdir','out')
+  set(gca,'ytick',1:3:length(Gg),'yticklabel',Gg(length(Gg):-3:1),'tickdir','out')
+  xlabel('Exc. input I_E'); ylabel('Global coupling G');
+else
+  set(gca,'xtick',1:4:length(Ies),'xticklabel',Ies(1:4:length(Ies)),'tickdir','out')
+  set(gca,'ytick',1:2:length(Iis),'yticklabel',Iis(length(Iis):-2:1),'tickdir','out')
+  xlabel('Exc. input I_E'); ylabel('Inh. input I_I');
+end
+hold on
+title('Correlation (FC_{sim},FC_{emp})')
+scatter(idx(1),length(Ies)-idx(2),20,'markerfacecolor','w','markeredgecolor','k')
+
+cmap = cbrewer('div', 'RdBu', 100,'pchip');
+cmap = cmap(end:-1:1,:);
+
+colormap(ax2,cmap)
+
+tp_editplots; %hold on
+
+% -------------------------------
+% DISTANCE OF SIM FC FROM EMP FC (RESTING STATE)
+% -------------------------------
+
+% ax2=subplot(2,4,3);
+% 
+% 
+% imagesc(flipud(squeeze(dist_fc_rest(:,:,gg)')),[-0.5 0.5]);  axis square tight
+% 
 % if length(Iis)== 1
 %   set(gca,'xtick',1:4:length(Ies),'xticklabel',Ies(1:4:length(Ies)),'tickdir','out')
-%   set(gca,'ytick',1:3:length(Gg),'yticklabel',Gg(1:4:length(Gg)),'tickdir','out')
+%   set(gca,'ytick',1:3:length(Gg),'yticklabel',Gg(length(Gg):-3:1),'tickdir','out')
 %   xlabel('Exc. input I_E'); ylabel('Global coupling G');
 % else
 %   set(gca,'xtick',1:4:length(Ies),'xticklabel',Ies(1:4:length(Ies)),'tickdir','out')
-%   set(gca,'ytick',1:3:length(Iis),'yticklabel',Iis(1:4:length(Gg)),'tickdir','out')
+%   set(gca,'ytick',1:2:length(Iis),'yticklabel',Iis(length(Iis):-2:1),'tickdir','out')
 %   xlabel('Exc. input I_E'); ylabel('Inh. input I_I');
 % end
-% title('Distance FC')
-% tp_editplots
-%
-% figure; set(gcf,'color','white'); hold on
 % 
-k=subplot(1,4,3);
-imagesc(flipud(squeeze(dfa_r(:,:,gg))'),[-1 0.4]);  axis square tight
+% % cmap = hot; cmap = cmap(end:-1:1,:);
+% colormap(ax2,cmap)
+% title('Difference (FC_{sim} - FC_{emp})')
+% tp_editplots; colorbar
+
+ax4=subplot(2,4,4);
+
+
+imagesc(flipud((mask1&mask2)'),[-1 1]);  axis square tight
+
+if length(Iis)== 1
+  set(gca,'xtick',1:4:length(Ies),'xticklabel',Ies(1:4:length(Ies)),'tickdir','out')
+  set(gca,'ytick',1:3:length(Gg),'yticklabel',Gg(length(Gg):-3:1),'tickdir','out')
+  xlabel('Exc. input I_E'); ylabel('Global coupling G');
+else
+  set(gca,'xtick',1:4:length(Ies),'xticklabel',Ies(1:4:length(Ies)),'tickdir','out')
+  set(gca,'ytick',1:2:length(Iis),'yticklabel',Iis(length(Iis):-2:1),'tickdir','out')
+  xlabel('Exc. input I_E'); ylabel('Inh. input I_I');
+end
+hold on
+scatter(idx(1),length(Ies)-idx(2),20,'markerfacecolor','w','markeredgecolor','k')
+
+% cmap = hot; cmap = cmap(end:-1:1,:);
+colormap(ax4,cmap)
+title('Masked values')
+tp_editplots; %colorbar
+
+% -------------------------------
+% DISTANCE OF SIM FC FROM EMP FC (TASK
+% -------------------------------
+
+ax5=subplot(2,4,5);
+
+
+mask3 = squeeze(mean(dfa(:,:,:,gg)))>0.5 & squeeze(mean(dfa(:,:,:,gg)))<1;
+% imagesc(flipud((squeeze(mean(dfa(:,:,:,gg))).*mask3)'),[0.5 1]);  axis square tight
+imagesc(flipud((squeeze(mean(dfa(:,:,:,gg))))'),[0.5 1]);  axis square tight
+
+if length(Iis)== 1
+  set(gca,'xtick',1:4:length(Ies),'xticklabel',Ies(1:4:length(Ies)),'tickdir','out')
+  set(gca,'ytick',1:3:length(Gg),'yticklabel',Gg(length(Gg):-3:1),'tickdir','out')
+  xlabel('Exc. input I_E'); ylabel('Global coupling G');
+else
+  set(gca,'xtick',1:4:length(Ies),'xticklabel',Ies(1:4:length(Ies)),'tickdir','out')
+  set(gca,'ytick',1:2:length(Iis),'yticklabel',Iis(length(Iis):-2:1),'tickdir','out')
+  xlabel('Exc. input I_E'); ylabel('Inh. input I_I');
+end
+hold on
+scatter(idx(1),length(Ies)-idx(2),20,'markerfacecolor','w','markeredgecolor','k')
+
+cmap = inferno;
+% cmap(1,:) = [ 1 1 1 ];
+colormap(ax5,cmap)
+
+title('\alpha_{sim}')
+tp_editplots
+hold on
+
+
+ax4=subplot(2,4,6);
+mask4 = squeeze(dfa_r')>0.1;
+% imagesc(flipud(squeeze(dfa_r(:,:,gg))'),[-0.5 0.5]);  axis square tight
+% imagesc(flipud(squeeze(dfa_r'.*mask4)),[-0.5 0.5]);  axis square tight
+imagesc(flipud(squeeze(dfa_r')),[-0.5 0.5]);  axis square tight
+
+
+if length(Iis)== 1
+  set(gca,'xtick',1:4:length(Ies),'xticklabel',Ies(1:4:length(Ies)),'tickdir','out')
+  set(gca,'ytick',1:3:length(Gg),'yticklabel',Gg(length(Gg):-3:1),'tickdir','out')
+  xlabel('Exc. input I_E'); ylabel('Global coupling G');
+else
+  set(gca,'xtick',1:4:length(Ies),'xticklabel',Ies(1:4:length(Ies)),'tickdir','out')
+  set(gca,'ytick',1:2:length(Iis),'yticklabel',Iis(length(Iis):-2:1),'tickdir','out')
+  xlabel('Exc. input I_E'); ylabel('Inh. input I_I');
+end
+cmap = cbrewer('div', 'RdBu', 100,'pchip');
+cmap = cmap(end:-1:1,:);
+colormap(ax4,cmap)
+
+title('Correlation (\alpha_{sim},\alpha_{emp})')
+tp_editplots
+hold on
+scatter(idx(1),length(Ies)-idx(2),20,'markerfacecolor','w','markeredgecolor','k')
+
+ax5=subplot(2,4,7);
+
+mask5 = abs(squeeze(mean(dfa,1))'-mean(dfa_emp'))<0.05;
+% imagesc(flipud(squeeze(dfa_r(:,:,gg))'),[-0.5 0.5]);  axis square tight
+% imagesc(flipud((squeeze(mean(dfa,1))'-mean(dfa_emp')).*mask5),[-0.05 0.05]);  axis square tight
+imagesc(flipud((squeeze(mean(dfa,1))'-mean(dfa_emp'))),[-0.2 0.2]);  axis square tight
+
 
 if length(Iis)== 1
   set(gca,'xtick',1:4:length(Ies),'xticklabel',Ies(1:4:length(Ies)),'tickdir','out')
@@ -370,22 +488,17 @@ else
   xlabel('Exc. input I_E'); ylabel('Inh. input I_I');
 end
 
-colormap(inferno)
-title('Correlation with DFA')
+colormap(ax5,cmap)
+
+title('Difference (\alpha_{Sim} - \alpha_{Emp})')
 tp_editplots
 hold on
+scatter(idx(1),length(Ies)-idx(2),20,'markerfacecolor','w','markeredgecolor','k')
 
-scatter(j,length(Gg)-i+1,20,'markerfacecolor','w','markeredgecolor','k')
-% set(k,'Position',get(k,'Position')+0.1)
+ax5=subplot(2,4,8);
+% imagesc(flipud(squeeze(dfa_r(:,:,gg))'),[-0.5 0.5]);  axis square tight
+imagesc(flipud(mask3'&mask4&mask5),[-1 1]);  axis square tight
 
-
-l = subplot(1,4,4);
-% 
-idx = squeeze(mean(dfa(:,:,:,gg)))>0 & squeeze(mean(dfa(:,:,:,gg)))<2;
-par = (log(abs(squeeze(r(:,:,gg)./(max(r(:))))'))+log(abs(squeeze(dfa_r(:,:,gg)./max(dfa_r(:)))))')/2;
-par(~idx') = -4;
-
-imagesc(flipud(par),[-4 0]);  axis square tight
 
 if length(Iis)== 1
   set(gca,'xtick',1:4:length(Ies),'xticklabel',Ies(1:4:length(Ies)),'tickdir','out')
@@ -397,13 +510,30 @@ else
   xlabel('Exc. input I_E'); ylabel('Inh. input I_I');
 end
 
-colormap(inferno)
-title('Correlation with DFA')
+colormap(ax5,cmap)
+hold on
+scatter(idx(1),length(Ies)-idx(2),20,'markerfacecolor','w','markeredgecolor','k')
+
+title('Masked values')
 tp_editplots
 hold on
-[i,j]=find(par==max(par(:)));
-scatter(j,length(Gg)-i+1,20,'markerfacecolor','w','markeredgecolor','k')
-% set(l,'Position',get(l,'Position')+0.1)
+figure; 
+imagesc(flipud(mask1'&mask2'&mask3'&mask4&mask5),[-1 1]);  axis square tight
+colormap(cmap)
+
+if length(Iis)== 1
+  set(gca,'xtick',1:4:length(Ies),'xticklabel',Ies(1:4:length(Ies)),'tickdir','out')
+  set(gca,'ytick',1:3:length(Gg),'yticklabel',Gg(length(Gg):-3:1),'tickdir','out')
+  xlabel('Exc. input I_E'); ylabel('Global coupling G');
+else
+  set(gca,'xtick',1:4:length(Ies),'xticklabel',Ies(1:4:length(Ies)),'tickdir','out')
+  set(gca,'ytick',1:2:length(Iis),'yticklabel',Iis(length(Iis):-2:1),'tickdir','out')
+  xlabel('Exc. input I_E'); ylabel('Inh. input I_I');
+end
+hold on
+scatter(idx(1),length(Ies)-idx(2),20,'markerfacecolor','w','markeredgecolor','k')
+
+% co
 
 % STUFF
 print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_WC_wholebrain_rest4_v%d.pdf',v))
