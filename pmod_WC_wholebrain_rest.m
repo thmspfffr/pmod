@@ -37,11 +37,14 @@ clear
 %-------------------------------------------------------------------------
 % VERSION 5
 %-------------------------------------------------------------------------
-v = 5;
+%-------------------------------------------------------------------------
+% VERSION 6
+%-------------------------------------------------------------------------
+v = 6;
 Ies = -4:0.1:-0.5;
 Iis = -6:0.1:-1.5;
 Gg  = 0.62; % 0.62
-nTrials = 50;
+nTrials = 10;
 %-------------------------------------------------------------------------
 
 
@@ -104,12 +107,12 @@ for iies = 1 : length(Ies)
   for iiis = 1 : length(Iis)
     for iG = 1 : length(Gg)
       
-%       if ~exist(sprintf(['~/pmod/proc/' 'pmod_WC_wholebrain_rest_Ie%d_Ii%d_G%d_v%d_processing.txt'],iies,iiis,iG,v))
-%         system(['touch ' '~/pmod/proc/' sprintf('pmod_WC_wholebrain_rest_Ie%d_Ii%d_G%d_v%d_processing.txt',iies,iiis,iG,v)]);
-%       else
-%         continue
-%       end
-      
+      if ~exist(sprintf(['~/pmod/proc/' 'pmod_WC_wholebrain_rest_Ie%d_Ii%d_G%d_v%d_processing.txt'],iies,iiis,iG,v))
+        system(['touch ' '~/pmod/proc/' sprintf('pmod_WC_wholebrain_rest_Ie%d_Ii%d_G%d_v%d_processing.txt',iies,iiis,iG,v)]);
+      else
+        continue
+      end
+%       
       g = Gg(iG);
       W = [wEE*eye(N)+g*C -wEI*eye(N); wIE*eye(N) -wII*eye(N)];
       
@@ -117,8 +120,8 @@ for iies = 1 : length(Ies)
       %     Rate = zeros(1,1);
       %     RateSD = zeros(2,1);
       
-      %     Cee = zeros(1,1);
-      %     CeeSD = zeros(2,1);
+          Cee = zeros(1,1);
+          CeeSD = zeros(2,1);
       
       %     FCval = cell(1,1);
       %     Epsilon = cell(1,1);
@@ -193,16 +196,16 @@ for iies = 1 : length(Ies)
         KOP           = abs(ku);
         KOPsd(tr,1)   = std(KOP);
         KOPmean(tr,1) = mean(KOP);
-        tmp = tp_dfa(R(:,1),[3 50],ds,0.5,15);
+        tmp = tp_dfa(R,[3 50],ds,0.5,15);
 %         DFA_fourier_all(R(:,1),[50*400])
         dfa(tr,:,1) = tmp.exp;
         
         rc              = corrcoef(rE);
         FC(:,:,1)       = FC(:,:,1) + rc/nTrials;
-        %       fc              = rc(isub);
-        %       Cee(1)          = Cee(1) + mean(fc)/nTrials;
-        %       CeeSD(1)        = CeeSD(1) + var(fc)/nTrials;
-        %       FCval{1}(:,tr)  = fc;
+              fc              = rc(isub);
+              Cee(1)          = Cee(1) + mean(fc)/nTrials;
+              CeeSD(1)        = CeeSD(1) + var(fc)/nTrials;
+%               FCval(:,tr)  = fc;
         
         %       rEo       = mean(mean(rE));
         %       rEsd      = var(mean(rE));
@@ -234,7 +237,7 @@ for iies = 1 : length(Ies)
       %
       %     PSDstruct(1).PSD = PSD;
       %
-      out = struct('dfa',dfa,'FC',FC,'Ie',Ie,'Ii',Ii,'G',g,'KOP',KOP,'KOPsd',KOPsd,'KOPmean',KOPmean,'ku',ku);
+      out = struct('dfa',dfa,'FC',FC,'Cee',Cee,'CeeSD',CeeSD,'Ie',Ie,'Ii',Ii,'G',g,'KOP',KOP,'KOPsd',KOPsd,'KOPmean',KOPmean,'ku',ku);
       
       save(sprintf('~/pmod/proc/pmod_WC_wholebrain_rest_Ie%d_Ii%d_G%d_v%d.mat',iies,iiis,iG,v),'out')
       
@@ -254,9 +257,10 @@ dfa_emp_task = nanmean(dfa_all(:,:,1,1,2),2);
 
 clear dfa r dfa_r dist_fc fc_sim
 v=1;
-vv = 5;
+vv = 6;
 load(sprintf('~/pupmod/proc/conn/pupmod_src_powcorr_cleaned_v%d.mat',v));
 mask    = logical(tril(ones(90,90),-1));
+mask = find(triu(ones(90))-eye(90));
 fc_rest =  squeeze(nanmean(cleandat(:,:,:,1,1,6),3));
 fc_task =  squeeze(nanmean(cleandat(:,:,:,1,2,6),3));
 
@@ -275,9 +279,7 @@ for iies = 1 : length(Ies)
       r(iies,iiis,iG)=corr(fc_diff(mask),fc_rest(mask));
       r_task(iies,iiis,iG)=corr(fc_diff(mask),fc_task(mask));
       
-
-      
-%       idx = find(~isnan(dfa_emp(1:90)'));
+      idx = find(~isnan(dfa_emp(1:90)'));
       dfa_r (iies,iiis,iG) = corr(dfa_emp(:),dfa(:,iies,iiis,iG));
       dfa_r_task (iies,iiis,iG) = corr(dfa_emp_task(:),dfa(:,iies,iiis,iG));
 
@@ -319,7 +321,7 @@ gg = 1;
 ax1 = subplot(2,4,1); 
 mask1 = fc_sim(:,:,gg) > 0.1 & fc_sim(:,:,gg) < 0.9;
 % imagesc(flipud((squeeze(fc_sim(:,:,gg)).*mask1)'),[0.00 1]); axis square tight
-imagesc(flipud((squeeze(fc_sim(:,:,gg)))'),[0.00 1]); axis square tight
+imagesc(flipud((squeeze(fc_sim(:,:,gg)))'),[-0.1 1]); axis square tight
 
 if length(Iis)== 1
   set(gca,'xtick',1:4:length(Ies),'xticklabel',Ies(1:4:length(Ies)),'tickdir','out')
@@ -331,7 +333,7 @@ else
   xlabel('Exc. input I_E'); ylabel('Inh. input I_I');
 end
 hold on
-scatter(idx(1),length(Ies)-idx(2),20,'markerfacecolor','w','markeredgecolor','k')
+% scatter(idx(1),length(Ies)-idx(2),20,'markerfacecolor','w','markeredgecolor','k')
 
 title('FC_{sim}')
 
@@ -358,7 +360,7 @@ else
 end
 hold on
 title('Correlation (FC_{sim},FC_{emp})')
-scatter(idx(1),length(Ies)-idx(2),20,'markerfacecolor','w','markeredgecolor','k')
+% scatter(idx(1),length(Ies)-idx(2),20,'markerfacecolor','w','markeredgecolor','k')
 
 cmap = cbrewer('div', 'RdBu', 100,'pchip');
 cmap = cmap(end:-1:1,:);
@@ -406,7 +408,7 @@ else
   xlabel('Exc. input I_E'); ylabel('Inh. input I_I');
 end
 hold on
-scatter(idx(1),length(Ies)-idx(2),20,'markerfacecolor','w','markeredgecolor','k')
+% scatter(idx(1),length(Ies)-idx(2),20,'markerfacecolor','w','markeredgecolor','k')
 
 % cmap = hot; cmap = cmap(end:-1:1,:);
 colormap(ax4,cmap)
@@ -434,7 +436,7 @@ else
   xlabel('Exc. input I_E'); ylabel('Inh. input I_I');
 end
 hold on
-scatter(idx(1),length(Ies)-idx(2),20,'markerfacecolor','w','markeredgecolor','k')
+% scatter(idx(1),length(Ies)-idx(2),20,'markerfacecolor','w','markeredgecolor','k')
 
 cmap = inferno;
 % cmap(1,:) = [ 1 1 1 ];
@@ -468,7 +470,7 @@ colormap(ax4,cmap)
 title('Correlation (\alpha_{sim},\alpha_{emp})')
 tp_editplots
 hold on
-scatter(idx(1),length(Ies)-idx(2),20,'markerfacecolor','w','markeredgecolor','k')
+% scatter(idx(1),length(Ies)-idx(2),20,'markerfacecolor','w','markeredgecolor','k')
 
 ax5=subplot(2,4,7);
 
@@ -493,7 +495,7 @@ colormap(ax5,cmap)
 title('Difference (\alpha_{Sim} - \alpha_{Emp})')
 tp_editplots
 hold on
-scatter(idx(1),length(Ies)-idx(2),20,'markerfacecolor','w','markeredgecolor','k')
+% scatter(idx(1),length(Ies)-idx(2),20,'markerfacecolor','w','markeredgecolor','k')
 
 ax5=subplot(2,4,8);
 % imagesc(flipud(squeeze(dfa_r(:,:,gg))'),[-0.5 0.5]);  axis square tight
@@ -512,7 +514,7 @@ end
 
 colormap(ax5,cmap)
 hold on
-scatter(idx(1),length(Ies)-idx(2),20,'markerfacecolor','w','markeredgecolor','k')
+% scatter(idx(1),length(Ies)-idx(2),20,'markerfacecolor','w','markeredgecolor','k')
 
 title('Masked values')
 tp_editplots
@@ -531,7 +533,7 @@ else
   xlabel('Exc. input I_E'); ylabel('Inh. input I_I');
 end
 hold on
-scatter(idx(1),length(Ies)-idx(2),20,'markerfacecolor','w','markeredgecolor','k')
+% scatter(idx(1),length(Ies)-idx(2),20,'markerfacecolor','w','markeredgecolor','k')
 
 % co
 
