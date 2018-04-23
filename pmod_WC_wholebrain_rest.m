@@ -229,7 +229,7 @@ for iies = 1:length(Ies)
         KOP           = abs(ku);
         KOPsd(tr,1)   = std(KOP);
         KOPmean(tr,1) = mean(KOP);
-        tmp = tp_dfa(env,[3 50],ds,0.5,15);
+        tmp           = tp_dfa(env,[3 50],ds,0.5,15);
         %         DFA_fourier_all(R(:,1),[50*400])
         dfa(tr,:,1) = tmp.exp;
         
@@ -280,25 +280,34 @@ end
 
 error('!')
 
-%%
+%% FITTING
 
-% load(sprintf(['~/pconn/proc/dfa/' 'pconn_src_dfa_aal_f%d_m%d_v%d.mat'],2,1,2),'dfa');
-% dfa_emp = dfa; clear dfa
+% ---------
+% LOAD EMPIRICALDFA (LCMV)
+% ---------
 load(sprintf(['~/pupmod/proc/conn/' 'pupmod_src_dfa_aal_v%d.mat'],1));
+% ---------
 % LOAD EMPIRICAL KURAMOTO PARAMETER
+% ---------
 % % subj x m x foi x cond
 % load(sprintf(['~/pupmod/proc/conn/' 'pupmod_all_kuramoto_v%d.mat'],v));
 % kura_emp_rest = mean(kura_std(:,1,1,1)./kura_mean(:,1,1,1));
 % kura_emp_task = mean(kura_std(:,1,1,2)./kura_mean(:,1,1,2));
-
-% dfa_emp_rest = nanmean(dfa_all(end:-1:1,:,1,1,1),2);
-% dfa_emp_task = nanmean(dfa_all(end:-1:1,:,1,1,2),2);
+% ---------
+% MATCH DFA WITH AAL ORDER USED FOR SIMULATIONS
+% ---------
 dfa_emp_rest = nanmean(dfa_all(:,:,1,1,1),2);
+dfa_emp_rest = tp_match_aal(pars,repmat(dfa_emp_rest,[1 90]));
+dfa_emp_rest = dfa_emp_rest(:,1);
+
 dfa_emp_task = nanmean(dfa_all(:,:,1,1,2),2);
+dfa_emp_task = tp_match_aal(pars,repmat(dfa_emp_task,[1 90]));
+dfa_emp_task = dfa_emp_task(:,1);
+% ---------
 
 clear dfa r dfa_r dist_fc fc_sim
 v=1;
-vv = 7;
+vv = 8;
 load(sprintf('~/pupmod/proc/conn/pupmod_src_powcorr_cleaned_v%d.mat',v));
 mask    = logical(tril(ones(90,90),-1));
 mask = find(triu(ones(90))-eye(90));
@@ -322,7 +331,7 @@ for iies = 1 : length(Ies)
       fc_sim_tmp = tp_match_aal(pars,out.FC(:,:,1));
       
 %       r_rest(iies,iiis,iG)=corr(fc_sim_tmp(mask),fc_rest(mask));
-r_rest(iies,iiis,iG) = dot(fc_sim_tmp(mask),fc_rest(mask)) / sqrt(dot(fc_sim_tmp(mask),fc_sim_tmp(mask)) * dot(fc_rest(mask),fc_rest(mask)));
+      r_rest(iies,iiis,iG) = dot(fc_sim_tmp(mask),fc_rest(mask)) / sqrt(dot(fc_sim_tmp(mask),fc_sim_tmp(mask)) * dot(fc_rest(mask),fc_rest(mask)));
 %       r_task(iies,iiis,iG)=corr(fc_sim_tmp(mask),fc_task(mask));
       r_task(iies,iiis,iG) = dot(fc_sim_tmp(mask),fc_task(mask)) / sqrt(dot(fc_sim_tmp(mask),fc_sim_tmp(mask)) * dot(fc_task(mask),fc_task(mask)));
 
@@ -347,7 +356,7 @@ r_rest(iies,iiis,iG) = dot(fc_sim_tmp(mask),fc_rest(mask)) / sqrt(dot(fc_sim_tmp
     
   end
 end
-
+% 
 % pars.N = 90;
 % dfa_emp  =  tp_match_aal(pars,dfa_emp');
 
@@ -370,7 +379,7 @@ gg = 1;
 % -------------------------------
 
 ax1 = subplot(2,4,1);
-mask1 = fc_sim(:,:,gg) > 0.2 & fc_sim(:,:,gg) < 0.7;
+mask1 = fc_sim(:,:,gg) > 0.2 & fc_sim(:,:,gg) < 0.8;
 imagesc(flipud((squeeze(fc_sim(:,:,gg)))),[0  0.5]); 
 axis square tight; hold on
 scatter(idx(2),length(Ies)-idx(1)+1,20,'markerfacecolor','w','markeredgecolor','k')
@@ -384,8 +393,8 @@ tp_editplots;
 % -------------------------------
 
 ax2 = subplot(2,4,2);
-mask2 = r_rest(:,:,gg)>0.5;
-imagesc(flipud(squeeze(r_rest(:,:,gg))),[-1 1]); 
+mask2 = r_rest(:,:,gg)>0.15;
+imagesc(flipud(squeeze(r_rest(:,:,gg))),[-0.2 0.2]); 
 axis square tight; hold on
 scatter(idx(2),length(Ies)-idx(1)+1,20,'markerfacecolor','w','markeredgecolor','k')
 colormap(ax2,cmap)
@@ -713,5 +722,10 @@ print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_WC_wholebrain_task_mask_v%d.pdf',v)
 % tp_editplots; 
 
 
+pars = [];
+pars.grid = 'medium';
+pars.N = 90;
+
+dfa_emp_rest = tp_match_aal(pars,fc_rest);
 
 
