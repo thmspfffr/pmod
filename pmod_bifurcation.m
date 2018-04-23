@@ -9,14 +9,14 @@ N = 2;
 
 wII=4;
 wIE=16;
-wEI=10;
-wEE=10.5;
+wEI=12;
+wEE=12;
 
 tauE = 1;
 tauI = 2;
 tau = [tauE;tauI];
 
-Ies = -2:0.05:4;
+Ies = -3:0.1:3;
 Io=zeros(N,1);
 
 dt=0.01;
@@ -24,7 +24,7 @@ tmax = 1000;
 tspan=0:dt:tmax;
 L = length(tspan);
 
-ds = 2;
+ds = 10;
 Tds = length(0:ds*dt:tmax)-1;
 
 % transfer functions:
@@ -117,7 +117,7 @@ for k = 1:numIes
 %         title(sprintf('Ii = %2.2f, v1 = %2.3f + i*%2.3f',Ii,real(d1),imag(d1)))
 %         text(Tds/2,.3,sprintf('TrA = %2.3f, D = %2.3f',trA,trA^2-4*detA))
     
-    if Io(1) == -0
+    if Io(1) == -1
         
         % null-clines (lines for which dr/dt=0)
         % 0 = -re/tauE + Fe( wEE*re - wEI*ri + Ie );
@@ -130,8 +130,9 @@ for k = 1:numIes
         nullI(:,1) = ( wII*rI - Io(2) + feval( FinvI, rI/tauI ) )/wIE; % = rE
         
         trayectory(:,1) = R(1:10000,1) + 1i*R(1:10000,2);
-
-    elseif Io(1) == 2.5
+        figure; set(gcf,'color','w'); plot(R(1:1000,1)); tp_editplots
+        print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_bifurcation_timeseries_damped.pdf'))
+    elseif Io(1) == 3
         
         rE = 0:0.001:1;
         rI = 0:0.001:1;
@@ -140,6 +141,9 @@ for k = 1:numIes
         
         trayectory(:,2) = R(1:10000,1) + 1i*R(1:10000,2);
         
+        figure; set(gcf,'color','w'); plot(R(1:1000,1)); tp_editplots
+        print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_bifurcation_timeseries_sustained.pdf'))
+ 
     end
 end
 %%
@@ -159,7 +163,7 @@ plot(Ibif(end)*[1 1],[0 1],'k:')
 xlabel('Control param. \itI_{E}','fontname','times')
 ylabel('\itr_E    ','fontname','times','rotation',0)
 text(-.2,1.1,'A','units','normalized','fontsize',14)
-% 
+tp_editplots
 axes('position',[.42 .2 .22 .69])
 plot(rE,nullE(:,1),'k')
 hold on
@@ -170,7 +174,8 @@ ylabel('\itr_I    ','rotation',0,'fontname','times')
 set(gca,'xlim',[0 1],'ylim',[0 1],'xtick',0:.2:1,'ytick',0:.2:1)
 title('\itI_{E}\rm = 0','fontname','times')
 text(-.2,1.1,'B','units','normalized','fontsize',14)
-% 
+
+tp_editplots
 axes('position',[.74 .2 .22 .69])
 plot(rE,nullE(:,2),'k')
 hold on
@@ -181,8 +186,8 @@ ylabel('\itr_I    ','rotation',0,'fontname','times')
 set(gca,'xlim',[0 1],'ylim',[0 1],'xtick',0:.2:1,'ytick',0:.2:1)
 title('\itI_{E}\rm = 2.5','fontname','times')
 text(-.2,1.1,'C','units','normalized','fontsize',14)
-
-print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_bifurcation_v%d.pdf',v))% 
+tp_editplots
+print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_bifurcation_v%d.pdf',1))% 
 % 
 % 
 % 

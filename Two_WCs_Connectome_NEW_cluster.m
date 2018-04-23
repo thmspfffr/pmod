@@ -14,7 +14,7 @@ N = size(C,1);
 
 
 % fixed params:
-nTrials = 50;
+nTrials = 20;
 % Connectivity:
 wII=4;
 wIE=16;
@@ -191,8 +191,8 @@ for Drug = 1:2 % Loop over drugs ------------------------------------------
       f = freqs(freqs<100 & freqs>1);
       fnew = f(1:10:end);
       psd  = psd(1:10:end);
-      pw = gaussfilt(fnew,psd',.5);
-      PSD(:,i,tr) = pw;
+%       pw = gaussfilt(fnew,psd',.5);
+%       PSD(:,i,tr) = pw;
     end
     
   end
@@ -200,7 +200,7 @@ for Drug = 1:2 % Loop over drugs ------------------------------------------
   CeeSD(1)  = sqrt(CeeSD(1));
   RateSD(1) = sqrt(RateSD(1));
   
-  PSDstruct(1).PSD = PSD;
+%   PSDstruct(1).PSD = PSD;
   
   
   display('REST + drug ...')
@@ -291,8 +291,8 @@ for Drug = 1:2 % Loop over drugs ------------------------------------------
       f = freqs(freqs<100 & freqs>1);
       fnew = f(1:10:end);
       psd  = psd(1:10:end);
-      pw = gaussfilt(fnew,psd',.5);
-      PSD(:,i,tr) = pw;
+%       pw = gaussfilt(fnew,psd',.5);
+%       PSD(:,i,tr) = pw;
     end
     
   end
@@ -300,7 +300,7 @@ for Drug = 1:2 % Loop over drugs ------------------------------------------
   CeeSD(2)  = sqrt(CeeSD(2));
   RateSD(2) = sqrt(RateSD(2));
   
-  PSDstruct(2).PSD = PSD;
+%   PSDstruct(2).PSD = PSD;
   
   
   display('TASK ...')
@@ -391,8 +391,8 @@ for Drug = 1:2 % Loop over drugs ------------------------------------------
       f = freqs(freqs<100 & freqs>1);
       fnew = f(1:10:end);
       psd  = psd(1:10:end);
-      pw = gaussfilt(fnew,psd',.5);
-      PSD(:,i,tr) = pw;
+%       pw = gaussfilt(fnew,psd',.5);
+%       PSD(:,i,tr) = pw;
     end
     
   end
@@ -400,7 +400,7 @@ for Drug = 1:2 % Loop over drugs ------------------------------------------
   CeeSD(3)  = sqrt(CeeSD(3));
   RateSD(3) = sqrt(RateSD(3));
   
-  PSDstruct(3).PSD = PSD;
+%   PSDstruct(3).PSD = PSD;
   
   display('TASK + drug ...')
   %--------------------------------------------------------------------------
@@ -492,8 +492,8 @@ for Drug = 1:2 % Loop over drugs ------------------------------------------
       f = freqs(freqs<100 & freqs>1);
       fnew = f(1:10:end);
       psd  = psd(1:10:end);
-      pw = gaussfilt(fnew,psd',.5);
-      PSD(:,i,tr) = pw;
+%       pw = gaussfilt(fnew,psd',.5);
+%       PSD(:,i,tr) = pw;
     end   
   end % -------- END OF TRIAL LOOP --------
   % ---------------------------------------
@@ -501,17 +501,128 @@ for Drug = 1:2 % Loop over drugs ------------------------------------------
   CeeSD(4)  = sqrt(CeeSD(4));
   RateSD(4) = sqrt(RateSD(4));
   
-  PSDstruct(4).PSD = PSD;
+%   PSDstruct(4).PSD = PSD;
   
   %--------------------------------------------------------------------------
   % Save:
   
   if Drug ==1
     save('WC_connectome_ATX_AAL','Rate','RateSD','Cee','CeeSD','FC','FCval',...
-      'Ie','Ii','dIe','dIi','dIe_drug','dIi_drug','Gain_E','Gain_I','Epsilon','PSDstruct','KOPsd','KOPmean')
+      'Ie','Ii','dIe','dIi','dIe_drug','dIi_drug','Gain_E','Gain_I','Epsilon','KOPsd','KOPmean')
   else
     save('WC_connectome_DPZ_AAL','Rate','RateSD','Cee','CeeSD','FC','FCval',...
-      'Ie','Ii','dIe','dIi','dIe_drug','dIi_drug','Gain_E','Gain_I','Epsilon','PSDstruct','KOPsd','KOPmean')
+      'Ie','Ii','dIe','dIi','dIe_drug','dIi_drug','Gain_E','Gain_I','Epsilon','KOPsd','KOPmean')
   end
   
 end % End loop over drugs -------------------------------------------------
+%%
+nTrials = 20;
+figure; set(gcf,'color','white')
+
+subplot(1,2,1); hold on
+load ~/pmod/matlab/WC_connectome_ATX_AAL
+
+bar(Cee); axis([0 5 0 0.02]); 
+line([1 1],[Cee(1)-CeeSD(1)/sqrt(nTrials) Cee(1)+CeeSD(1)/sqrt(nTrials)])
+line([2 2],[Cee(2)-CeeSD(2)/sqrt(nTrials) Cee(2)+CeeSD(2)/sqrt(nTrials)])
+line([3 3],[Cee(3)-CeeSD(3)/sqrt(nTrials) Cee(3)+CeeSD(3)/sqrt(nTrials)])
+line([4 4],[Cee(4)-CeeSD(4)/sqrt(nTrials) Cee(4)+CeeSD(4)/sqrt(nTrials)])
+axis square
+tp_editplots
+
+fprintf('Altered connections: %.2f%%\n',100*sum(ttest(FCval{2},FCval{1},'dim',2,'alpha',0.01))/size(FCval{1},1))
+fprintf('Corr > 0: %.2f%%\n',100*sum(ttest(FCval{2},FCval{1},'dim',2,'alpha',0.01).*(mean(FCval{2},2)-mean(FCval{1},2))>0)./sum(ttest(FCval{1},FCval{2},'dim',2,'alpha',0.01)))
+
+fprintf('Altered connections: %.2f%%\n',100*sum(ttest(FCval{4},FCval{3},'dim',2,'alpha',0.01))/size(FCval{1},1))
+fprintf('Corr > 0: %.2f%%\n',100*sum(ttest(FCval{4},FCval{3},'dim',2,'alpha',0.01).*(mean(FCval{4},2)-mean(FCval{3},2))>0)./sum(ttest(FCval{4},FCval{3},'dim',2,'alpha',0.01)))
+
+
+load ~/pmod/matlab/WC_connectome_DPZ_AAL
+subplot(1,2,2); hold on
+
+bar(Cee); axis([0 5 0 0.02]); 
+line([1 1],[Cee(1)-CeeSD(1)/sqrt(nTrials) Cee(1)+CeeSD(1)/sqrt(nTrials)])
+line([2 2],[Cee(2)-CeeSD(2)/sqrt(nTrials) Cee(2)+CeeSD(2)/sqrt(nTrials)])
+line([3 3],[Cee(3)-CeeSD(3)/sqrt(nTrials) Cee(3)+CeeSD(3)/sqrt(nTrials)])
+line([4 4],[Cee(4)-CeeSD(4)/sqrt(nTrials) Cee(4)+CeeSD(4)/sqrt(nTrials)])
+axis square
+tp_editplots
+
+fprintf('Altered connections: %.2f%%\n',100*sum(ttest(FCval{1},FCval{2},'dim',2,'alpha',0.01))/size(FCval{1},1))
+fprintf('Corr > 0: %.2f%%\n',100*sum(ttest(FCval{2},FCval{1},'dim',2,'alpha',0.01).*(mean(FCval{2},2)-mean(FCval{1},2))>0)./sum(ttest(FCval{1},FCval{2},'dim',2,'alpha',0.01)))
+
+fprintf('Altered connections: %.2f%%\n',100*sum(ttest(FCval{3},FCval{4},'dim',2,'alpha',0.01))/size(FCval{1},1))
+fprintf('Corr > 0: %.2f%%\n',100*sum(ttest(FCval{4},FCval{3},'dim',2,'alpha',0.01).*(mean(FCval{4},2)-mean(FCval{3},2))>0)./sum(ttest(FCval{4},FCval{3},'dim',2,'alpha',0.01)))
+
+print(gcf,'-dpdf',sprintf('~/pmod/plots/whole_brain_barplots.pdf'))
+
+%% TASK VS REST AUTOCORRELATION
+
+figure; set (gcf,'color','w');
+
+subplot(1,2,1); hold on
+
+
+bar([mean(mean(Epsilon{1})) mean(mean(Epsilon{3}))]); axis([0 5 0 0.03]); 
+line([1 1],[mean(mean(Epsilon{1}))-std(mean(Epsilon{1})) mean(mean(Epsilon{1}))+std(mean(Epsilon{1}))])
+line([2 2],[mean(mean(Epsilon{3}))-std(mean(Epsilon{3})) mean(mean(Epsilon{3}))+std(mean(Epsilon{3}))])
+
+tp_editplots
+subplot(1,2,2); hold on
+
+% figure; set (gcf,'color','w');
+
+bar([mean(mean(FCval{1})) mean(mean(FCval{3}))]); axis([0 5 0 0.03]); 
+line([1 1],[mean(mean(FCval{1}))-std(mean(FCval{1})) mean(mean(FCval{1}))+std(mean(FCval{1}))])
+line([2 2],[mean(mean(FCval{3}))-std(mean(FCval{3})) mean(mean(FCval{3}))+std(mean(FCval{3}))])
+tp_editplots
+print(gcf,'-dpdf',sprintf('~/pmod/plots/whole_brain_barplots_corr.pdf'))
+
+%% FC MATRICES
+
+figure; set(gcf,'color','w'); tp_editplots
+
+load ~/pmod/matlab/WC_connectome_ATX_AAL
+
+pars = [];
+pars.grid = 'medium';
+pars.N = 90;
+
+for i = 1 : 4; FC(:,:,i) = tp_match_aal(pars,FC(:,:,i)); end 
+
+subplot(2,4,1)
+imagesc(FC(:,:,1),[0 0.1]); 
+axis square; colormap(plasma); axis off
+subplot(2,4,2)
+imagesc(FC(:,:,2),[0 0.1]); 
+axis square; colormap(plasma); axis off
+subplot(2,4,3); axis off
+imagesc(FC(:,:,3),[0 0.1]); 
+axis square; colormap(plasma); axis off
+subplot(2,4,4); axis off
+imagesc(FC(:,:,4),[0 0.1]); 
+axis square; colormap(plasma); axis off
+
+load ~/pmod/matlab/WC_connectome_DPZ_AAL
+
+for i = 1 : 4; FC(:,:,i) = tp_match_aal(pars,FC(:,:,i)); end 
+
+a=subplot(2,4,5); 
+imagesc(FC(:,:,1),[0 0.1]);
+axis square; colormap(plasma); axis off
+subplot(2,4,6);
+imagesc(FC(:,:,2),[0 0.1]); 
+axis square; colormap(plasma); axis off
+subplot(2,4,7);
+imagesc(FC(:,:,3),[0 0.1]); 
+axis square; colormap(plasma); axis off
+subplot(2,4,8);
+imagesc(FC(:,:,4),[0 0.1]); 
+axis square; colormap(plasma); axis off
+
+%% CORRELATION WITH EMPIRICAL DATA
+
+
+
+
+

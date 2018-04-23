@@ -7,71 +7,11 @@ clear
 %-------------------------------------------------------------------------
 % VERSION 1
 %-------------------------------------------------------------------------
-% v = 1;
-% Ies = -1.5:0.2:2;
-% Iis = -4:0.2:0;
-% nTrials = 20;
+v = 1;
+Ies = -3;
+Iis = -5;
+nTrials = 4;
 %-------------------------------------------------------------------------
-% VERSION 2
-%-------------------------------------------------------------------------
-% v = 2;
-% Ies = -2.2:0.1:0.1;
-% Iis = -3.8:0.2:-0.8;
-% nTrials = 20;
-%-------------------------------------------------------------------------
-% VERSION 3
-%-------------------------------------------------------------------------
-% v = 3;
-% Ies = -2.2:0.1:0.1;
-% Iis = -4;
-% Gg = 0.5:0.02:0.8; % 0.62
-% nTrials = 20;
-%-------------------------------------------------------------------------
-% VERSION 4
-%-------------------------------------------------------------------------
-% v = 4;
-% Ies = -5:0.2:1;
-% Iis = -6:0.2:0;
-% Gg  = 0.62; % 0.62
-% nTrials = 5;
-%-------------------------------------------------------------------------
-% VERSION 5
-%-------------------------------------------------------------------------
-%-------------------------------------------------------------------------
-% VERSION 6
-%-------------------------------------------------------------------------
-v = 6;
-Ies = -4:0.1:-0.5;
-Iis = -6:0.1:-1.5;
-Gg  = 0.2:0.05:0.6; % 0.62
-nTrials = 5;
-%-------------------------------------------------------------------------
-% VERSION 7
-%-------------------------------------------------------------------------
-v = 7;
-Ies = -4:0.2:-0.5;
-Iis = -6:0.2:-1.5;
-Gg  = 0.6; % 0.62
-nTrials = 3;
-%-------------------------------------------------------------------------
-
-% VERSION 8
-%-------------------------------------------------------------------------
-v = 8;
-Ies = -4:0.2:-0.5;
-Iis = -6:0.2:-1.5;
-Gg  = 1.2; % 0.62
-nTrials = 1;
-%-------------------------------------------------------------------------
-
-
-% LOAD CLEANED DATA AND COMPUTE MEAN
-% v = 1;
-% load(sprintf('~/pupmod/proc/conn/pupmod_src_powcorr_cleaned_v%d.mat',v));
-% fc_emp_atx(:,:,1) = squeeze(nanmean(cleandat(:,:,:,2,1,6),3))-squeeze(nanmean(cleandat(:,:,:,1,1,6),3));
-% fc_emp_atx(:,:,2) = squeeze(nanmean(cleandat(:,:,:,2,2,6),3))-squeeze(nanmean(cleandat(:,:,:,1,2,6),3));
-% fc_emp_dpz(:,:,1) = squeeze(nanmean(cleandat(:,:,:,3,1,7),3))-squeeze(nanmean(cleandat(:,:,:,1,1,7),3));
-% fc_emp_dpz(:,:,2) = squeeze(nanmean(cleandat(:,:,:,3,2,7),3))-squeeze(nanmean(cleandat(:,:,:,1,2,7),3));
 
 % load connectome
 load ~/pmod/matlab/EC.mat %Matt_EC
@@ -91,7 +31,6 @@ wII=4;
 wIE=16;
 wEI=12;
 wEE=12;
-
 
 tauE = 1;
 tauI = 2;
@@ -129,22 +68,23 @@ fnq=1/(2*delt);       % Nyquist frequency
 Wn=[flp/fnq fhi/fnq]; % butterworth bandpass non-dimensional frequency
 [bfilt,afilt]=butter(k,Wn);
 
+gains = 0.8:0.05:1.2;
+eis   = 0.8:0.05:1.2;
 
 % dI_drug(N+1:2*N) = dIi_drug;
 
 isub = find( triu(ones(N)) - eye(N) );
 %%
-for iies = 1:length(Ies)
-  for iiis = 1: length(Iis)
-    for iG = 1 : length(Gg)
+for igain = 1:length(gains)
+    for iei = 1 : length(eis)
       
-%       if ~exist(sprintf(['~/pmod/proc/' 'pmod_WC_wholebrain_rest_Ie%d_Ii%d_G%d_v%d_processing.txt'],iies,iiis,iG,v))
-%         system(['touch ' '~/pmod/proc/' sprintf('pmod_WC_wholebrain_rest_Ie%d_Ii%d_G%d_v%d_processing.txt',iies,iiis,iG,v)]);
-%       else
-%         continue
-%       end
+      if ~exist(sprintf(['~/pmod/proc/' 'pmod_WC_wholebrain_drugs_g%d_ei%d_v%d_processing.txt'],igain,iei,v))
+        system(['touch ' '~/pmod/proc/' sprintf('pmod_WC_wholebrain_drugs_g%d_ei%d_v%d_processing.txt',igain,iei,v)]);
+      else
+        continue
+      end
       
-      g = Gg(iG);
+      g = 0.60;
       W = [wEE*eye(N)+g*C -wEI*eye(N); wIE*eye(N) -wII*eye(N)];
       
       FC = zeros(N,N,1);
@@ -161,8 +101,8 @@ for iies = 1:length(Ies)
       KOPmean = zeros(nTrials,1);
       % Control params.
       %--------------------
-      Ie = Ies(iies);
-      Ii = Iis(iiis);
+      Ie = Ies;
+      Ii = Iis;
       
       Io=zeros(2*N,1);
       Io(1:N) = Ie;
@@ -195,7 +135,7 @@ for iies = 1:length(Ies)
       
       
       for tr=1:nTrials
-        fprintf('Rest, Ie%d, Ii%d, trial%d ...\n',iies,iiis,tr)
+        fprintf('Rest, Gain%d, EI%d, trial%d ...\n',igain,iei,tr)
         r   = 0.001*rand(2*N,1);
         R   = zeros(Tds,N);
         Ri  = zeros(Tds,N);
@@ -272,11 +212,11 @@ for iies = 1:length(Ies)
       %
       out = struct('dfa',dfa,'FC',FC,'Cee',Cee,'CeeSD',CeeSD,'Ie',Ie,'Ii',Ii,'G',g,'KOP',KOP,'KOPsd',KOPsd,'KOPmean',KOPmean,'ku',ku);
       
-      save(sprintf('~/pmod/proc/pmod_WC_wholebrain_rest_Ie%d_Ii%d_G%d_v%d.mat',iies,iiis,iG,v),'out')
+      save(sprintf('~/pmod/proc/pmod_WC_wholebrain_drugs_g%d_ei%d_v%d.mat',igain,iei,v),'out')
       
     end
   end
-end
+
 
 error('!')
 
@@ -370,7 +310,7 @@ gg = 1;
 % -------------------------------
 
 ax1 = subplot(2,4,1);
-mask1 = fc_sim(:,:,gg) > 0.2 & fc_sim(:,:,gg) < 0.7;
+mask1 = fc_sim(:,:,gg) > 0.2 & fc_sim(:,:,gg) < 0.8;
 imagesc(flipud((squeeze(fc_sim(:,:,gg)))),[0  0.5]); 
 axis square tight; hold on
 scatter(idx(2),length(Ies)-idx(1)+1,20,'markerfacecolor','w','markeredgecolor','k')
@@ -384,7 +324,7 @@ tp_editplots;
 % -------------------------------
 
 ax2 = subplot(2,4,2);
-mask2 = r_rest(:,:,gg)>0.5;
+mask2 = r_rest(:,:,gg)>0.9;
 imagesc(flipud(squeeze(r_rest(:,:,gg))),[-1 1]); 
 axis square tight; hold on
 scatter(idx(2),length(Ies)-idx(1)+1,20,'markerfacecolor','w','markeredgecolor','k')

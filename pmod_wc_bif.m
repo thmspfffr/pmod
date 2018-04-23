@@ -6,7 +6,7 @@ N = 2;
 
 wII=4;
 wIE=16;
-wEI=10;
+wEI=12;
 wEE=12;
 
 tauE = 1;
@@ -17,12 +17,12 @@ Ie = -1;
 Io=zeros(N,1);
 
 
-dt=0.05;
+dt=0.01;
 tmax = 1000;
 tspan=0:dt:tmax;
 L = length(tspan);
 
-ds = 2;
+ds = 10;
 Tds = length(0:ds*dt:tmax)-1;
 
 % transfer functions:
@@ -40,7 +40,7 @@ FinvE = @(x) log( aE*x./(1-aE*x) );
 FinvI = @(x) log( aI*x./(1-aI*x) );
 
 Iis = -4;
-Ies = -6:.1:4;
+Ies = -0:.2:4;
 
 numIis = length(Iis);
 numIes = length(Ies);
@@ -151,9 +151,9 @@ for k = 1:numIis
     %
     %         trayectory(:,2) = R(1:200,1) + 1i*R(1:200,2);
     %
+  
+  
   end
-  
-  
     figure
     xSize = 15; ySize = 4.8;
     xLeft = (21-xSize)/2; yTop = (30-ySize)/2;
@@ -165,6 +165,7 @@ for k = 1:numIis
     plot(Ies,Re,'k')
     hold on
     Ibif = Ies(abs(Re(:,1)-Re(:,2))>0.0001); %bifurcations
+%     all_bif(l,:) = [Ibif(1) Ibif(end)];
     plot(Ibif(1)*[1 1],[0 1],'k:')
     plot(Ibif(end)*[1 1],[0 1],'k:')
     xlabel('Control param. \itI_{I}','fontname','times')
