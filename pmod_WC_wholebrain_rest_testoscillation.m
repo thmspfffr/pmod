@@ -4,94 +4,17 @@
 
 clear
 
-%-------------------------------------------------------------------------
-% VERSION 1
-%-------------------------------------------------------------------------
-% v = 1;
-% Ies = -1.5:0.2:2;
-% Iis = -4:0.2:0;
-% nTrials = 20;
-%-------------------------------------------------------------------------
-% VERSION 2
-%-------------------------------------------------------------------------
-% v = 2;
-% Ies = -2.2:0.1:0.1;
-% Iis = -3.8:0.2:-0.8;
-% nTrials = 20;
-%-------------------------------------------------------------------------
-% VERSION 3
-%-------------------------------------------------------------------------
-% v = 3;
-% Ies = -2.2:0.1:0.1;
-% Iis = -4;
-% Gg = 0.5:0.02:0.8; % 0.62
-% nTrials = 20;
-%-------------------------------------------------------------------------
-% VERSION 4
-%-------------------------------------------------------------------------
-% v = 4;
-% Ies = -5:0.2:1;
-% Iis = -6:0.2:0;
-% Gg  = 0.62; % 0.62
-% nTrials = 5;
-%-------------------------------------------------------------------------
-% VERSION 5
-%-------------------------------------------------------------------------
-%-------------------------------------------------------------------------
-% VERSION 6
-%-------------------------------------------------------------------------
-v = 6;
-Ies = -4:0.1:-0.5;
-Iis = -6:0.1:-1.5;
-Gg  = 0.2:0.05:0.6; % 0.62
-nTrials = 5;
-envelopes = 0;
-%-------------------------------------------------------------------------
-% VERSION 7
-%-------------------------------------------------------------------------
-v = 7;
-Ies = -4:0.2:-0.5;
-Iis = -6:0.2:-1.5;
-Gg  = 0.6; % 0.62
-nTrials = 3;
-envelopes = 1;
-%-------------------------------------------------------------------------
-
-% VERSION 8
-%-------------------------------------------------------------------------
-v = 8;
-Ies = -4:0.2:-0.5;
-Iis = -6:0.2:-1.5;
-Gg  = 1.2; % 0.62
-nTrials = 1;
-envelopes = 1;
-%-------------------------------------------------------------------------
-% VERSION 9
-%-------------------------------------------------------------------------
-% v = 9;
-% Ies = -4:0.2:-0.5;
-% Iis = -6:0.2:-1.5;
-% Gg  = 1; % 0.62
-% nTrials = 5;
 % envelopes = 1;
 %-------------------------------------------------------------------------
 % VERSION 10
 %-------------------------------------------------------------------------
 v = 10;
-Ies = -4:0.1:-0.5;
-Iis = -6:0.1:-1.5;
-Gg  = 0.62:0.1:0.92; % 0.62
-nTrials = 3;
+Ies = -6:0.5:0;
+Iis = -6:0.5:0;
+Gg  = 0.62; % 0.62
+nTrials = 1;
 envelopes = 1;
 %-----
-
-% LOAD CLEANED DATA AND COMPUTE MEAN
-% v = 1;
-% load(sprintf('~/pupmod/proc/conn/pupmod_src_powcorr_cleaned_v%d.mat',v));
-% fc_emp_atx(:,:,1) = squeeze(nanmean(cleandat(:,:,:,2,1,6),3))-squeeze(nanmean(cleandat(:,:,:,1,1,6),3));
-% fc_emp_atx(:,:,2) = squeeze(nanmean(cleandat(:,:,:,2,2,6),3))-squeeze(nanmean(cleandat(:,:,:,1,2,6),3));
-% fc_emp_dpz(:,:,1) = squeeze(nanmean(cleandat(:,:,:,3,1,7),3))-squeeze(nanmean(cleandat(:,:,:,1,1,7),3));
-% fc_emp_dpz(:,:,2) = squeeze(nanmean(cleandat(:,:,:,3,2,7),3))-squeeze(nanmean(cleandat(:,:,:,1,2,7),3));
 
 % load connectome
 load ~/pmod/matlab/EC.mat %Matt_EC
@@ -120,7 +43,7 @@ tau(1:N) = tauE;
 tau(N+1:2*N) = tauI;
 
 dt=0.01;
-tmax = 10000; % in units of tauE
+tmax = 500; % in units of tauE
 tspan=0:dt:tmax;
 L = length(tspan);
 
@@ -157,13 +80,7 @@ isub = find( triu(ones(N)) - eye(N) );
 for iies = 1:length(Ies)
   for iiis = 1: length(Iis)
     for iG = 1 : length(Gg)
-%       
-      if ~exist(sprintf(['~/pmod/proc/' 'pmod_WC_wholebrain_rest_Ie%d_Ii%d_G%d_v%d_processing.txt'],iies,iiis,iG,v))
-        system(['touch ' '~/pmod/proc/' sprintf('pmod_WC_wholebrain_rest_Ie%d_Ii%d_G%d_v%d_processing.txt',iies,iiis,iG,v)]);
-      else
-        continue
-      end
-      
+
       g = Gg(iG);
       W = [wEE*eye(N)+g*C -wEI*eye(N); wIE*eye(N) -wII*eye(N)];
       
@@ -200,20 +117,9 @@ for iies = 1:length(Ies)
       % Working point:
       Io(1:N)     = Ie;
       Io(N+1:2*N) = Ii;
-      %
-      %     FCval{1}    = zeros(length(isub),nTrials);
-      %     Epsilon{1}  = zeros(N,nTrials);
-      
+
       T       = Tds*resol; %% define time of interval
-      %     freqs   = (0:Tds/2)/T; %% find the corresponding frequency in Hz
-      %     nfreqs  = length(freqs);
-      %     freq100 = freqs(freqs<100 & freqs>1);
-      %     pp      = 1:10:length(freq100);
-      %     PSD     = zeros(length(pp),N,nTrials);
-      
-      %     PSDstruct(1).frequencies = freq100(1:10:end)';
-      
-      
+
       for tr=1:nTrials
         fprintf('Rest, Ie%d, Ii%d, trial%d ...\n',iies,iiis,tr)
         r   = 0.001*rand(2*N,1);
@@ -239,71 +145,21 @@ for iies = 1:length(Ies)
         end
         
         %correlation:
-        rE = R; 
-        env = abs(hilbert(filtfilt(bfilt,afilt,rE))); 
-        rI = Ri;
+        [~,l]=findpeaks(R(:,1),'MinPeakHeight',mean(R(:,1)))
+        if std(diff(l))<3
+          osc(iies,iiis) = 1;
+        else
+          osc(iies,iiis) = 0;
+        end
         
         
-        z             = rE + 1i*rI;
-        ku            = sum(z,2)/N;
-        KOP           = abs(ku);
-        KOPsd(tr,1)   = std(KOP);
-        KOPmean(tr,1) = mean(KOP);
-        %         DFA_fourier_all(R(:,1),[50*400])
-        
-        
-        rc           = corrcoef(rE);
-        tmp           = tp_dfa(R,[3 50],ds,0.5,15);
-        dfa(tr,:,1) = tmp.exp;
-        FC(:,:,1)       = FC(:,:,1) + rc/nTrials;
-        fc              = rc(isub);
-        Cee(1)          = Cee(1) + mean(fc)/nTrials;
-        CeeSD(1)        = CeeSD(1) + var(fc)/nTrials;
-        
-        rc          = corrcoef(env);
-        tmp         = tp_dfa(env,[3 50],ds,0.5,15);
-        dfa_env(tr,:,1) = tmp.exp;
-
-        
-        FC_env(:,:,1)       = FC(:,:,1) + rc/nTrials;
-        fc_env              = rc(isub);
-        Cee_env(1)          = Cee(1) + mean(fc)/nTrials;
-        CeeSD_env(1)        = CeeSD(1) + var(fc)/nTrials;
-        %               FCval(:,tr)  = fc;
-        
-        %       rEo       = mean(mean(rE));
-        %       rEsd      = var(mean(rE));
-        %       Rate(1)   = rEo-rEo;
-        %       RateSD(1) = RateSD(1) + rEsd/nTrials;
-        
-        %       for i=1:N
-        %         %autocorr
-        % %         [acf,lags] = autocorr(R(:,i),300);
-        % %         ii = find(acf<.2,1,'first');
-        % %         Epsilon{1}(i,tr) = lags(ii)*resol;
-        %         %PSD:
-        %         f = R(:,i) - mean(R(:,i));
-        %         xdft = fft(f);
-        %         xdft = xdft(1:floor(Tds/2)+1);
-        %         pw = (1/(Tds/2)) * abs(xdft).^2;
-        %         psd = pw(freqs<100 & freqs>1);
-        %         f = freqs(freqs<100 & freqs>1);
-        %         fnew = f(1:10:end);
-        %         psd  = psd(1:10:end);
-        %         %       pw = gaussfilt(fnew,psd',.5);
-        %         PSD(:,i,tr) = psd';
-        %       end
-        
+    
       end
       
-      %     CeeSD(1)  = sqrt(CeeSD(1));
-      %     RateSD(1) = sqrt(RateSD(1));
-      %
-      %     PSDstruct(1).PSD = PSD;
-      %
-      out = struct('dfa_env',dfa_env,'FC',FC,'Cee',Cee,'CeeSD',CeeSD,'FC_env',FC_env,'Cee_env',Cee_env,'CeeSD_env',CeeSD_env,'Ie',Ie,'Ii',Ii,'G',g,'KOP',KOP,'KOPsd',KOPsd,'KOPmean',KOPmean,'ku',ku);
+    
+%       out = struct('dfa_env',dfa_env,'FC',FC,'Cee',Cee,'CeeSD',CeeSD,'FC_env',FC_env,'Cee_env',Cee_env,'CeeSD_env',CeeSD_env,'Ie',Ie,'Ii',Ii,'G',g,'KOP',KOP,'KOPsd',KOPsd,'KOPmean',KOPmean,'ku',ku);
       
-      save(sprintf('~/pmod/proc/pmod_WC_wholebrain_rest_Ie%d_Ii%d_G%d_v%d.mat',iies,iiis,iG,v),'out')
+%       save(sprintf('~/pmod/proc/pmod_WC_wholebrain_rest_Ie%d_Ii%d_G%d_v%d.mat',iies,iiis,iG,v),'out')
       
     end
   end

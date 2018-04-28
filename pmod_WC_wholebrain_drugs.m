@@ -1,16 +1,26 @@
-%% pmod_WC_wholebrain_rest
+%% pmod_WC_wholebrain_drugs
 % Stochastic simulation of 2*N WC nodes during "rest"
 %-------------------------------------------------------------------------
 
 clear
-
+% Ie = -2.85; 
+% Ii = -3.50; %-1;
+% Ie -2.85 / Ii -3.5
 %-------------------------------------------------------------------------
-% VERSION 1
+% v           = 6;
+% Ies         = -3.85:0.1:-0.85;
+% Iis         = -4.5:0.1:-1.50;
+% Gg          = 0.6; 
+% Gains       = -0.2:0.2:0.2;
+% nTrials     = 3;
 %-------------------------------------------------------------------------
-v = 1;
-Ies = -3;
-Iis = -5;
-nTrials = 4;
+%-------------------------------------------------------------------------
+v           = 7;
+Ies         = -3.85:0.1:-0.85;
+Iis         = -4.5:0.1:-1.50;
+Gg          = 0.6; 
+Gains       = -0.2:0.2:0.2;
+nTrials     = 3;
 %-------------------------------------------------------------------------
 
 % load connectome
@@ -31,6 +41,7 @@ wII=4;
 wIE=16;
 wEI=12;
 wEE=12;
+
 
 tauE = 1;
 tauI = 2;
@@ -68,23 +79,23 @@ fnq=1/(2*delt);       % Nyquist frequency
 Wn=[flp/fnq fhi/fnq]; % butterworth bandpass non-dimensional frequency
 [bfilt,afilt]=butter(k,Wn);
 
-gains = 0.8:0.05:1.2;
-eis   = 0.8:0.05:1.2;
 
 % dI_drug(N+1:2*N) = dIi_drug;
 
 isub = find( triu(ones(N)) - eye(N) );
 %%
-for igain = 1:length(gains)
-    for iei = 1 : length(eis)
+for iies = 1:length(Ies)
+  for iiis = 1: length(Iis)
+    for iG = 1 : length(Gg)
+      for igain = 1 : length(Gains)
       
-      if ~exist(sprintf(['~/pmod/proc/' 'pmod_WC_wholebrain_drugs_g%d_ei%d_v%d_processing.txt'],igain,iei,v))
-        system(['touch ' '~/pmod/proc/' sprintf('pmod_WC_wholebrain_drugs_g%d_ei%d_v%d_processing.txt',igain,iei,v)]);
+      if ~exist(sprintf(['~/pmod/proc/' 'pmod_WC_wholebrain_rest_drugs_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt'],iies,iiis,iG,igain,v))
+        system(['touch ' '~/pmod/proc/' sprintf('pmod_WC_wholebrain_rest_drugs_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt',iies,iiis,iG,igain,v)]);
       else
         continue
       end
       
-      g = 0.60;
+      g = Gg(iG);
       W = [wEE*eye(N)+g*C -wEI*eye(N); wIE*eye(N) -wII*eye(N)];
       
       FC = zeros(N,N,1);
@@ -101,16 +112,16 @@ for igain = 1:length(gains)
       KOPmean = zeros(nTrials,1);
       % Control params.
       %--------------------
-      Ie = Ies;
-      Ii = Iis;
+      Ie = Ies(iies);
+      Ii = Iis(iiis);
       
       Io=zeros(2*N,1);
       Io(1:N) = Ie;
       Io(N+1:2*N) = Ii;
       
       % transfer function:
-      gE  = 1;
-      gI  = 1;
+      gE = 1 + Gains(igain);
+      gI = 1 + Gains(igain);
       aE  = 1/gE;
       aI  = 1/gI;
       Fe  = @(x) 1./(1 + exp(-x/aE) );
@@ -135,7 +146,7 @@ for igain = 1:length(gains)
       
       
       for tr=1:nTrials
-        fprintf('Rest, Gain%d, EI%d, trial%d ...\n',igain,iei,tr)
+        fprintf('Rest, Ie%d, Ii%d, trial%d ...\n',iies,iiis,tr)
         r   = 0.001*rand(2*N,1);
         R   = zeros(Tds,N);
         Ri  = zeros(Tds,N);
@@ -163,21 +174,31 @@ for igain = 1:length(gains)
         env = abs(hilbert(filtfilt(bfilt,afilt,rE))); 
         rI = Ri;
         
-        
         z             = rE + 1i*rI;
         ku            = sum(z,2)/N;
         KOP           = abs(ku);
         KOPsd(tr,1)   = std(KOP);
         KOPmean(tr,1) = mean(KOP);
-        tmp = tp_dfa(env,[3 50],ds,0.5,15);
         %         DFA_fourier_all(R(:,1),[50*400])
-        dfa(tr,:,1) = tmp.exp;
         
-        rc              = corrcoef(env);
+        
+        rc           = corrcoef(rE);
+        tmp           = tp_dfa(R,[3 50],ds,0.5,15);
+        dfa(tr,:,1)     = tmp.exp;
         FC(:,:,1)       = FC(:,:,1) + rc/nTrials;
         fc              = rc(isub);
         Cee(1)          = Cee(1) + mean(fc)/nTrials;
         CeeSD(1)        = CeeSD(1) + var(fc)/nTrials;
+        
+        rc          = corrcoef(env);
+        tmp         = tp_dfa(env,[3 50],ds,0.5,15);
+        dfa_env(tr,:,1) = tmp.exp;
+
+        
+        FC_env(:,:,1)       = FC(:,:,1) + rc/nTrials;
+        fc_env              = rc(isub);
+        Cee_env(1)          = Cee(1) + mean(fc)/nTrials;
+        CeeSD_env(1)        = CeeSD(1) + var(fc)/nTrials;
         %               FCval(:,tr)  = fc;
         
         %       rEo       = mean(mean(rE));
@@ -210,35 +231,47 @@ for igain = 1:length(gains)
       %
       %     PSDstruct(1).PSD = PSD;
       %
-      out = struct('dfa',dfa,'FC',FC,'Cee',Cee,'CeeSD',CeeSD,'Ie',Ie,'Ii',Ii,'G',g,'KOP',KOP,'KOPsd',KOPsd,'KOPmean',KOPmean,'ku',ku);
+      out = struct('dfa_env',dfa_env,'dfa',dfa,'FC',FC,'Cee',Cee,'CeeSD',CeeSD,'FC_env',FC_env,'Cee_env',Cee_env,'CeeSD_env',CeeSD_env,'Ie',Ie,'Ii',Ii,'G',g,'KOP',KOP,'KOPsd',KOPsd,'KOPmean',KOPmean,'ku',ku);
       
-      save(sprintf('~/pmod/proc/pmod_WC_wholebrain_drugs_g%d_ei%d_v%d.mat',igain,iei,v),'out')
+      save(sprintf('~/pmod/proc/pmod_WC_wholebrain_rest_drugs_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,v),'out')
       
     end
   end
-
-
+end
+end
 error('!')
 
-%%
-
-% load(sprintf(['~/pconn/proc/dfa/' 'pconn_src_dfa_aal_f%d_m%d_v%d.mat'],2,1,2),'dfa');
-% dfa_emp = dfa; clear dfa
-load(sprintf(['~/pupmod/proc/conn/' 'pupmod_src_dfa_aal_v%d.mat'],1));
+%% FITTING
+% ---------
+% LOAD EMPIRICALDFA (LCMV)
+% ---------
+load(sprintf(['~/pupmod/proc/conn/' 'pupmod_src_dfa_v%d.mat'],1));
+% ---------
 % LOAD EMPIRICAL KURAMOTO PARAMETER
+% ---------
 % % subj x m x foi x cond
 % load(sprintf(['~/pupmod/proc/conn/' 'pupmod_all_kuramoto_v%d.mat'],v));
 % kura_emp_rest = mean(kura_std(:,1,1,1)./kura_mean(:,1,1,1));
 % kura_emp_task = mean(kura_std(:,1,1,2)./kura_mean(:,1,1,2));
+% ---------
+% MATCH DFA WITH AAL ORDER USED FOR SIMULATIONS
+% ---------
+pars = [];
+pars.grid = 'medium';
+pars.N = 90;
 
-% dfa_emp_rest = nanmean(dfa_all(end:-1:1,:,1,1,1),2);
-% dfa_emp_task = nanmean(dfa_all(end:-1:1,:,1,1,2),2);
 dfa_emp_rest = nanmean(dfa_all(:,:,1,1,1),2);
+% dfa_emp_rest = tp_match_aal(pars,repmat(dfa_emp_rest,[1 90]));
+% dfa_emp_rest = dfa_emp_rest(:,1);
+
 dfa_emp_task = nanmean(dfa_all(:,:,1,1,2),2);
+% dfa_emp_task = tp_match_aal(pars,repmat(dfa_emp_task,[1 90]));
+% dfa_emp_task = dfa_emp_task(:,1);
+% ---------
 
 clear dfa r dfa_r dist_fc fc_sim
 v=1;
-vv = 7;
+vv =6;
 load(sprintf('~/pupmod/proc/conn/pupmod_src_powcorr_cleaned_v%d.mat',v));
 mask    = logical(tril(ones(90,90),-1));
 mask = find(triu(ones(90))-eye(90));
@@ -250,33 +283,39 @@ for iies = 1 : length(Ies)
   iies
   for iiis = 1 : length(Iis)
     for iG = 1
-      
+      for igain = 1 : length(Gains)
+
       %       load(sprintf('~/pmod/proc/pmod_WC_wholebrain_rest_Ie%d_Ii%d_v%d.mat',iies,iiis,vv))
-      load(sprintf('~/pmod/proc/pmod_WC_wholebrain_rest_Ie%d_Ii%d_G%d_v%d.mat',iies,iiis,iG,vv))
+      load(sprintf('~/pmod/proc/pmod_WC_wholebrain_rest_drugs_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,vv))
+            
+      if round(Ies(iies)*100)/100 == -2.8 && round( Iis(iiis)*100)/100 == -3.4
+        disp('save stuff')
+        FFCC = out.FC;
+      end
       
-      dfa_sim(:,iies,iiis,iG) = squeeze(mean(out.dfa));
-      pars = [];
-      pars.grid = 'medium';
-      pars.N = 90;
-      
+      dfa_sim(:,iies,iiis,iG,igain) = squeeze(mean(out.dfa_env));
       fc_sim_tmp = tp_match_aal(pars,out.FC(:,:,1));
       
 %       r_rest(iies,iiis,iG)=corr(fc_sim_tmp(mask),fc_rest(mask));
-r_rest(iies,iiis,iG) = dot(fc_sim_tmp(mask),fc_rest(mask)) / sqrt(dot(fc_sim_tmp(mask),fc_sim_tmp(mask)) * dot(fc_rest(mask),fc_rest(mask)));
+      r_rest(iies,iiis,iG,igain) = dot(fc_sim_tmp(mask),fc_rest(mask)) / sqrt(dot(fc_sim_tmp(mask),fc_sim_tmp(mask)) * dot(fc_rest(mask),fc_rest(mask)));
 %       r_task(iies,iiis,iG)=corr(fc_sim_tmp(mask),fc_task(mask));
-      r_task(iies,iiis,iG) = dot(fc_sim_tmp(mask),fc_task(mask)) / sqrt(dot(fc_sim_tmp(mask),fc_sim_tmp(mask)) * dot(fc_task(mask),fc_task(mask)));
+      r_task(iies,iiis,iG,igain) = dot(fc_sim_tmp(mask),fc_task(mask)) / sqrt(dot(fc_sim_tmp(mask),fc_sim_tmp(mask)) * dot(fc_task(mask),fc_task(mask)));
 
 %       kura_dist(iies,iiis,iG)=mean(out.KOPsd)/mean(out.KOPmean)-kura_emp_rest;
       
       idx = find(~isnan(dfa_emp_rest(1:90)'));
       
-      dfa_r_rest (iies,iiis,iG) = corr(dfa_emp_rest(:),dfa_sim(:,iies,iiis,iG));
-      dfa_r_task (iies,iiis,iG) = corr(dfa_emp_task(:),dfa_sim(:,iies,iiis,iG));
+%       dfa_r_rest (iies,iiis,iG) = dot(dfa_emp_rest(:),dfa_sim(:,iies,iiis,iG)) / sqrt(dot(dfa_sim(:,iies,iiis,iG),dfa_sim(:,iies,iiis,iG)) * dot(dfa_emp_rest(:),dfa_emp_rest(:)))
+      dfa_r_rest (iies,iiis,iG,igain) = corr(dfa_emp_rest(:),dfa_sim(:,iies,iiis,iG));
+%       dfa_r_rest (iies,iiis,iG) = corr(dfa_emp_rest(:),dfa_sim(:,iies,iiis,iG))*(std(dfa_emp_rest(:))/std(dfa_sim(:,iies,iiis,iG)));
+%       dfa_r_rest (iies,iiis,iG) = dot(dfa_emp_rest(:),dfa_sim(:,iies,iiis,iG)) / sqrt(dot(dfa_sim(:,iies,iiis,iG),dfa_sim(:,iies,iiis,iG)) * dot(dfa_emp_task(:),dfa_emp_task(:)))
+      dfa_r_task (iies,iiis,iG,igain) = corr(dfa_emp_task(:),dfa_sim(:,iies,iiis,iG));
+%       dfa_r_task (iies,iiis,iG) = corr(dfa_emp_task(:),dfa_sim(:,iies,iiis,iG))*(std(dfa_emp_task(:))/std(dfa_sim(:,iies,iiis,iG)));
+
+      dist_fc_rest (iies,iiis,iG,igain)  = mean(fc_sim_tmp(mask))-mean(fc_rest(mask));
+      dist_fc_task (iies,iiis,iG,igain)  = mean(fc_sim_tmp(mask))-mean(fc_task(mask));
       
-      dist_fc_rest (iies,iiis,iG)  = mean(fc_sim_tmp(mask))-mean(fc_rest(mask));
-      dist_fc_task (iies,iiis,iG)  = mean(fc_sim_tmp(mask))-mean(fc_task(mask));
-      
-      fc_sim(iies,iiis,iG) = mean(fc_sim_tmp(mask));
+      fc_sim(iies,iiis,iG,igain) = mean(fc_sim_tmp(mask));
       
       Ies(iies) = out.Ie;
       Iis(iiis) = out.Ii;
@@ -284,17 +323,22 @@ r_rest(iies,iiis,iG) = dot(fc_sim_tmp(mask),fc_rest(mask)) / sqrt(dot(fc_sim_tmp
       fclose all;
 
     end
-    
+    end
   end
 end
-
+% 
 % pars.N = 90;
 % dfa_emp  =  tp_match_aal(pars,dfa_emp');
 
 
 
 %%
-idx = [find(Ies==-2.8) find(Iis==-5.2) ];
+idx = [find(round(Ies*100)/100==-2.85) find(round(Iis*100)/100==-3.5000) ];
+% idx2 = [find(round(Ies*100)/100==-1.85) find(round(Iis*100)/100==-2.35000) ];
+
+
+% Ie = -2.85;
+% Ii = -3.50;
 % idx = [-2.25 -4]';
 cmap = cbrewer('div', 'RdBu', 100,'pchip');
 cmap = cmap(end:-1:1,:);
@@ -310,67 +354,39 @@ gg = 1;
 % -------------------------------
 
 ax1 = subplot(2,4,1);
-mask1 = fc_sim(:,:,gg) > 0.2 & fc_sim(:,:,gg) < 0.8;
-imagesc(flipud((squeeze(fc_sim(:,:,gg)))),[0  0.5]); 
+imagesc(flipud((squeeze(fc_sim(:,:,gg,3))-squeeze(fc_sim(:,:,gg,2)))),[-0.02  0.02]); 
 axis square tight; hold on
 scatter(idx(2),length(Ies)-idx(1)+1,20,'markerfacecolor','w','markeredgecolor','k')
+% scatter(idx2(2),length(Ies)-idx2(1)+1,20,'markerfacecolor','r','markeredgecolor','k')
 
 title('FC_{sim}')
-colormap(ax1,inferno)
+colormap(ax1,cmap)
 tp_editplots;
-
-% -------------------------------
-% CORRELATION OF SIMULATED FC WITH RESTING FC 
-% -------------------------------
-
-ax2 = subplot(2,4,2);
-mask2 = r_rest(:,:,gg)>0.9;
-imagesc(flipud(squeeze(r_rest(:,:,gg))),[-1 1]); 
-axis square tight; hold on
-scatter(idx(2),length(Ies)-idx(1)+1,20,'markerfacecolor','w','markeredgecolor','k')
-colormap(ax2,cmap)
-title('Correlation (FC_{sim},FC_{emp})'); hold on
-tp_editplots; 
-
-% -------------------------------
-% DISTANCE OF SIMULATED FC FROM RESTING FC 
-% -------------------------------
-
-ax3=subplot(2,4,3); 
-
-imagesc(flipud(squeeze(dist_fc_rest(:,:,gg))),[-0.5 0.5]);  
-axis square tight; hold on
-
-scatter(idx(2),length(Ies)-idx(1)+1,20,'markerfacecolor','w','markeredgecolor','k')
-colormap(ax3,cmap)
-title('Difference (FC_{sim} - FC_{emp})')
-tp_editplots;
-
-% -------------------------------
-% MASK: FC
-% -------------------------------
-
-ax4=subplot(2,4,4);
-
-imagesc(flipud((mask1&mask2)),[-1 1]);  
-axis square tight; hold on
-scatter(idx(2),length(Ies)-idx(1)+1,20,'markerfacecolor','w','markeredgecolor','k')
-colormap(ax4,cmap)
-title('Masked values')
-tp_editplots; 
 
 % -------------------------------
 % SIMULATED SCALING EXPONENT
 % -------------------------------
+ax1 = subplot(2,4,2);
+imagesc(flipud((squeeze(fc_sim(:,:,gg,1))-squeeze(fc_sim(:,:,gg,2)))),[-0.02  0.02]); 
+axis square tight; hold on
+scatter(idx(2),length(Ies)-idx(1)+1,20,'markerfacecolor','w','markeredgecolor','k')
+% scatter(idx2(2),length(Ies)-idx2(1)+1,20,'markerfacecolor','r','markeredgecolor','k')
+
+title('FC_{sim}')
+colormap(ax1,cmap)
+tp_editplots;
+
 
 ax5=subplot(2,4,5);
 
-mask3 = squeeze(mean(dfa_sim(:,:,:,gg)))>0.5 & squeeze(mean(dfa_sim(:,:,:,gg)))<1;
-imagesc(flipud((squeeze(mean(dfa_sim(:,:,:,gg))))),[0.5 1]);  
+% mask3 = squeeze(mean(dfa_sim(:,:,:,gg)))>0.5 & squeeze(mean(dfa_sim(:,:,:,gg)))<0.9;
+imagesc(flipud((squeeze(mean(dfa_sim(:,:,:,gg,3)))-squeeze(mean(dfa_sim(:,:,:,gg,2))))),[-0.01 0.01]);  
 axis square tight; hold on
 scatter(idx(2),length(Ies)-idx(1)+1,20,'markerfacecolor','w','markeredgecolor','k')
+% scatter(idx2(2),length(Ies)-idx2(1)+1,20,'markerfacecolor','r','markeredgecolor','k')
 
-colormap(ax5,inferno)
+
+colormap(ax5,cmap)
 
 title('\alpha_{sim}')
 tp_editplots
@@ -381,8 +397,8 @@ hold on
 % -------------------------------
 
 ax4=subplot(2,4,6);
-mask4 = squeeze(dfa_r_rest(:,:,gg))>0.15;
-imagesc(flipud(squeeze(dfa_r_rest(:,:,gg))),[-0.5 0.5]);  
+mask4 = squeeze(dfa_r_rest(:,:,gg))>-1;
+imagesc(flipud(squeeze(dfa_r_rest(:,:,gg))),[-0.3 0.3]);  
 axis square tight; hold on
 
 colormap(ax4,cmap)
@@ -390,6 +406,7 @@ title('Correlation (\alpha_{sim},\alpha_{emp})')
 tp_editplots; 
 
 scatter(idx(2),length(Ies)-idx(1)+1,20,'markerfacecolor','w','markeredgecolor','k')
+% scatter(idx2(2),length(Ies)-idx2(1)+1,20,'markerfacecolor','r','markeredgecolor','k')
 
 % -------------------------------
 % DISTANCE SIMULATED DFA - RESTING DFA
@@ -405,6 +422,8 @@ colormap(ax5,cmap)
 title('Difference (\alpha_{Sim} - \alpha_{Emp})')
 tp_editplots; hold on
 scatter(idx(2),length(Ies)-idx(1)+1,20,'markerfacecolor','w','markeredgecolor','k')
+% scatter(idx2(2),length(Ies)-idx2(1)+1,20,'markerfacecolor','r','markeredgecolor','k')
+
 
 % -------------------------------
 % MASKS RESTING DFA
@@ -414,6 +433,8 @@ ax5=subplot(2,4,8);
 imagesc(flipud(mask3&mask4&mask5),[-1 1]);  
 axis square tight;hold on
 scatter(idx(2),length(Ies)-idx(1)+1,20,'markerfacecolor','w','markeredgecolor','k')
+% scatter(idx2(2),length(Ies)-idx2(1)+1,20,'markerfacecolor','r','markeredgecolor','k')
+
 colormap(ax5,cmap)
 tp_editplots
 
@@ -434,7 +455,7 @@ for iax = 1 : length(ax)
   end
 end
 
-print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_WC_wholebrain_rest_sub_v%d.pdf',v))
+print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_WC_wholebrain_rest_drugs_sub_v%d.pdf',v))
 
 title('Masked values')
 tp_editplots
@@ -462,6 +483,8 @@ end
 hold on
 tp_editplots
 scatter(idx(2),length(Ies)-idx(1)+1,20,'markerfacecolor','w','markeredgecolor','k')
+scatter(idx2(2),length(Ies)-idx2(1)+1,20,'markerfacecolor','r','markeredgecolor','k')
+
 
 print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_WC_wholebrain_rest_mask_v%d.pdf',v))
 
@@ -653,5 +676,10 @@ print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_WC_wholebrain_task_mask_v%d.pdf',v)
 % tp_editplots; 
 
 
+pars = [];
+pars.grid = 'medium';
+pars.N = 90;
+
+dfa_emp_rest = tp_match_aal(pars,fc_rest);
 
 

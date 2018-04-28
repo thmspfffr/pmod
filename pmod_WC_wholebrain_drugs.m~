@@ -1,97 +1,19 @@
-%% pmod_WC_wholebrain_rest
+%% pmod_WC_wholebrain_drugs
 % Stochastic simulation of 2*N WC nodes during "rest"
 %-------------------------------------------------------------------------
 
 clear
-
+% Ie = -2.85; 
+% Ii = -3.50; %-1;
+% Ie -2.85 / Ii -3.5
 %-------------------------------------------------------------------------
-% VERSION 1
+v           = 6;
+Ies         = -3.85:0.1:-1.85;
+Iis         = -4.5:0.1:-2.50;
+Gg          = 0.6; 
+Gains       = -0.2:0.2:0.2;
+nTrials     = 3;
 %-------------------------------------------------------------------------
-% v = 1;
-% Ies = -1.5:0.2:2;
-% Iis = -4:0.2:0;
-% nTrials = 20;
-%-------------------------------------------------------------------------
-% VERSION 2
-%-------------------------------------------------------------------------
-% v = 2;
-% Ies = -2.2:0.1:0.1;
-% Iis = -3.8:0.2:-0.8;
-% nTrials = 20;
-%-------------------------------------------------------------------------
-% VERSION 3
-%-------------------------------------------------------------------------
-% v = 3;
-% Ies = -2.2:0.1:0.1;
-% Iis = -4;
-% Gg = 0.5:0.02:0.8; % 0.62
-% nTrials = 20;
-%-------------------------------------------------------------------------
-% VERSION 4
-%-------------------------------------------------------------------------
-% v = 4;
-% Ies = -5:0.2:1;
-% Iis = -6:0.2:0;
-% Gg  = 0.62; % 0.62
-% nTrials = 5;
-%-------------------------------------------------------------------------
-% VERSION 5
-%-------------------------------------------------------------------------
-%-------------------------------------------------------------------------
-% VERSION 6
-%-------------------------------------------------------------------------
-v = 6;
-Ies = -4:0.1:-0.5;
-Iis = -6:0.1:-1.5;
-Gg  = 0.2:0.05:0.6; % 0.62
-nTrials = 5;
-envelopes = 0;
-%-------------------------------------------------------------------------
-% VERSION 7
-%-------------------------------------------------------------------------
-v = 7;
-Ies = -4:0.2:-0.5;
-Iis = -6:0.2:-1.5;
-Gg  = 0.6; % 0.62
-nTrials = 3;
-envelopes = 1;
-%-------------------------------------------------------------------------
-
-% VERSION 8
-%-------------------------------------------------------------------------
-v = 8;
-Ies = -4:0.2:-0.5;
-Iis = -6:0.2:-1.5;
-Gg  = 1.2; % 0.62
-nTrials = 1;
-envelopes = 1;
-%-------------------------------------------------------------------------
-% VERSION 9
-%-------------------------------------------------------------------------
-% v = 9;
-% Ies = -4:0.2:-0.5;
-% Iis = -6:0.2:-1.5;
-% Gg  = 1; % 0.62
-% nTrials = 5;
-% envelopes = 1;
-%-------------------------------------------------------------------------
-% VERSION 10
-%-------------------------------------------------------------------------
-v = 10;
-Ies = -4:0.1:-0.5;
-Iis = -6:0.1:-1.5;
-Gg  = 0.62:0.1:0.92; % 0.62
-nTrials = 3;
-envelopes = 1;
-%-----
-
-% LOAD CLEANED DATA AND COMPUTE MEAN
-% v = 1;
-% load(sprintf('~/pupmod/proc/conn/pupmod_src_powcorr_cleaned_v%d.mat',v));
-% fc_emp_atx(:,:,1) = squeeze(nanmean(cleandat(:,:,:,2,1,6),3))-squeeze(nanmean(cleandat(:,:,:,1,1,6),3));
-% fc_emp_atx(:,:,2) = squeeze(nanmean(cleandat(:,:,:,2,2,6),3))-squeeze(nanmean(cleandat(:,:,:,1,2,6),3));
-% fc_emp_dpz(:,:,1) = squeeze(nanmean(cleandat(:,:,:,3,1,7),3))-squeeze(nanmean(cleandat(:,:,:,1,1,7),3));
-% fc_emp_dpz(:,:,2) = squeeze(nanmean(cleandat(:,:,:,3,2,7),3))-squeeze(nanmean(cleandat(:,:,:,1,2,7),3));
 
 % load connectome
 load ~/pmod/matlab/EC.mat %Matt_EC
@@ -157,9 +79,10 @@ isub = find( triu(ones(N)) - eye(N) );
 for iies = 1:length(Ies)
   for iiis = 1: length(Iis)
     for iG = 1 : length(Gg)
-%       
-      if ~exist(sprintf(['~/pmod/proc/' 'pmod_WC_wholebrain_rest_Ie%d_Ii%d_G%d_v%d_processing.txt'],iies,iiis,iG,v))
-        system(['touch ' '~/pmod/proc/' sprintf('pmod_WC_wholebrain_rest_Ie%d_Ii%d_G%d_v%d_processing.txt',iies,iiis,iG,v)]);
+      for igain = 1 : length(Gains)
+      
+      if ~exist(sprintf(['~/pmod/proc/' 'pmod_WC_wholebrain_rest_drugs_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt'],iies,iiis,iG,igain,v))
+        system(['touch ' '~/pmod/proc/' sprintf('pmod_WC_wholebrain_rest_drugs_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt',iies,iiis,iG,igain,v)]);
       else
         continue
       end
@@ -189,8 +112,8 @@ for iies = 1:length(Ies)
       Io(N+1:2*N) = Ii;
       
       % transfer function:
-      gE  = 1;
-      gI  = 1;
+      gE = 1 + Gains(igain);
+      gI = 1 + Gains(igain);
       aE  = 1/gE;
       aI  = 1/gI;
       Fe  = @(x) 1./(1 + exp(-x/aE) );
@@ -242,7 +165,6 @@ for iies = 1:length(Ies)
         rE = R; 
         env = abs(hilbert(filtfilt(bfilt,afilt,rE))); 
         rI = Ri;
-        
         
         z             = rE + 1i*rI;
         ku            = sum(z,2)/N;
@@ -303,41 +225,15 @@ for iies = 1:length(Ies)
       %
       out = struct('dfa_env',dfa_env,'FC',FC,'Cee',Cee,'CeeSD',CeeSD,'FC_env',FC_env,'Cee_env',Cee_env,'CeeSD_env',CeeSD_env,'Ie',Ie,'Ii',Ii,'G',g,'KOP',KOP,'KOPsd',KOPsd,'KOPmean',KOPmean,'ku',ku);
       
-      save(sprintf('~/pmod/proc/pmod_WC_wholebrain_rest_Ie%d_Ii%d_G%d_v%d.mat',iies,iiis,iG,v),'out')
+      save(sprintf('~/pmod/proc/pmod_WC_wholebrain_rest_drugs_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,v),'out')
       
     end
   end
 end
-
+end
 error('!')
 
-%% FITTING
-% ---------
-% LOAD EMPIRICALDFA (LCMV)
-% ---------
-load(sprintf(['~/pupmod/proc/conn/' 'pupmod_src_dfa_v%d.mat'],1));
-% ---------
-% LOAD EMPIRICAL KURAMOTO PARAMETER
-% ---------
-% % subj x m x foi x cond
-% load(sprintf(['~/pupmod/proc/conn/' 'pupmod_all_kuramoto_v%d.mat'],v));
-% kura_emp_rest = mean(kura_std(:,1,1,1)./kura_mean(:,1,1,1));
-% kura_emp_task = mean(kura_std(:,1,1,2)./kura_mean(:,1,1,2));
-% ---------
-% MATCH DFA WITH AAL ORDER USED FOR SIMULATIONS
-% ---------
-pars = [];
-pars.grid = 'medium';
-pars.N = 90;
-
-dfa_emp_rest = nanmean(dfa_all(:,:,1,1,1),2);
-% dfa_emp_rest = tp_match_aal(pars,repmat(dfa_emp_rest,[1 90]));
-% dfa_emp_rest = dfa_emp_rest(:,1);
-
-dfa_emp_task = nanmean(dfa_all(:,:,1,1,2),2);
-% dfa_emp_task = tp_match_aal(pars,repmat(dfa_emp_task,[1 90]));
-% dfa_emp_task = dfa_emp_task(:,1);
-% ---------
+%% PLOTTING
 
 clear dfa r dfa_r dist_fc fc_sim
 v=1;

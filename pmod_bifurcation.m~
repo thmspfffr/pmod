@@ -16,7 +16,7 @@ tauE = 1;
 tauI = 2;
 tau = [tauE;tauI];
 
-Ies = -4:0.2:-0.6;
+Ies = -4:0.2:-0.6--;
 Iis = -6:0.2:-1.4
 Io=zeros(N,1);
 
