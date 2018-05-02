@@ -171,7 +171,6 @@ for iies = 1:length(Ies)
         
         %correlation:
         rE = R; 
-        env = abs(hilbert(filtfilt(bfilt,afilt,rE))); 
         rI = Ri;
         
         z             = rE + 1i*rI;
@@ -179,26 +178,33 @@ for iies = 1:length(Ies)
         KOP           = abs(ku);
         KOPsd(tr,1)   = std(KOP);
         KOPmean(tr,1) = mean(KOP);
-        %         DFA_fourier_all(R(:,1),[50*400])
         
+        rc            = corrcoef(rE);
         
-        rc           = corrcoef(rE);
+        % COMPUTE LONG RANGE TEMPORAL CORRELATIONS
+        % On E time course
+        % ---------------------
         tmp           = tp_dfa(R,[3 50],ds,0.5,15);
-        dfa(tr,:,1)     = tmp.exp;
-        FC(:,:,1)       = FC(:,:,1) + rc/nTrials;
-        fc              = rc(isub);
-        Cee(1)          = Cee(1) + mean(fc)/nTrials;
-        CeeSD(1)        = CeeSD(1) + var(fc)/nTrials;
-        
-        rc          = corrcoef(env);
-        tmp         = tp_dfa(env,[3 50],ds,0.5,15);
+        dfa(tr,:,1)  	= tmp.exp;
+        % COMPUTE LONG RANGE TEMPORAL CORRELATIONS
+        % On envelopes
+        % ---------------------
+        env = abs(hilbert(filtfilt(bfilt,afilt,rE))); 
+        tmp             = tp_dfa(env,[3 50],ds,0.5,15);
         dfa_env(tr,:,1) = tmp.exp;
-
+        % ---------------------
         
-        FC_env(:,:,1)       = FC(:,:,1) + rc/nTrials;
-        fc_env              = rc(isub);
-        Cee_env(1)          = Cee(1) + mean(fc)/nTrials;
-        CeeSD_env(1)        = CeeSD(1) + var(fc)/nTrials;
+        FC(:,:,1)    	= FC(:,:,1) + rc/nTrials;
+        fc           	= rc(isub);
+        Cee(1)       	= Cee(1) + mean(fc)/nTrials;
+        CeeSD(1)    	= CeeSD(1) + var(fc)/nTrials;
+        
+        rc              = corrcoef(env);
+
+        FC_env(:,:,1)  	= FC(:,:,1) + rc/nTrials;
+        fc_env         	= rc(isub);
+        Cee_env(1)      = Cee(1) + mean(fc)/nTrials;
+        CeeSD_env(1)    = CeeSD(1) + var(fc)/nTrials;
         %               FCval(:,tr)  = fc;
         
         %       rEo       = mean(mean(rE));

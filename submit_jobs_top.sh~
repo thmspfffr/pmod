@@ -8,25 +8,26 @@ JOBS_IN_PARALLEL=50
 # -------------------
 
 # Submits n jobs to the torque queing system
+AVAIL_SLOTS=0
 OUT=$(qstat | grep -E "tpfeffer.* R" -wc)
 QUEUED=$(qstat | grep -E "tpfeffer.* Q" -wc)
 OUT=$((OUT + QUEUED))
 echo -n "How many jobs do you want to submit? "
 read NJOBS
-echo "You currently have $OUT job(s) running and/or queued..."
-echo -n "(s)ubmit all jobs anyway or (q)ueue? "
+echo "You have currently $OUT job(s) running/queued..."
+echo -n "(S)ubmit all jobs anyway or (q)ueue?"
 read choice
 
 case $choice in
   s)
   echo "Submitting jobs..."
-  for i in $( seq 1 $NJOBS); do
+  for i in $( seq 1 $ALL_JOBS); do
     let var1=10*$i;
     echo 'Start Job ' $i 'wait for: ' $var1 's'
     qsub -v var="$var1" submit_jobs.sh
   done
   ;;
-  q)  
+  w)  
   AVAIL_SLOTS=$(($JOBS_IN_PARALLEL - $OUT))
 
   # IF THE NUMBER OF AVAILABLE SLOTS IS 0
@@ -34,19 +35,19 @@ case $choice in
   if (($AVAIL_SLOTS < 1)); then
     JOBS_LEFT=$NJOBS
 
-    echo "Submitting 0 jobs immediately..."
+    echo "All user slots are occ..."
 
     while true; do
+      echo "Waiting for available slots..."
       if (($JOBS_LEFT < 1)); then
         break;
       fi
-      echo "Waiting for available slots..."   
-      sleep 20s
+      sleep 5s
       OUT=$(qstat | grep -E "tpfeffer.* R" -wc)
       QUEUED=$(qstat | grep -E "tpfeffer.* Q" -wc)
       OUT=$((OUT+QUEUED))
 
-      AVAIL_SLOTS=$(($JOBS_IN_PARALLEL - $OUT))
+      AVAIL_SLOTS=$(( $ALL_JOBS - $OUT))
       
       if ((AVAIL_SLOTS > 0)); then
         echo "Starting $AVAIL_SLOTS jobs..."
@@ -67,19 +68,19 @@ case $choice in
       #echo 'Start Job ' $i 'wait for: ' $var1 's'
       qsub -v var="$var1" submit_jobs.sh
     done
-    JOBS_LEFT=$(($NJOBS - $AVAIL_SLOTS))
+    JOBS_LEFT=$(($ALL_JOBS-$AVAIL_SLOTS))
     if (($JOBS_LEFT > 0)); then
       while true; do
         if (($JOBS_LEFT < 1)); then
           break;
         fi
         echo "Waiting for more available slots..."
-        sleep 20s
+        sleep 5s
         OUT=$(qstat | grep -E "tpfeffer.* R" -wc)
         QUEUED=$(qstat | grep -E "tpfeffer.* Q" -wc)
         OUT=$((OUT+QUEUED))
 
-        AVAIL_SLOTS=$(($JOBS_IN_PARALLEL - $OUT))
+        AVAIL_SLOTS=$(($ALL_JOBS - $OUT))
 
         if ((AVAIL_SLOTS > 0)); then
           echo 'Starting $AVAIL_SLOTS jobs...'
@@ -91,7 +92,7 @@ case $choice in
         fi
       done
    	else
-      
+      echo "All jobs successfully submitted!"   
     fi
   fi    
       echo "All jobs successfully submitted!"   
