@@ -91,10 +91,10 @@ case $choice in
         fi
       done
    	else
-      
+      echo "All jobs successfully submitted!"   
     fi
   fi    
-      echo "All jobs successfully submitted!"   
+    echo "All jobs successfully submitted!"   
   ;;
 
 esac
