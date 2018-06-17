@@ -19,5 +19,5 @@ chmod g=wx $PBS_JOBNAME
 
 sleep "$var"
 
-matlab -nodisplay -nodesktop -r "pmod_WC_wholebrain_drugs; exit"  1> ~/jobs/$PBS_JOBID.out 2> ~/jobs/$PBS_JOBID.err
+matlab -nodisplay -nodesktop -r "pmod_wc_wholebrain_rest; exit"  1> ~/jobs/$PBS_JOBID.out 2> ~/jobs/$PBS_JOBID.err
 

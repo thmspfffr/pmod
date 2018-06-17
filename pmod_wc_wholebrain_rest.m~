@@ -49,7 +49,6 @@ tau(N+1:2*N) = tauI;
 dt=0.01;
 tspan=0:dt:tmax;
 L = length(tspan);
-clear tspan
 
 ds = 10;
 Tds = length(0:ds*dt:tmax)-1;
@@ -93,8 +92,8 @@ for iies = 1: length(Ies)
         Cee = zeros(1,1);
         CeeSD = zeros(2,1);
         
-        out.KOPsd   = zeros(nTrials,1);
-        out.KOPmean = zeros(nTrials,1);
+        KOPsd   = zeros(nTrials,1);
+        KOPmean = zeros(nTrials,1);
         % Control params.
         %--------------------
         Ie = Ies(iies);
@@ -130,9 +129,9 @@ for iies = 1: length(Ies)
         nfreqs  = length(freqs);
         freq100 = freqs(freqs<100 & freqs>1);
         pp      = 1:10:length(freq100);
-        out.PSD     = zeros(length(pp),N,nTrials);
+        PSD     = zeros(length(pp),N,nTrials);
         
-        out.PSDstruct(1).frequencies = freq100(1:10:end)';
+        PSDstruct(1).frequencies = freq100(1:10:end)';
         
         
         for tr=1:nTrials
@@ -162,19 +161,15 @@ for iies = 1: length(Ies)
           
           %correlation:
           rE = R;
-          rI = Ri;  
-          clear R Ri
-%           z             = rE + 1i*rI;
+          rI = Ri; 
           
-          clear rI 
+          clear R Ri r 
           
-%           ku            = sum(z,2)/N; 
-%           clear z
-%           out.KOP           = abs(ku);
-%           out.KOPsd(tr,1)   = std(KOP);
-%           out.KOPmean(tr,1) = mean(KOP);
-          
-%           clear ku KOP 
+          z             = rE + 1i*rI;
+          ku            = sum(z,2)/N;
+          KOP           = abs(ku);
+          KOPsd(tr,1)   = std(KOP);
+          KOPmean(tr,1) = mean(KOP);
           
           rc            = corrcoef(rE);
           % ---------------------
@@ -182,14 +177,14 @@ for iies = 1: length(Ies)
           % On E time course
           % ---------------------
           tmp               = tp_dfa(rE,[3 50],1/resol,0.5,15);
-          out.dfa(tr,:,1) = tmp.exp;
+          out.dfa1(tr,:,1) = tmp.exp;
           % ---------------------
           % COMPUTE LONG RANGE TEMPORAL CORRELATIONS
           % On envelopes
           % ---------------------
           env = abs(hilbert(filtfilt(bfilt,afilt,rE)));
           tmp              = tp_dfa(env,[3 50],1/resol,0.5,15);
-          out.dfa_env(tr,:,1) = tmp.exp;
+          out.dfa_env1(tr,:,1) = tmp.exp;
           % ---------------------
  
           out.FC(:,:,1)    	= FC(:,:,1) + rc/nTrials;
@@ -209,19 +204,18 @@ for iies = 1: length(Ies)
           %       rEsd      = var(mean(rE));
           %       Rate(1)   = rEo-rEo;
           %       RateSD(1) = RateSD(1) + rEsd/nTrials;
-          clear env
+          
           for i=1:N
-            fprintf('Autocorr reg %d ...\n',i)
-%             out.osc(tr,:,i) = tp_detect_osc(rE(:,i));
+            out.osc(tr,:,i) = tp_detect_osc(rE(:,i));
             %autocorr
-%             lags = 1:300;
-%             acorr = acf(rE(:,i),300);
-%             ii = find(acorr<.2,1,'first');
-%             if isempty(ii)
-%               out.lags(i,tr) = nan;
-%             else
-%               out.lags(i,tr) = lags(ii);
-%             end
+            lags = 1:300;
+            acorr = acf(rE(:,i),300);
+            ii = find(acorr<.2,1,'first');
+            if isempty(ii)
+              out.lags(i,tr) = nan;
+            else
+              out.lags(i,tr) = lags(ii);
+            end
             %           PSD:
             f = rE(:,i) - mean(rE(:,i));
             xdft = fft(f);
@@ -235,7 +229,6 @@ for iies = 1: length(Ies)
             out.PSD(:,i,tr) = psd';
             out.f = fnew;
           end
-          clear rE rI
           toc
         end
         

@@ -25,7 +25,7 @@ Gg  = 0; % 0.62
 nTrials = 1;
 envelopes = 1;
 N = 1;%size(C,1);
-tmax  = 600000; % in units of tauE
+tmax  = 1000000; % in units of tauE
 %-------------------------------------------------------------------------
 
 %-----
@@ -156,14 +156,11 @@ for iies = 1:length(Ies)
 
         tmp  = tp_dfa(env,[3 50],1/resol,0.5,15);
         out.dfa_env(:,tr) = tmp.exp;
-        tmp  = tp_dfa(env,[3 50],1/resol/ds,0.5,15);
-        out.dfa_env2(:,tr) = tmp.exp;
-        
+
 %          rE = resample(rE,1,50);
         tmp 	= tp_dfa(rE,[3 50],1/resol,0.5,15);
         out.dfa_rE(:,tr) = tmp.exp;
-        tmp 	= tp_dfa(rE,[3 50],1/resol/ds,0.5,15);
-        out.dfa_rE2(:,tr) = tmp.exp;
+   
         
         out.freq = 0:(1/resol)/length(rE):(1/resol)/2;
         p = abs(fft(rE)); p = p (1:size(p,1)/2+1,:);

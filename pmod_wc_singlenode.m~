@@ -13,21 +13,26 @@ Iis = -8:0.1:2;
 Gg  = 0; % 0.62
 nTrials = 1;
 envelopes = 1;
-%-----
+N = 5;%size(C,1);
+tmax  = 100000; % in units of tauE
+%-------------------------------------------------------------------------
 % VERSION 2
 %-------------------------------------------------------------------------
-% v = 3
-% Ies = -3.75;
-% Iis = -4.1;
-% Gg  = 0.6; % 0.62
-% nTrials = 3;
-% envelopes = 1;
+v = 2;
+Ies = -8:0.1:2;
+Iis = -8:0.1:2;
+Gg  = 0; % 0.62
+nTrials = 1;
+envelopes = 1;
+N = 1;%size(C,1);
+tmax  = 1000000; % in units of tauE
+%-------------------------------------------------------------------------
+
 %-----
 % load connectome
 load ~/pmod/matlab/EC.mat %Matt_EC
 C = EC;
 C = C/max(C(C>0));
-N = 5;%size(C,1);
 
 C=C(1:N,1:N);
 
@@ -50,7 +55,6 @@ tau(1:N)      = tauE;
 tau(N+1:2*N)  = tauI;
 
 dt    = 0.01;
-tmax  = 100000; % in units of tauE
 tspan = 0:dt:tmax;
 L     = length(tspan);
 
@@ -152,14 +156,11 @@ for iies = 1:length(Ies)
 
         tmp  = tp_dfa(env,[3 50],1/resol,0.5,15);
         out.dfa_env(:,tr) = tmp.exp;
-        tmp  = tp_dfa(env,[3 50],1/resol/ds,0.5,15);
-        out.dfa_env2(:,tr) = tmp.exp;
-        
+
 %          rE = resample(rE,1,50);
         tmp 	= tp_dfa(rE,[3 50],1/resol,0.5,15);
         out.dfa_rE(:,tr) = tmp.exp;
-        tmp 	= tp_dfa(rE,[3 50],1/resol/ds,0.5,15);
-        out.dfa_rE2(:,tr) = tmp.exp;
+   
         
         out.freq = 0:(1/resol)/length(rE):(1/resol)/2;
         p = abs(fft(rE)); p = p (1:size(p,1)/2+1,:);
@@ -216,21 +217,39 @@ else
 end
 
 %%
-clim = [0.4 1];
+addpath ~/Documents/MATLAB/Colormaps/Colormaps' (5)'/Colormaps/
+clim = [0.4 0.7];
 dfa=allout.dfa1;
 
 mask = dfa>clim(1) & dfa<clim(2);
 
 
 h=figure; subplot(1,2,1);
-ft_plot_matrix(dfa,'clim',[0.3 1],'highlight',mask,'highlightstyle','opacity')
-colormap(hot)
+ft_plot_matrix(allout.osc,'clim',clim,'highlight',mask,'highlightstyle','opacity')
+colormap(plasma)
+set(gca,'YDir','normal')
+set(gca,'xtick',1:10:length(Iis),'xticklabel',[Iis(1:10:length(Iis))],'tickdir','out')
+set(gca,'ytick',1:10:length(Ies),'yticklabel',[Iis(1:10:length(Ies))],'tickdir','out')
+xlabel('Inhibitory input I_i'); ylabel('Excitatory input I_E'); 
+axis square
+colorbar
+subplot(1,2,2);
+dfa=allout.dfa2;
+
+clim = [0.4 0.7];
+mask = dfa>clim(1) & dfa<clim(2);
+
+ft_plot_matrix(dfa,'clim',clim,'highlight',mask,'highlightstyle','opacity')
+colormap(plasma)
 set(gca,'YDir','normal')
 set(gca,'xtick',1:10:length(Iis),'xticklabel',[Iis(1:10:length(Iis))],'tickdir','out')
 set(gca,'ytick',1:10:length(Ies),'yticklabel',[Iis(1:10:length(Ies))],'tickdir','out')
 % set(gca,'YDir','normal')
-colorbar
+xlabel('Inhibitory input I_i'); ylabel('Excitatory input I_E'); 
 
+axis square
+colorbar
+print(gcf,'-dpdf',sprintf('~/fc_sim.pdf'))
 % load(sprintf(['~/pupmod/proc/conn/' 'pupmod_src_dfa_v%d.mat'],1));
 % dfa_rest = squeeze(nanmean(dfa_all(:,:,1,1,1),2));
 % dfa_task = squeeze(nanmean(dfa_all(:,:,1,1,2),2));

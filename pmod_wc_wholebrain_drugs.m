@@ -1,4 +1,4 @@
-%% pmod_WC_wholebrain_drugs
+%% pmod_wc_wholebrain_drugs
 % Stochastic simulation of 2*N WC nodes during "rest"
 %-------------------------------------------------------------------------
 
@@ -22,23 +22,23 @@ clear
 %-------------------------------------------------------------------------
 % VERSION 2: baseline (no drug), high # trials, short run time (~55s)
 %-------------------------------------------------------------------------
-v           = 2;
-Ies         = -4:0.1:-0.8;
-Iis         = -5:0.1:-1;
-Gg          = 0.62; 
-Gains       = 0;
-nTrials     = 20;
-tmax        = 10000; % in units of tauE
+% v           = 2;
+% Ies         = -4:0.1:-0.8;
+% Iis         = -5:0.1:-1;
+% Gg          = 0.62; 
+% Gains       = 0;
+% nTrials     = 20;
+% tmax        = 10000; % in units of tauE
 %-------------------------------------------------------------------------
 % VERSION 3: Drug simulation
 %-------------------------------------------------------------------------
-% v           = 3;
-% Ies         = -4:0.1:-0.8;
-% Iis         = -5:0.1:-1;
-% Gg          = 0.6; 
-% Gains       = 0;
-% nTrials     = 1;
-% exc         = -0.5:0.1:0.5;
+v           = 3;
+Ies         = -4:0.25:-1;
+Iis         = -4:0.25:-0.7;
+Gg          = 0.62; 
+Gains       = 0;
+nTrials     = 5;
+tmax        = 60000; % in units of tauE
 %-------------------------------------------------------------------------
 
 % load connectome
@@ -292,7 +292,7 @@ dfa_emp_task = nanmean(dfa_all(:,:,1,1,2),2);
 
 clear dfa r dfa_r dist_fc fc_sim
 v=1;
-vv =7;
+vv =2;
 load(sprintf('~/pupmod/proc/conn/pupmod_src_powcorr_cleaned_v%d.mat',v));
 mask    = logical(tril(ones(90,90),-1));
 mask = find(triu(ones(90))-eye(90));
@@ -300,48 +300,52 @@ mask = find(triu(ones(90))-eye(90));
 fc_rest =  squeeze(nanmean(cleandat(:,:,:,1,1,6),3));
 fc_task =  squeeze(nanmean(cleandat(:,:,:,1,2,6),3));
 
-for iies = 1 : 29%length(Ies)
+for iies = 1 : length(Ies)
   iies
   for iiis = 1 : length(Iis)
     for iG = 1
       for igain = 1 : length(Gains)
 
       %       load(sprintf('~/pmod/proc/pmod_WC_wholebrain_rest_Ie%d_Ii%d_v%d.mat',iies,iiis,vv))
-      load(sprintf('~/pmod/proc/pmod_WC_wholebrain_drugs_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,v))
+      load(sprintf('~/pmod/proc/pmod_WC_wholebrain_drugs_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,vv))
             
       if round(Ies(iies)*100)/100 == -2.8 && round( Iis(iiis)*100)/100 == -3.4
-        disp('save stuff')
+%         disp('save stuff')
         FFCC = out.FC;
       end
       
-      dfa_sim(:,iies,iiis,iG,igain) = out.dfa_env1(:);
-      fc_sim_tmp = tp_match_aal(pars,out.FC(:,:,1));
-      
-%       r_rest(iies,iiis,iG)=corr(fc_sim_tmp(mask),fc_rest(mask));
-      r_rest(iies,iiis,iG,igain) = dot(fc_sim_tmp(mask),fc_rest(mask)) / sqrt(dot(fc_sim_tmp(mask),fc_sim_tmp(mask)) * dot(fc_rest(mask),fc_rest(mask)));
-%       r_task(iies,iiis,iG)=corr(fc_sim_tmp(mask),fc_task(mask));
-      r_task(iies,iiis,iG,igain) = dot(fc_sim_tmp(mask),fc_task(mask)) / sqrt(dot(fc_sim_tmp(mask),fc_sim_tmp(mask)) * dot(fc_task(mask),fc_task(mask)));
+      dfa_sim_dfa_env1(:,iies,iiis,iG,igain) = mean(out.dfa_env1,1);
+            dfa_sim_dfa1(:,iies,iiis,iG,igain) = mean(out.dfa1,1);
 
-%       kura_dist(iies,iiis,iG)=mean(out.KOPsd)/mean(out.KOPmean)-kura_emp_rest;
-      
-      idx = find(~isnan(dfa_emp_rest(1:90)'));
-      
-%       dfa_r_rest (iies,iiis,iG) = dot(dfa_emp_rest(:),dfa_sim(:,iies,iiis,iG)) / sqrt(dot(dfa_sim(:,iies,iiis,iG),dfa_sim(:,iies,iiis,iG)) * dot(dfa_emp_rest(:),dfa_emp_rest(:)))
-      dfa_r_rest (iies,iiis,iG,igain) = corr(dfa_emp_rest(:),dfa_sim(:,iies,iiis,iG));
-%       dfa_r_rest (iies,iiis,iG) = corr(dfa_emp_rest(:),dfa_sim(:,iies,iiis,iG))*(std(dfa_emp_rest(:))/std(dfa_sim(:,iies,iiis,iG)));
-%       dfa_r_rest (iies,iiis,iG) = dot(dfa_emp_rest(:),dfa_sim(:,iies,iiis,iG)) / sqrt(dot(dfa_sim(:,iies,iiis,iG),dfa_sim(:,iies,iiis,iG)) * dot(dfa_emp_task(:),dfa_emp_task(:)))
-      dfa_r_task (iies,iiis,iG,igain) = corr(dfa_emp_task(:),dfa_sim(:,iies,iiis,iG));
-%       dfa_r_task (iies,iiis,iG) = corr(dfa_emp_task(:),dfa_sim(:,iies,iiis,iG))*(std(dfa_emp_task(:))/std(dfa_sim(:,iies,iiis,iG)));
-
-      dist_fc_rest (iies,iiis,iG,igain)  = mean(fc_sim_tmp(mask))-mean(fc_rest(mask));
-      dist_fc_task (iies,iiis,iG,igain)  = mean(fc_sim_tmp(mask))-mean(fc_task(mask));
-      
-      fc_sim(iies,iiis,iG,igain) = mean(fc_sim_tmp(mask));
-      
-%       Ies(iies) = out.Ie;
-%       Iis(iiis) = out.Ii;
-      
-      fclose all;
+                  dfa_sim_dfa(:,iies,iiis,iG,igain) = mean(out.dfa,1);
+osc(:,iies,iiis,iG,igain) = mean(squeeze(mean(out.osc,1)));
+%       fc_sim_tmp = tp_match_aal(pars,out.FC(:,:,1));
+%       
+% %       r_rest(iies,iiis,iG)=corr(fc_sim_tmp(mask),fc_rest(mask));
+%       r_rest(iies,iiis,iG,igain) = dot(fc_sim_tmp(mask),fc_rest(mask)) / sqrt(dot(fc_sim_tmp(mask),fc_sim_tmp(mask)) * dot(fc_rest(mask),fc_rest(mask)));
+% %       r_task(iies,iiis,iG)=corr(fc_sim_tmp(mask),fc_task(mask));
+%       r_task(iies,iiis,iG,igain) = dot(fc_sim_tmp(mask),fc_task(mask)) / sqrt(dot(fc_sim_tmp(mask),fc_sim_tmp(mask)) * dot(fc_task(mask),fc_task(mask)));
+% 
+% %       kura_dist(iies,iiis,iG)=mean(out.KOPsd)/mean(out.KOPmean)-kura_emp_rest;
+%       
+%       idx = find(~isnan(dfa_emp_rest(1:90)'));
+%       
+% %       dfa_r_rest (iies,iiis,iG) = dot(dfa_emp_rest(:),dfa_sim(:,iies,iiis,iG)) / sqrt(dot(dfa_sim(:,iies,iiis,iG),dfa_sim(:,iies,iiis,iG)) * dot(dfa_emp_rest(:),dfa_emp_rest(:)))
+%       dfa_r_rest (iies,iiis,iG,igain) = corr(dfa_emp_rest(:),dfa_sim(:,iies,iiis,iG));
+% %       dfa_r_rest (iies,iiis,iG) = corr(dfa_emp_rest(:),dfa_sim(:,iies,iiis,iG))*(std(dfa_emp_rest(:))/std(dfa_sim(:,iies,iiis,iG)));
+% %       dfa_r_rest (iies,iiis,iG) = dot(dfa_emp_rest(:),dfa_sim(:,iies,iiis,iG)) / sqrt(dot(dfa_sim(:,iies,iiis,iG),dfa_sim(:,iies,iiis,iG)) * dot(dfa_emp_task(:),dfa_emp_task(:)))
+%       dfa_r_task (iies,iiis,iG,igain) = corr(dfa_emp_task(:),dfa_sim(:,iies,iiis,iG));
+% %       dfa_r_task (iies,iiis,iG) = corr(dfa_emp_task(:),dfa_sim(:,iies,iiis,iG))*(std(dfa_emp_task(:))/std(dfa_sim(:,iies,iiis,iG)));
+% 
+%       dist_fc_rest (iies,iiis,iG,igain)  = mean(fc_sim_tmp(mask))-mean(fc_rest(mask));
+%       dist_fc_task (iies,iiis,iG,igain)  = mean(fc_sim_tmp(mask))-mean(fc_task(mask));
+%       
+%       fc_sim(iies,iiis,iG,igain) = mean(fc_sim_tmp(mask));
+%       
+% %       Ies(iies) = out.Ie;
+% %       Iis(iiis) = out.Ii;
+%       
+%       fclose all;
 
     end
     end
@@ -350,8 +354,22 @@ end
 % 
 % pars.N = 90;
 % dfa_emp  =  tp_match_aal(pars,dfa_emp');
+%%
 
+figure;
 
+subplot(1,3,1);
+
+imagesc(flipud(squeeze(mean(dfa_sim_dfa))),[0.3 0.8])
+title('fs = 1/resol/ds'); axis square
+
+subplot(1,3,2);
+imagesc(flipud(squeeze(mean(dfa_sim_dfa1))),[0.3 0.8])
+title('fs = 1/resol'); axis square
+
+subplot(1,3,3);
+imagesc(flipud(squeeze(mean(round(dfa_sim_dfa1)))),[0.3 0.8])
+title('Oscillations'); axis square
 
 %%
 idx = [find(round(Ies*100)/100==-2.8) find(round(Iis*100)/100==-3.5000) ];
