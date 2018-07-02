@@ -12,13 +12,47 @@ clear
 %-------------------------------------------------------------------------
 % VERSION 1: baseline (no drug), low # trials, long run time (~550s)
 %-------------------------------------------------------------------------
-v           = 1;
+% v           = 1;
+% Ies         = -4:0.1:-1;
+% Iis         = -5:0.1:-1;
+% Gg          = 0.62;
+% Gains       = -0.5:0.25:0.5;
+% nTrials     = 3;
+% tmax        = 65000; % in units of tauE
+% wins = [3 50]
+%-------------------------------------------------------------------------
+% VERSION 1: baseline (no drug), low # trials, long run time (~550s)
+%-------------------------------------------------------------------------
+% v           = 2;
+% Ies         = -4:0.1:-1;
+% Iis         = -5:0.1:-1;
+% Gg          = 0.62;
+% Gains       = 0:0.25:0.25;
+% nTrials     = 20;
+% tmax        = 10000; %% in units of tauE
+% wins        = [1 25];
+%-------------------------------------------------------------------------
+% VERSION 1: baseline (no drug), low # trials, long run time (~550s)
+%-------------------------------------------------------------------------
+v           = 3;
 Ies         = -4:0.1:-1;
 Iis         = -5:0.1:-1;
+Gg          = 0.62:0.3:2;
+Gains       = 0;
+nTrials     = 1;
+tmax        = 10000; %% in units of tauE
+wins        = [1 25];
+%-------------------------------------------------------------------------
+% VERSION 1: baseline (no drug), low # trials, long run time (~550s)
+%-------------------------------------------------------------------------
+v           = 4;
+Ies         = [-2.8 -1.8];
+Iis         = [-3.5000 -2.4000];
 Gg          = 0.62;
-Gains       = -0.5:0.25:0.5;
-nTrials     = 3;
-tmax        = 65000; % in units of tauE
+Gains       = 0:0.25:0.25;
+nTrials     = 25;
+tmax        = 10000; %% in units of tauE
+wins        = [1 25];
 %-------------------------------------------------------------------------
 
 % load connectome
@@ -142,7 +176,7 @@ for iies = 1: length(Ies)
           Ri  = zeros(Tds,N);
           tt  = 0;
           % transient:
-          for t = 1:50000
+          for t = 1:25000
             u = W*r + Io;
             K = feval(F,u);
             r = r + dt*(-r + K)./tau + sqrt(dt)*sigma*randn(2*N,1);
@@ -177,18 +211,19 @@ for iies = 1: length(Ies)
 %           clear ku KOP 
           
           rc            = corrcoef(rE);
+          out.fctrl(:,:,tr) = rc;
           % ---------------------
           % COMPUTE LONG RANGE TEMPORAL CORRELATIONS
           % On E time course
           % ---------------------
-          tmp               = tp_dfa(rE,[3 50],1/resol,0.5,15);
+          tmp               = tp_dfa(rE,wins,1/resol,0.5,15);
           out.dfa(tr,:,1) = tmp.exp;
           % ---------------------
           % COMPUTE LONG RANGE TEMPORAL CORRELATIONS
           % On envelopes
           % ---------------------
           env = abs(hilbert(filtfilt(bfilt,afilt,rE)));
-          tmp              = tp_dfa(env,[3 50],1/resol,0.5,15);
+          tmp              = tp_dfa(env,wins,1/resol,0.5,15);
           out.dfa_env(tr,:,1) = tmp.exp;
           % ---------------------
  
@@ -212,16 +247,16 @@ for iies = 1: length(Ies)
           clear env
           for i=1:N
             fprintf('Autocorr reg %d ...\n',i)
-%             out.osc(tr,:,i) = tp_detect_osc(rE(:,i));
+            out.osc(tr,:,i) = tp_detect_osc(rE(:,i));
             %autocorr
-%             lags = 1:300;
-%             acorr = acf(rE(:,i),300);
-%             ii = find(acorr<.2,1,'first');
-%             if isempty(ii)
-%               out.lags(i,tr) = nan;
-%             else
-%               out.lags(i,tr) = lags(ii);
-%             end
+            lags = 1:300;
+            acorr = acf(rE(:,i),300);
+            ii = find(acorr<.2,1,'first');
+            if isempty(ii)
+              out.lags(i,tr) = nan;
+            else
+              out.lags(i,tr) = lags(ii);
+            end
             %           PSD:
             f = rE(:,i) - mean(rE(:,i));
             xdft = fft(f);
@@ -278,7 +313,7 @@ dfa_emp_task = nanmean(dfa_all(:,:,1,1,2),2);
 
 clear dfa r dfa_r dist_fc fc_sim
 v=1;
-vv =2;
+vv =3;
 load(sprintf('~/pupmod/proc/conn/pupmod_src_powcorr_cleaned_v%d.mat',v));
 mask    = logical(tril(ones(90,90),-1));
 mask = find(triu(ones(90))-eye(90));
@@ -286,14 +321,13 @@ mask = find(triu(ones(90))-eye(90));
 fc_rest =  squeeze(nanmean(cleandat(:,:,:,1,1,6),3));
 fc_task =  squeeze(nanmean(cleandat(:,:,:,1,2,6),3));
 
-for iies = 1 : 13%length(Ies)
+for iies = 1 : length(Ies)
   iies
   for iiis = 1 : length(Iis)
-    for iG = 1
-      for igain = 1 : length(Gains)
-        
-        %       load(sprintf('~/pmod/proc/pmod_WC_wholebrain_rest_Ie%d_Ii%d_v%d.mat',iies,iiis,vv))
-        load(sprintf('~/pmod/proc/pmod_WC_wholebrain_drugs_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,vv))
+    for iG = 1:5
+      for igain = 1:1
+%         igain
+        load(sprintf('~/pmod/proc/pmod_wc_wholebrain_rest_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,vv))
         
         if round(Ies(iies)*100)/100 == -2.8 && round( Iis(iiis)*100)/100 == -3.4
           disp('save stuff')
@@ -301,60 +335,73 @@ for iies = 1 : 13%length(Ies)
         end
         
         dfa_sim(:,iies,iiis,iG,igain) = squeeze(mean(out.dfa,1));
-        dfa1_sim(:,iies,iiis,iG,igain) = squeeze(mean(out.dfa1,1));
-        dfa_env_sim(:,iies,iiis,iG,igain) = squeeze(mean(out.dfa_env1,1));
-        fc_sim_tmp = tp_match_aal(pars,out.FC(:,:,1));
+        dfa_env_sim(:,iies,iiis,iG,igain) = squeeze(mean(out.dfa_env,1));
+        fc_sim_tmp = tp_match_aal(pars,mean(out.FC,3));
+        fc_sim_env_tmp = tp_match_aal(pars,mean(out.FC_env,3));
         
-        osc (iies,iiis,iG,igain) = mean(squeeze(mean(out.osc,1)));
-        %       r_rest(iies,iiis,iG)=corr(fc_sim_tmp(mask),fc_rest(mask));
+%         for itrl = 1 : 
+%         fc_sim_all(iies, iiis, itrl, iG, igain) 
+        
+        r_rest_corr(iies,iiis,iG,igain)=corr(fc_sim_tmp(mask),fc_rest(mask));
         r_rest(iies,iiis,iG,igain) = dot(fc_sim_tmp(mask),fc_rest(mask)) / sqrt(dot(fc_sim_tmp(mask),fc_sim_tmp(mask)) * dot(fc_rest(mask),fc_rest(mask)));
         %       r_task(iies,iiis,iG)=corr(fc_sim_tmp(mask),fc_task(mask));
         r_task(iies,iiis,iG,igain) = dot(fc_sim_tmp(mask),fc_task(mask)) / sqrt(dot(fc_sim_tmp(mask),fc_sim_tmp(mask)) * dot(fc_task(mask),fc_task(mask)));
+        
+        r_rest_env_corr(iies,iiis,iG,igain)=corr(fc_sim_env_tmp(mask),fc_rest(mask));
+        r_rest_env(iies,iiis,iG,igain) = dot(fc_sim_env_tmp(mask),fc_rest(mask)) / sqrt(dot(fc_sim_env_tmp(mask),fc_sim_tmp(mask)) * dot(fc_rest(mask),fc_rest(mask)));
+        %       r_task(iies,iiis,iG)=corr(fc_sim_tmp(mask),fc_task(mask));
+        r_task_env(iies,iiis,iG,igain) = dot(fc_sim_env_tmp(mask),fc_task(mask)) / sqrt(dot(fc_sim_env_tmp(mask),fc_sim_tmp(mask)) * dot(fc_task(mask),fc_task(mask)));
         
         %       kura_dist(iies,iiis,iG)=mean(out.KOPsd)/mean(out.KOPmean)-kura_emp_rest;
         
         idx = find(~isnan(dfa_emp_rest(1:90)'));
         
         %       dfa_r_rest (iies,iiis,iG) = dot(dfa_emp_rest(:),dfa_sim(:,iies,iiis,iG)) / sqrt(dot(dfa_sim(:,iies,iiis,iG),dfa_sim(:,iies,iiis,iG)) * dot(dfa_emp_rest(:),dfa_emp_rest(:)))
-        dfa_r_rest (iies,iiis,iG,igain) = corr(dfa_emp_rest(:),dfa_sim(:,iies,iiis,iG));
+        dfa_r_rest (iies,iiis,iG,igain) = corr(dfa_emp_rest(:),dfa_sim(:,iies,iiis,iG,igain));
         %       dfa_r_rest (iies,iiis,iG) = corr(dfa_emp_rest(:),dfa_sim(:,iies,iiis,iG))*(std(dfa_emp_rest(:))/std(dfa_sim(:,iies,iiis,iG)));
         %       dfa_r_rest (iies,iiis,iG) = dot(dfa_emp_rest(:),dfa_sim(:,iies,iiis,iG)) / sqrt(dot(dfa_sim(:,iies,iiis,iG),dfa_sim(:,iies,iiis,iG)) * dot(dfa_emp_task(:),dfa_emp_task(:)))
-        dfa_r_task (iies,iiis,iG,igain) = corr(dfa_emp_task(:),dfa_sim(:,iies,iiis,iG));
+        dfa_r_task (iies,iiis,iG,igain) = corr(dfa_emp_task(:),dfa_sim(:,iies,iiis,iG,igain));
         %       dfa_r_task (iies,iiis,iG) = corr(dfa_emp_task(:),dfa_sim(:,iies,iiis,iG))*(std(dfa_emp_task(:))/std(dfa_sim(:,iies,iiis,iG)));
         
         dist_fc_rest (iies,iiis,iG,igain)  = mean(fc_sim_tmp(mask))-mean(fc_rest(mask));
         dist_fc_task (iies,iiis,iG,igain)  = mean(fc_sim_tmp(mask))-mean(fc_task(mask));
         
         fc_sim(iies,iiis,iG,igain) = mean(fc_sim_tmp(mask));
+        fc_sim_env(iies,iiis,iG,igain) = mean(fc_sim_env_tmp(mask));
         
-        %       Ies(iies) = out.Ie;
-        %       Iis(iiis) = out.Ii;
-        
+        Ies(iies) = out.Ie;
+        Iis(iiis) = out.Ii;
+        autocorr (iies,iiis,iG,igain)  = mean(mean(out.lags));
         fclose all;
         
       end
     end
   end
 end
-%
-% pars.N = 90;
-% dfa_emp  =  tp_match_aal(pars,dfa_emp');
+
 
 %%
 
+% osc1= reshape(repmat(osc1,[1 1 90 3]),[90 31 41 1 3]);
+
+% for i= 1 : 90
+% dfa_sim(osc1==1)=nan;
 figure;
 
-subplot(1,3,1);
-
-imagesc(flipud(squeeze(mean(dfa1_sim))),[0.3 0.8])
+subplot(1,3,1);autocorr
+par = squeeze(mean(dfa_sim(:,:,:,:,3)));
+par(osc1==1)=nan;
+imagescnan(flipud(par),[0.3 0.8])
 title('rE'); axis square
 
 subplot(1,3,2);
-imagesc(flipud(squeeze(mean(dfa_env_sim))),[0.3 0.8])
+par = squeeze(mean(dfa_env_sim(:,:,:,:,3)));
+par(osc1==1)=nan;
+imagescnan(flipud(par),[0.5 0.8])
 title('Envelopes'); axis square
 
 subplot(1,3,3);
-imagesc(flipud(squeeze(round(osc))),[0.3 0.8])
+imagesc(flipud(squeeze(round(osc1))),[0.3 0.8])
 title('Oscillations'); axis square
 
 
@@ -362,7 +409,7 @@ title('Oscillations'); axis square
 idx = [find(round(Ies*100)/100==-2.8) find(round(Iis*100)/100==-3.5000) ];
 idx2 = [find(round(Ies*100)/100==-1.8) find(round(Iis*100)/100==-2.4000) ];
 
-
+% osc_mask = ~osc1;
 % Ie = -2.85;
 % Ii = -3.50;
 % idx = [-2.25 -4]';
@@ -380,20 +427,24 @@ gg = 1;
 % --------------------------------<<
 
 ax1 = subplot(2,4,1);
-imagesc(flipud((squeeze(fc_sim(:,:,gg)))),[-0.5  0.5]);
+par = squeeze(fc_sim(:,:,:,gg));
+par(osc1==1)=nan;
+imagescnan(flipud(par),[0  0.001]);
 axis square tight; hold on
 scatter(idx(2),length(Ies)-idx(1)+1,20,'markerfacecolor','w','markeredgecolor','k')
 scatter(idx2(2),length(Ies)-idx2(1)+1,20,'markerfacecolor','r','markeredgecolor','k')
 
 title('FC_{sim}')
-colormap(ax1,cmap)
+colormap(ax1,plasma)
 tp_editplots;
 
 % -------------------------------
 % SIMULATED CORRELATIONS
 % -------------------------------
 ax1 = subplot(2,4,2);
-imagesc(flipud((squeeze(fc_sim(:,:,gg))-squeeze(fc_sim(:,:,gg)))),[-0.01  0.01]);
+par = r_rest_corr(:,:,:,gg);
+par(osc1==1)=nan;
+imagescnan(flipud(par),[-0.3  0.3]);
 axis square tight; hold on
 scatter(idx(2),length(Ies)-idx(1)+1,20,'markerfacecolor','w','markeredgecolor','k')
 scatter(idx2(2),length(Ies)-idx2(1)+1,20,'markerfacecolor','r','markeredgecolor','k')
@@ -402,46 +453,31 @@ title('FC_{sim}')
 colormap(ax1,cmap)
 tp_editplots;
 
+ax5=subplot(2,4,3);
+% par = squeeze(mean(dfa_sim(:,:,:,:,gg)));
+par = squeeze(autocorr(:,:,:,gg));
 
-ax5=subplot(2,4,5);
-
-% mask3 = squeeze(mean(dfa_sim(:,:,:,gg)))>0.5 & squeeze(mean(dfa_sim(:,:,:,gg)))<0.9;
-imagesc(flipud((squeeze(mean(dfa_sim(:,:,:,gg)))-squeeze(mean(dfa_sim(:,:,:,gg))))),[-0.01 0.01]);
+par(osc1==1)=nan;
+imagescnan(flipud(par),[5 35]);
 axis square tight; hold on
 scatter(idx(2),length(Ies)-idx(1)+1,20,'markerfacecolor','w','markeredgecolor','k')
 scatter(idx2(2),length(Ies)-idx2(1)+1,20,'markerfacecolor','r','markeredgecolor','k')
 
-
-colormap(ax5,cmap)
+colormap(ax5,plasma)
 
 title('\alpha_{sim}')
 tp_editplots
 hold on
 
 % -------------------------------
-% CORRELATION SIMULATED DFA / RESTING DFA
-% -------------------------------
-
-ax4=subplot(2,4,6);
-mask4 = squeeze(dfa_r_rest(:,:,gg))>-1;
-imagesc(flipud(squeeze(dfa_r_rest(:,:,gg))),[-0.3 0.3]);
-axis square tight; hold on
-
-colormap(ax4,cmap)
-title('Correlation (\alpha_{sim},\alpha_{emp})')
-tp_editplots;
-
-scatter(idx(2),length(Ies)-idx(1)+1,20,'markerfacecolor','w','markeredgecolor','k')
-scatter(idx2(2),length(Ies)-idx2(1)+1,20,'markerfacecolor','r','markeredgecolor','k')
-
-% -------------------------------
 % DISTANCE SIMULATED DFA - RESTING DFA
 % -------------------------------
 
-ax5=subplot(2,4,7);
+ax5=subplot(2,4,4);
+par = squeeze(mean(dfa_sim(:,:,:,:,gg),1))-mean(dfa_emp_rest);
+par(osc1==1)=nan;
+imagescnan(flipud(par),[-0.2 0.2]);
 
-mask5 = abs(squeeze(mean(dfa_sim(:,:,:,gg),1))-mean(dfa_emp_rest))<0.5;
-imagesc(flipud((squeeze(mean(dfa_sim(:,:,:,gg),1))-mean(dfa_emp_rest))),[-0.05 0.05]);
 axis square tight; hold on
 colormap(ax5,cmap)
 
@@ -449,6 +485,19 @@ title('Difference (\alpha_{Sim} - \alpha_{Emp})')
 tp_editplots; hold on
 scatter(idx(2),length(Ies)-idx(1)+1,20,'markerfacecolor','w','markeredgecolor','k')
 scatter(idx2(2),length(Ies)-idx2(1)+1,20,'markerfacecolor','r','markeredgecolor','k')
+
+ax6=subplot(2,4,5);
+par = squeeze(fc_sim(:,:,:,2)-fc_sim(:,:,:,1));
+par(osc1==1)=nan;
+imagescnan(flipud(par),[-0.002 0.002]);
+colormap(ax6,cmap)
+
+title('Difference (\alpha_{Sim} - \alpha_{Emp})')
+tp_editplots; hold on
+scatter(idx(2),length(Ies)-idx(1)+1,20,'markerfacecolor','w','markeredgecolor','k')
+scatter(idx2(2),length(Ies)-idx2(1)+1,20,'markerfacecolor','r','markeredgecolor','k')
+
+axis square tight; hold on
 
 
 % -------------------------------

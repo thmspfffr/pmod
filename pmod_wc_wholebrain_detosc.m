@@ -17,15 +17,30 @@ Ies         = -4:0.1:-1;
 Iis         = -5:0.1:-1;
 Gg          = 0.62;
 Gains       = 0;
-nTrials     = 1;
+nTrials     = 3;
 tmax        = 5000; % in units of tauE
+N           = 90;
+%-------------------------------------------------------------------------
+% VERSION 2: No coupling
+%-------------------------------------------------------------------------
+% v           = 2;
+% Ies         = -4:0.1:-1;
+% Iis         = -5:0.1:-1;
+% Gg          = 0.62;
+% Gains       = 0;
+% nTrials     = 10;
+% tmax        = 5000; % in units of tauE
+% N = 1;
 %-------------------------------------------------------------------------
 
 % load connectome
 load ~/pmod/matlab/EC.mat %Matt_EC
 C = EC;
 C = C/max(C(C>0));
-N = size(C,1);
+if N == 1
+  C = 0;
+end
+% N = size(C,1);
 
 addpath ~/Documents/MATLAB/Colormaps/'Colormaps (5)'/Colormaps/
 addpath ~/pconn/matlab
@@ -231,14 +246,16 @@ for iies = 1 : length(Ies)
   for iiis = 1 : length(Iis)
     for iG = 1
       for igain = 1 : length(Gains)
-        
+        try
         %       load(sprintf('~/pmod/proc/pmod_WC_wholebrain_rest_Ie%d_Ii%d_v%d.mat',iies,iiis,vv))
         load(sprintf('~/pmod/proc/pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,vv))
         
         osc1(iies,iiis,iG,igain) = mean(squeeze(mean(squeeze(out.osc1),1)));
 %             osc2(iies,iiis,iG,igain) = mean(squeeze(mean(squeeze(out.osc2),1)));
 %         osc3(iies,iiis,iG,igain) = mean(squeeze(mean(squeeze(out.osc3),1)));
-    
+        catch me
+          osc1(iies,iiis,iG,igain) = nan;
+        end
       end
     end
   end
