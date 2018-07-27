@@ -245,17 +245,17 @@ for iies = 1 : length(Ies)
   iies
   for iiis = 1 : length(Iis)
     for iG = 1
-      for igain = 1 : length(Gains)
-        try
+      for igain = 1 %: length(Gains)
+%         try
         %       load(sprintf('~/pmod/proc/pmod_WC_wholebrain_rest_Ie%d_Ii%d_v%d.mat',iies,iiis,vv))
         load(sprintf('~/pmod/proc/pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,vv))
         
         osc1(iies,iiis,iG,igain) = mean(squeeze(mean(squeeze(out.osc1),1)));
 %             osc2(iies,iiis,iG,igain) = mean(squeeze(mean(squeeze(out.osc2),1)));
 %         osc3(iies,iiis,iG,igain) = mean(squeeze(mean(squeeze(out.osc3),1)));
-        catch me
-          osc1(iies,iiis,iG,igain) = nan;
-        end
+%         catch me
+%           osc1(iies,iiis,iG,igain) = nan;
+%         end
       end
     end
   end

@@ -7,7 +7,7 @@
 clear all;
 
 % load connectome
-load EC %Matt_EC
+load ~/pmod/matlab/EC %Matt_EC
 C = EC;
 C = C/max(C(C>0));
 N = size(C,1);
@@ -520,7 +520,7 @@ nTrials = 20;
 figure; set(gcf,'color','white')
 
 subplot(1,2,1); hold on
-load ~/pmod/matlab/WC_connectome_ATX_AAL
+load ~/pmod/matlab/old/WC_connectome_ATX_AAL
 
 bar(Cee); axis([0 5 0 0.02]); 
 line([1 1],[Cee(1)-CeeSD(1)/sqrt(nTrials) Cee(1)+CeeSD(1)/sqrt(nTrials)])
@@ -537,7 +537,7 @@ fprintf('Altered connections: %.2f%%\n',100*sum(ttest(FCval{4},FCval{3},'dim',2,
 fprintf('Corr > 0: %.2f%%\n',100*sum(ttest(FCval{4},FCval{3},'dim',2,'alpha',0.01).*(mean(FCval{4},2)-mean(FCval{3},2))>0)./sum(ttest(FCval{4},FCval{3},'dim',2,'alpha',0.01)))
 
 
-load ~/pmod/matlab/WC_connectome_DPZ_AAL
+load ~/pmod/matlab/old/WC_connectome_DPZ_AAL
 subplot(1,2,2); hold on
 
 bar(Cee); axis([0 5 0 0.02]); 

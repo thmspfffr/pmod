@@ -7,25 +7,70 @@ clear
 %-------------------------------------------------------------------------
 % VERSION 1
 %-------------------------------------------------------------------------
-v = 1;
-Ies = -8:0.1:2;
-Iis = -8:0.1:2;
-Gg  = 0; % 0.62
-nTrials = 1;
-envelopes = 1;
-N = 5;%size(C,1);
-tmax  = 100000; % in units of tauE
+% v = 1;
+% Ies = -8:0.1:2;
+% Iis = -8:0.1:2;
+% Gg  = 0; % 0.62
+% nTrials = 1;
+% envelopes = 1;
+% N = 5;%size(C,1);
+% tmax  = 100000; % in units of tauE
 %-------------------------------------------------------------------------
 % VERSION 2
 %-------------------------------------------------------------------------
-v = 2;
-Ies = -8:0.1:2;
-Iis = -8:0.1:2;
-Gg  = 0; % 0.62
+% v = 2;
+% Ies = -8:0.1:2;
+% Iis = -8:0.1:2;
+% Gg  = 0; % 0.62
+% nTrials = 1;
+% envelopes = 1;
+% N = 1;%size(C,1);
+% tmax  = 1000000; % in units of tauE
+%-------------------------------------------------------------------------
+% VERSION 3
+%-------------------------------------------------------------------------
+% v = 3;
+% Ies = [-2.8:0.05:-2.5];
+% Iis = [-3.8:0.05:-3.5];
+% Gg  = 0.62; % 0.62
+% nTrials = 3;
+% envelopes = 1;
+% N = 90;%size(C,1);
+% tmax  = 60000; % in units of tauE
+%-------------------------------------------------------------------------
+% VERSION 3
+%-------------------------------------------------------------------------
+% v = 4;
+% Ies = -8:0.1:2;
+% Iis = -8:0.1:2;
+% Gg  = 0.62; % 0.62
+% nTrials = 20;
+% envelopes = 1;
+% N = 1;%size(C,1);
+% tmax  = 600000; % in units of tauE
+% wins = [3 50];
+%-------------------------------------------------------------------------
+% VERSION 3
+%-------------------------------------------------------------------------
+% v = 5;
+% Ies = [-2.8:0.01:-2.5];
+% Iis = [-3.8:0.01:-3.5];
+% Gg  = 0.62; % 0.62
+% nTrials = 1;
+% envelopes = 1;
+% N = 90;%size(C,1);
+% tmax  = 60000; % in units of tauE% wins = [3 50];
+% wins = [3 50];
+%-------------------------------------------------------------------------
+v = 6;
+Ies = [-2.6:-0.05:-3.2];
+Iis = [-3.8:0.05:-3.3];
+Gg  = 0.62:0.1:1.02;
 nTrials = 1;
 envelopes = 1;
-N = 1;%size(C,1);
-tmax  = 1000000; % in units of tauE
+N = 90;%size(C,1);
+tmax  = 60000; % in units of tauE% wins = [3 50];
+wins = [3 50];
 %-------------------------------------------------------------------------
 
 %-----
@@ -83,15 +128,15 @@ Wn=[flp/fnq fhi/fnq]; % butterworth bandpass non-dimensional frequency
 
 isub = find( triu(ones(N)) - eye(N) );
 %%
-for iies = 1:length(Ies)
-  for iiis = 1: length(Iis)
+for iies = 8:length(Ies)
+    iiis = iies
     for iG = 1 : length(Gg)
 % % % %       
-      if ~exist(sprintf(['~/pmod/proc/' 'pmod_wc_singlenode_Ie%d_Ii%d_G%d_v%d_processing.txt'],iies,iiis,iG,v))
-        system(['touch ' '~/pmod/proc/' sprintf('pmod_wc_singlenode_Ie%d_Ii%d_G%d_v%d_processing.txt',iies,iiis,iG,v)]);
-      else
-        continue
-      end
+%       if ~exist(sprintf(['~/pmod/proc/' 'pmod_wc_singlenode_Ie%d_Ii%d_G%d_v%d_processing.txt'],iies,iiis,iG,v))
+%         system(['touch ' '~/pmod/proc/' sprintf('pmod_wc_singlenode_Ie%d_Ii%d_G%d_v%d_processing.txt',iies,iiis,iG,v)]);
+%       else
+%         continue
+%       end
 %       Ie = 0;
 %       Ii = -5;
       g = Gg(iG);
@@ -100,7 +145,7 @@ for iies = 1:length(Ies)
       % Control params.
       %--------------------
       Ie = Ies(iies);
-      Ii = Iis(iiis);
+      Ii = Iis(iies);
                                                                                                                                              
       Io=zeros(2*N,1);
 %       Io(1:N) = Ie;
@@ -135,6 +180,7 @@ for iies = 1:length(Ies)
         end
         % simulation
         for t = 1:L
+%           100*t/L
           u = W*r + Io;
           K = feval(F,u);
           r = r + dt*(-r+ K)./tau + sqrt(dt)*sigma*randn(2*N,1);
@@ -150,31 +196,63 @@ for iies = 1:length(Ies)
         rI = Ri;clear Ri
 %         plot(rE(:,1)); hold on
 %         drawnow
-      	out.osc(tr) = tp_detect_osc(rE(:,1));
-        env = abs(hilbert(filtfilt(bfilt,afilt,rE))); 
+%       	out.osc(tr) = tp_detect_osc(rE(:,1));
+%         env = abs(hilbert(filtfilt(bfilt,afilt,rE))); 
 %         env = resample(env,1,50);
 
-        tmp  = tp_dfa(env,[3 50],1/resol,0.5,15);
-        out.dfa_env(:,tr) = tmp.exp;
+%         tmp  = tp_dfa(env,[3 50],1/resol,0.5,15);
+%         out.dfa_env(:,tr) = tmp.exp;
 
 %          rE = resample(rE,1,50);
-        tmp 	= tp_dfa(rE,[3 50],1/resol,0.5,15);
+        tmp 	= tp_dfa(rE,wins,1/resol,0.5,15);
         out.dfa_rE(:,tr) = tmp.exp;
+        
+        clear env
+        for i=1:N
+          fprintf('Autocorr reg %d ...\n',i)
+          out.osc(tr,:,i) = tp_detect_osc(rE(:,i));
+          %autocorr
+          lags = 1:round(2*(1/resol));
+          if license('checkout','econometrics_toolbox')
+            acorr = autocorr(rE(:,i),'NumLags',round(2*(1/resol)));
+          else
+            acorr = acf(rE(:,i),round(2*(1/resol)));
+          end
+          ii = find(acorr<.2,1,'first');
+          if isempty(ii)
+            out.lags(i,tr) = nan;
+          else
+            out.lags(i,tr) = lags(ii);
+          end
+          %           PSD:
+%           f = rE(:,i) - mean(rE(:,i));
+%           xdft = fft(f);
+%           xdft = xdft(1:floor(Tds/2)+1);
+%           pw = (1/(Tds/2)) * abs(xdft).^2;
+%           psd = pw(freqs<100 & freqs>1);
+%           f = freqs(freqs<100 & freqs>1);
+%           fnew = f(1:10:end);
+%           psd  = psd(1:10:end);
+%           %       pw = gaussfilt(fnew,psd',.5);
+%           out.PSD(:,i,tr) = psd';
+%           out.f = fnew;
+        end
+        clear rE rI
    
         
-        out.freq = 0:(1/resol)/length(rE):(1/resol)/2;
-        p = abs(fft(rE)); p = p (1:size(p,1)/2+1,:);
-        out.pow = p; clear p
-        
-        p = abs(fft(env)); p = p (1:size(p,1)/2+1,:);
-        out.envpow = p;
-        
-        out.freq2 = 0:(1/resol/ds)/length(rE):(1/resol/ds)/2;
-        p = abs(fft(rE)); p = p (1:size(p,1)/2+1,:);
-        out.pow2 = p; clear p
-        
-        p = abs(fft(env)); p = p (1:size(p,1)/2+1,:);
-        out.envpow2 = p;
+%         out.freq = 0:(1/resol)/length(rE):(1/resol)/2;
+%         p = abs(fft(rE)); p = p (1:size(p,1)/2+1,:);
+%         out.pow = p; clear p
+%         
+%         p = abs(fft(env)); p = p (1:size(p,1)/2+1,:);
+%         out.envpow = p;
+%         
+%         out.freq2 = 0:(1/resol/ds)/length(rE):(1/resol/ds)/2;
+%         p = abs(fft(rE)); p = p (1:size(p,1)/2+1,:);
+%         out.pow2 = p; clear p
+%         
+%         p = abs(fft(env)); p = p (1:size(p,1)/2+1,:);
+%         out.envpow2 = p;
 
       end
       
@@ -182,7 +260,7 @@ for iies = 1:length(Ies)
       
     end
   end
-end
+% end
 
 % error('!')
 
@@ -199,11 +277,11 @@ if ~exist(sprintf('~/pmod/proc/pmod_wc_singlenode_alloutp_v%d.mat',v))
      catch me
        delete(sprintf('~/pmod/proc/pmod_wc_singlenode_Ie%d_Ii%d_G%d_v%d_processing.txt',iies,iiis,iG,v))
      end
-       allout.dfa1(iies,iiis) = mean(out.dfa_rE);
-       allout.dfa2(iies,iiis) = mean(out.dfa_rE2);
-       allout.dfa_env1(iies,iiis) = mean(out.dfa_env);
-       allout.dfa_env2(iies,iiis) = mean(out.dfa_env2);
-       allout.osc(iies,iiis) = out.osc;
+       allout.dfa1(iies,iiis) = mean(out.dfa_rE(:));
+%        allout.dfa2(iies,iiis) = mean(out.dfa_rE2);
+%        allout.dfa_env1(iies,iiis) = mean(out.dfa_env);
+%        allout.dfa_env2(iies,iiis) = mean(out.dfa_env2);
+       allout.osc(iies,iiis) = any(out.osc);
   %      dfa_z(iies,iiis) = mean(out.dfa_z);
       end
     end
@@ -215,6 +293,10 @@ else
   
 	load(sprintf('~/pmod/proc/pmod_wc_singlenode_alloutp_v%d.mat',v))
 end
+
+%%
+idx = [find(round(Ies*100)/100==-2.8) find(round(Iis*100)/100==-3.5000) ];
+idx2 = [find(round(Ies*100)/100==-1.8) find(round(Iis*100)/100==-2.4000) ];
 
 %%
 addpath ~/Documents/MATLAB/Colormaps/Colormaps' (5)'/Colormaps/
@@ -284,3 +366,11 @@ scatter(col,row,20,'markerfacecolor','r','markeredgecolor','k')
 end
 
 %% 
+for i = 1 : 18
+  
+  load ( sprintf ( '/home/tpfeffer/pmod/proc/pmod_wc_singlenode_Ie%d_Ii%d_G1_v5.mat', i, i) ) 
+  
+  lags(i) = mean(out.lags);
+  dfa(i) = mean(out.dfa_rE);
+end
+

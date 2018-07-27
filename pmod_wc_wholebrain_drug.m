@@ -12,14 +12,58 @@ clear
 %-------------------------------------------------------------------------
 % VERSION 1: baseline (no drug), low # trials, long run time (~550s)
 %-------------------------------------------------------------------------
-v           = 1;
-Ies         = -4:0.1:-1;
-Iis         = -5:0.1:-1;
+% v           = 1;
+% Ies         = -4:0.1:-1;
+% Iis         = -5:0.1:-1;
+% Gg          = 0.62;
+% Gains       = -0.5:0.25:0.5;
+% nTrials     = 3;
+% tmax        = 65000; % in units of tauE
+% wins = [3 50]
+%-------------------------------------------------------------------------
+% VERSION 1: baseline (no drug), low # trials, long run time (~550s)
+%-------------------------------------------------------------------------
+% v           = 2;
+% Ies         = -4:0.1:-1;
+% Iis         = -5:0.1:-1;
+% Gg          = 0.62;
+% Gains       = 0:0.25:0.25;
+% nTrials     = 20;
+% tmax        = 10000; %% in units of tauE
+% wins        = [1 25];
+%-------------------------------------------------------------------------
+% VERSION 1: baseline (no drug), low # trials, long run time (~550s)
+%-------------------------------------------------------------------------
+% v           = 3;
+% Ies         = -4:0.1:-1;
+% Iis         = -5:0.1:-1;
+% Gg          = 0.62:0.3:2;
+% Gains       = 0;
+% nTrials     = 1;
+% tmax        = 10000; %% in units of tauE
+% wins        = [1 25];
+%-------------------------------------------------------------------------
+% VERSION 1: baseline (no drug), low # trials, long run time (~550s)
+%-------------------------------------------------------------------------
+v           = 4;
+Ies         = [-2.8 -1.8];
+Iis         = [-3.5000 -2.3000];
 Gg          = 0.62;
-Gains       = -0.5:0.25:0.5;
-nTrials     = 3;
-tmax        = 65000; % in units of tauE
-wins        = [3 50];
+Gains       = [0 0.1 0.2];
+nTrials     = 25;
+tmax        = 10000; %% in units of tauE
+wins        = [1 25];
+%-------------------------------------------------------------------------
+% VERSION 5: Drug effects
+%-------------------------------------------------------------------------
+% v           = 5;
+% Ies         = [-2.8 -1.8 -3.05 -2.05];
+% Iis         = [-3.5000 -2.4000 -3.75 -2.65];
+% Gg          = 0.62;
+% Gains       = [0:0.1:0.1];
+% nTrials     = 25;
+% tmax        = 10000; %% in units of tauE
+% wins        = [1 25];
 %-------------------------------------------------------------------------
 
 % load connectome
@@ -62,6 +106,7 @@ sigma = 0.0005;
 %Qn = (sigma*dt)^2*eye(2*N);
 
 % FILTERS
+
 flp = 8;           % lowpass frequency of filter
 fhi = 12;
 
@@ -79,8 +124,8 @@ for iies = 1: length(Ies)
     for iG = 1 : length(Gg)
       for igain = 1 : length(Gains)
         
-        if ~exist(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_rest_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt'],iies,iiis,iG,igain,v))
-          system(['touch ' '~/pmod/proc/' sprintf('pmod_wc_wholebrain_rest_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt',iies,iiis,iG,igain,v)]);
+        if ~exist(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_drug_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt'],iies,iiis,iG,igain,v))
+          system(['touch ' '~/pmod/proc/' sprintf('pmod_wc_wholebrain_drug_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt',iies,iiis,iG,igain,v)]);
         else
           continue
         end
@@ -89,6 +134,7 @@ for iies = 1: length(Ies)
         W = [wEE*eye(N)+g*C -wEI*eye(N); wIE*eye(N) -wII*eye(N)];
         
         FC = zeros(N,N,1);
+        
         Cee = zeros(1,1);
         CeeSD = zeros(2,1);
         
@@ -122,7 +168,8 @@ for iies = 1: length(Ies)
         Io(N+1:2*N) = Ii;
         %
         %     FCval{1}    = zeros(length(isub),nTrials);
-        %     Epsilon{1}  = zeros(N,nTrials);        
+        %     Epsilon{1}  = zeros(N,nTrials);
+        
         T       = Tds*resol; %% define time of interval
         freqs   = (0:Tds/2)/T; %% find the corresponding frequency in Hz
         nfreqs  = length(freqs);
@@ -202,39 +249,25 @@ for iies = 1: length(Ies)
           fc_env         	= rc(isub);
           out.Cee_env(1)      = Cee(1) + mean(fc)/nTrials;
           out.CeeSD_env(1)    = CeeSD(1) + var(fc)/nTrials;
-
-%           clear env
+          %               FCval(:,tr)  = fc;
+          
+          %       rEo       = mean(mean(rE));
+          %       rEsd      = var(mean(rE));
+          %       Rate(1)   = rEo-rEo;
+          %       RateSD(1) = RateSD(1) + rEsd/nTrials;
+          clear env
           for i=1:N
             fprintf('Autocorr reg %d ...\n',i)
             out.osc(tr,:,i) = tp_detect_osc(rE(:,i));
             %autocorr
-            lags = 1:round(2*(1/resol));
-            if license('checkout','econometrics_toolbox')
-              acorr = autocorr(rE(:,i),'NumLags',round(2*(1/resol)));
-              acorr_env = autocorr(env(:,i),'NumLags',round(2*(1/resol)));
-            else
-              acorr = acf(rE(:,i),round(2*(1/resol)));
-              acorr_env = acf(env(:,i),round(2*(1/resol)));
-            end
-            
-            % get exp decay 
-            out.lambda(i,tr) = tp_fitexpdecay(acorr(1:size(lags,2)),lags,0.01);
-            out.lambda_env(i,tr) = tp_fitexpdecay(acorr_env(1:size(lags,2)),lags,0.01);
-            
+            lags = 1:300;
+            acorr = acf(rE(:,i),300);
             ii = find(acorr<.2,1,'first');
-            jj = find(acorr_env<.2,1,'first');
-            
             if isempty(ii)
               out.lags(i,tr) = nan;
             else
-              out.lags(i,tr) = lags(ii);           
+              out.lags(i,tr) = lags(ii);
             end
-            if isempty(jj)
-               out.lags_env(i,tr) = nan;
-            else
-               out.lags_env(i,tr) = lags(jj);
-            end
-  
             %           PSD:
             f = rE(:,i) - mean(rE(:,i));
             xdft = fft(f);
@@ -248,12 +281,12 @@ for iies = 1: length(Ies)
             out.PSD(:,i,tr) = psd';
             out.f = fnew;
           end
-          clear rE rI env
+          clear rE rI
           toc
         end
         
         
-        save(sprintf('~/pmod/proc/pmod_wc_wholebrain_rest_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,v),'out')
+        save(sprintf('~/pmod/proc/pmod_wc_wholebrain_drug_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,v),'out')
         
       end
     end
@@ -262,10 +295,6 @@ end
 error('!')
 
 %% FITTING
-
-v =  1;
-vv = 3;
-
 % ---------
 % LOAD EMPIRICALDFA (LCMV)
 % ---------
@@ -293,8 +322,9 @@ dfa_emp_task = nanmean(dfa_all(:,:,1,1,2),2);
 % dfa_emp_task = dfa_emp_task(:,1);
 % ---------
 
-clear dfa r dfa_r dist_fc fc_sim autocorr dfa_sim dfa_env_sim r*
- 
+clear dfa r dfa_r dist_fc fc_sim
+v=1;
+vv =4;
 load(sprintf('~/pupmod/proc/conn/pupmod_src_powcorr_cleaned_v%d.mat',v));
 mask    = logical(tril(ones(90,90),-1));
 mask = find(triu(ones(90))-eye(90));
@@ -307,8 +337,8 @@ fc_task =  squeeze(nanmean(cleandat(:,:,:,1,2,6),3));
 for iies = 1 : length(Ies)
   iies
   for iiis = 1 : length(Iis)
-    for iG = 1:5
-      for igain = 1
+    for iG = 1:1
+      for igain = 1:4
 %         igain
         load(sprintf('~/pmod/proc/pmod_wc_wholebrain_rest_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,vv))
         
@@ -322,10 +352,10 @@ for iies = 1 : length(Ies)
         fc_sim_tmp = tp_match_aal(pars,mean(out.FC,3));
         fc_sim_env_tmp = tp_match_aal(pars,mean(out.FC_env,3));
         
-%         for itrl = 1 : size(out.fctrl,3) 
-%           fc_sim_all(:,:,:,iies, iiis, iG, igain) = out.fctrl;
-%         end
-%         
+        for itrl = 1 : size(out.fctrl,3) 
+          fc_sim_all(:,:,:,iies, iiis, iG, igain) = out.fctrl;
+        end
+        
         r_rest_corr(iies,iiis,iG,igain)=corr(fc_sim_tmp(mask),fc_rest(mask));
         r_rest(iies,iiis,iG,igain) = dot(fc_sim_tmp(mask),fc_rest(mask)) / sqrt(dot(fc_sim_tmp(mask),fc_sim_tmp(mask)) * dot(fc_rest(mask),fc_rest(mask)));
         %       r_task(iies,iiis,iG)=corr(fc_sim_tmp(mask),fc_task(mask));
@@ -355,7 +385,7 @@ for iies = 1 : length(Ies)
         
         Ies(iies) = out.Ie;
         Iis(iiis) = out.Ii;
-%         autocorr (iies,iiis,iG,igain)  = mean(mean(out.lags));
+        autocorr (iies,iiis,iG,igain)  = mean(mean(out.lags));
         fclose all;
         
       end
@@ -367,22 +397,21 @@ end
 %%
 
 % osc1= reshape(repmat(osc1,[1 1 90 3]),[90 31 41 1 3]);
-gain = 1;
-G = 2;
+
 % for i= 1 : 90
-% dfa_sim(osc1>0)=nan;
+% dfa_sim(osc1==1)=nan;
 figure;
 
-subplot(1,3,1);
-par = squeeze(mean(dfa_sim(:,:,:,G,gain)));
-par(osc1>0.5)=nan;
-imagescnan(flipud(par),[0.4 0.8])
+subplot(1,3,1);autocorr
+par = squeeze(mean(dfa_sim(:,:,:,:,3)));
+par(osc1==1)=nan;
+imagescnan(flipud(par),[0.3 0.8])
 title('rE'); axis square
 
 subplot(1,3,2);
-par = squeeze(mean(dfa_env_sim(:,:,:,G,gain)));
-par(osc1>0.5)=nan;
-imagescnan(flipud(par),[0.4 0.8])
+par = squeeze(mean(dfa_env_sim(:,:,:,:,3)));
+par(osc1==1)=nan;
+imagescnan(flipud(par),[0.5 0.8])
 title('Envelopes'); axis square
 
 subplot(1,3,3);
@@ -391,8 +420,8 @@ title('Oscillations'); axis square
 
 
 %%
-idx = [find(round(Ies*100)/100==-2.8) find(round(Iis*100)/100==-3.5000)];
-idx2 = [find(round(Ies*100)/100==-1.8) find(round(Iis*100)/100==-2.4000)];
+idx = [find(round(Ies*100)/100==-2.8) find(round(Iis*100)/100==-3.5000) ];
+idx2 = [find(round(Ies*100)/100==-1.8) find(round(Iis*100)/100==-2.4000) ];
 
 % osc_mask = ~osc1;
 % Ie = -2.85;
@@ -405,7 +434,7 @@ cmap = cmap(end:-1:1,:);
 h = figure; set(gcf,'color','white'); hold on
 set(h,'Position',[10,10,1200,800])
 orient(h,'landscape')
-gg = 2;
+gg = 1;
 
 % -------------------------------
 % SIMULATED FC MATRIX
@@ -439,11 +468,11 @@ colormap(ax1,cmap)
 tp_editplots;
 
 ax5=subplot(2,4,3);
-par = squeeze(mean(dfa_env_sim(:,:,:,:,gg)));
-% par = squeeze(autocorr(:,:,:,gg));
+% par = squeeze(mean(dfa_sim(:,:,:,:,gg)));
+par = squeeze(autocorr(:,:,:,gg));
 
 par(osc1==1)=nan;
-imagescnan(flipud(par),[0.4 0.7]);
+imagescnan(flipud(par),[5 35]);
 axis square tight; hold on
 scatter(idx(2),length(Ies)-idx(1)+1,20,'markerfacecolor','w','markeredgecolor','k')
 scatter(idx2(2),length(Ies)-idx2(1)+1,20,'markerfacecolor','r','markeredgecolor','k')
@@ -470,13 +499,6 @@ title('Difference (\alpha_{Sim} - \alpha_{Emp})')
 tp_editplots; hold on
 scatter(idx(2),length(Ies)-idx(1)+1,20,'markerfacecolor','w','markeredgecolor','k')
 scatter(idx2(2),length(Ies)-idx2(1)+1,20,'markerfacecolor','r','markeredgecolor','k')
-
-% DRUG
-idx_rst_drug = [find(round(Ies*100)/100==-2.8) find(round(Iis*100)/100==-3.5000) ];
-idx_tsk_drug = [find(round(Ies*100)/100==-1.8) find(round(Iis*100)/100==-2.4000) ];
-
-[-2.8 -1.8 -3.05 -2.05];
-[-3.5000 -2.4000 -3.75 -2.65];
 
 ax6=subplot(2,4,5);
 par = squeeze(fc_sim(:,:,:,2)-fc_sim(:,:,:,1));
@@ -717,20 +739,20 @@ tp_editplots
 hold on
 %% STATS AND BAR PLOTS
 
-% 
-% pbo = fc_sim_all(:,:,:,1,1,1,1); 
-% atx = fc_sim_all(:,:,:,1,1,1,4); 
-% 
-% [h,p,~,s]=ttest(atx,pbo,'dim',3,'alpha',0.01);
-% sum(h(mask))/size(mask,1)
-% 
-% pbo=squeeze(mean(mean(pbo,1),2));
-% 
-% figure; set(gcf,'color','w')
-% bar([1 2],pbo,atx
-% 
-% pbo = fc_sim_all(:,:,:,2,2,1,1);
-% atx = fc_sim_all(:,:,:,2,2,1,4);
-% 
-% [h,~,~,s]=ttest(atx,pbo,'dim',3,'alpha',0.01);
-% sum(h(mask))/size(mask,1)
+
+pbo = fc_sim_all(:,:,:,1,1,1,1); 
+atx = fc_sim_all(:,:,:,1,1,1,4); 
+
+[h,p,~,s]=ttest(atx,pbo,'dim',3,'alpha',0.01);
+sum(h(mask))/size(mask,1)
+
+pbo=squeeze(mean(mean(pbo,1),2));
+
+figure; set(gcf,'color','w')
+bar([1 2],pbo,atx
+
+pbo = fc_sim_all(:,:,:,2,2,1,1);
+atx = fc_sim_all(:,:,:,2,2,1,4);
+
+[h,~,~,s]=ttest(atx,pbo,'dim',3,'alpha',0.01);
+sum(h(mask))/size(mask,1)
