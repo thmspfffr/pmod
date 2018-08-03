@@ -267,12 +267,7 @@ for iies = 1: length(Ies)
             
             jj = find(acorr_env<.2,1,'first');
 
-            if isempty(ii)
-              out.lags(i,tr) = nan;
-            else
-              out.lags(i,tr) = lags(ii);
-            end
-            if isempty(jj)
+            if isempty(jj) || jj > length(lags)
               out.lags_env(i,tr) = nan;
             else
               out.lags_env(i,tr) = lags(jj);

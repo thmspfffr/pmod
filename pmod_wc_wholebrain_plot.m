@@ -7,7 +7,7 @@ Gains       = -0.5:0.25:0.5;
 % connectivity, AAL
 v_conn =  1;
 % simulations
-v_sim = 1;
+v_sim = 2;
 % dfa, aal, lcmv
 v_dfa = 2;
 % -------------------
@@ -41,6 +41,10 @@ lambda_emp_task = nanmean(outp.lambda_all(:,:,1,1,2),2);
 clear dfa r dfa_r dist_fc fc_sim autocorr dfa_sim dfa_env_sim r*
 
 load(sprintf('~/pupmod/proc/conn/pupmod_src_powcorr_cleaned_v%d.mat',v_conn));
+load /home/tpfeffer/pupmod/proc/pow/pupmod_src_peakfreq_v3.mat
+peakfreq_rest = m_res(1);
+peakfreq_task = m_tsk(1);
+
 mask = logical(tril(ones(90,90),-1));
 mask = find(triu(ones(90))-eye(90));
 
@@ -48,7 +52,7 @@ fc_rest     =  squeeze(nanmean(cleandat(:,:,:,1,1,6),3));
 fc_task     =  squeeze(nanmean(cleandat(:,:,:,1,2,6),3));
 fc_rest_var =  std(nanmean(squeeze(nanmean(cleandat(:,:,:,1,1,6),3)))./max(nanmean(squeeze(nanmean(cleandat(:,:,:,1,1,6),3)))));
 
-% if ~exist(sprintf('~/pmod/proc/pmod_wholebrain_rest_all_v%d.mat',v_sim))
+if ~exist(sprintf('~/pmod/proc/pmod_wholebrain_rest_all_v%d.mat',v_sim))
 
 for iies = 1 : length(Ies)
   iies
@@ -56,8 +60,17 @@ for iies = 1 : length(Ies)
     for iG = Gs
       for igain = 1:5
         %         igain
+%         if exist(sprintf('~/pmod/proc/pmod_wc_wholebrain_rest_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,v_sim))
+
         load(sprintf('~/pmod/proc/pmod_wc_wholebrain_rest_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,v_sim))
-        
+%         continue
+%         else
+%           delete(sprintf('~/pmod/proc/pmod_wc_wholebrain_rest_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt',iies,iiis,iG,igain,v_sim))
+% 
+%           continue
+%         end
+          
+          
         if round(Ies(iies)*100)/100 == -2.8 && round( Iis(iiis)*100)/100 == -3.4
           disp('save stuff')
           FFCC = out.FC;
@@ -72,6 +85,10 @@ for iies = 1 : length(Ies)
         
         [~,peak_idx]=max(smooth(mean(out.PSD(out.f>3,:),2),20));
         outp.peakfreq(iies,iiis,iG,igain) = out.f(peak_idx+find(out.f<3,1,'last'));
+        
+        % get peak frequency from MEG data
+        outp.peakfreq_diff_res(iies,iiis,iG,igain) = outp.peakfreq(iies,iiis,iG,igain)-peakfreq_rest;
+        outp.peakfreq_diff_tsk(iies,iiis,iG,igain) = outp.peakfreq(iies,iiis,iG,igain)-peakfreq_task;
         
         pars.dim = 2;
         outp.fc_sim_tmp = tp_match_aal(pars,mean(out.FC,3));
@@ -103,6 +120,9 @@ for iies = 1 : length(Ies)
         % KURAMOTO
         outp.kuramoto_mean (iies,iiis,iG,igain) = mean(out.KOPmean);
         outp.kuramoto_std (iies,iiis,iG,igain)  = mean(out.KOPsd);
+        
+        outp.psslp(:,iies,iiis,iG,igain)      = out.psslope;
+        outp.psslp_env(:,iies,iiis,iG,igain)  = out.psslope_env;
         
         fclose all;
         %
@@ -147,12 +167,12 @@ for iG = 1 : Gs
     end
   end
 end
-
-% save(sprintf('~/pmod/proc/pmod_wholebrain_rest_all_v%d.mat',v_sim),'outp')
 % 
-% else
-%   load(sprintf('~/pmod/proc/pmod_wholebrain_rest_all_v%d.mat',v_sim))
-% end
+save(sprintf('~/pmod/proc/pmod_wholebrain_rest_all_v%d.mat',v_sim),'outp')
+% % 
+else
+  load(sprintf('~/pmod/proc/pmod_wholebrain_rest_all_v%d.mat',v_sim))
+end
 
 error('!')
 %% PLOT BASIC PARAMETERS
@@ -340,3 +360,29 @@ par(osc1>0.5)=nan;
 imagescnan(par,[0 0.75])
 title('Degree');
 colormap(plasma)
+
+%% SPATIAL MAPS
+addpath /home/gnolte/meg_toolbox/meg/
+
+load /home/gnolte/meth/templates/sa_template
+load /home/gnolte/meth/templates/mri.mat
+sa_template.grid_cortex400 = select_chans(sa_template.grid_cortex3000,400);
+
+grid  = sa_template.grid_cortex400;
+g1    = sa_template.grid_cortex400;
+g2    = sa_template.cortex10K.vc;
+vc    = sa_template.vc;
+dd    = .75;
+
+d = mean(outp.fc_sim_all(:,:,idx(1),idx(2),1,3));
+
+par_interp = spatfiltergauss(d,g1,dd,g2);
+
+para =[];
+para.colorlimits = [0 0.03];
+
+ 
+% PLOT RESULTS
+para.filename = sprintf('~/pmod/plots/all_src_tsk_v%d.png',v_sim);
+tp_showsource(par_interp,cmap,sa_template,para);
+
