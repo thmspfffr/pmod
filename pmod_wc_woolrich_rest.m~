@@ -24,24 +24,13 @@ clear
 % VERSION 2: COMPUTE PEAK FREQ
 %-------------------------------------------------------------------------
 v           = 2;
-Ies         = -4:0.1:-1;
-Iis         = -5:0.1:-1;
+Ies         = ;
+Iis         = -5:0.25:-1;
 Gg          = 0.62;
 Gains       = -0.5:0.25:0.5;
 nTrials     = 1;
 tmax        = 65000; % in units of tauE
 wins        = [3 50];
-%-------------------------------------------------------------------------
-% VERSION 9999: ONLY A TEST VERSION
-%-------------------------------------------------------------------------
-v           = 9999;
-Ies         = -2.8;
-Iis         = -3.5;
-Gg          = 2;
-Gains       = 0;
-nTrials     = 1;
-tmax        = 10000; % in units of tauE
-wins        = [3 30];
 %-------------------------------------------------------------------------
 
 % load connectome
@@ -90,11 +79,11 @@ for iies = 1: length(Ies)
     for iG = 1 : length(Gg)
       for igain = 1 : length(Gains)
 %         
-%         if ~exist(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_rest_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt'],iies,iiis,iG,igain,v))
-%           system(['touch ' '~/pmod/proc/' sprintf('pmod_wc_wholebrain_rest_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt',iies,iiis,iG,igain,v)]);
-%         else
-%           continue
-%         end
+        if ~exist(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_rest_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt'],iies,iiis,iG,igain,v))
+          system(['touch ' '~/pmod/proc/' sprintf('pmod_wc_wholebrain_rest_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt',iies,iiis,iG,igain,v)]);
+        else
+          continue
+        end
         tic
         g = Gg(iG);
         W = [wEE*eye(N)+g*C -wEI*eye(N); wIE*eye(N) -wII*eye(N)];
@@ -247,7 +236,7 @@ for iies = 1: length(Ies)
           flp = round(out.peakfreq)-2;           % lowpass frequency of filter
           fhi = round(out.peakfreq)+2;
           
-          delt  = resol;            % sampling interval
+          delt  = 1/(1/resol);            % sampling interval
           k     = 4;                  % 2nd order butterworth filter
           fnq   = 1/(2*delt);       % Nyquist frequency
           Wn    = [flp/fnq fhi/fnq]; % butterworth bandpass non-dimensional frequency

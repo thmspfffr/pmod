@@ -1,4 +1,4 @@
-%% pmod_wc_wholebrain_rest
+%% pmod_wc_woolrich_rest
 % Stochastic simulation of 2*N WC nodes during "rest"
 %-------------------------------------------------------------------------
 
@@ -10,38 +10,27 @@ clear
 % recordings.
 
 %-------------------------------------------------------------------------
-% VERSION 1: baseline (no drug), low # trials, long run time (~550s)
-%-------------------------------------------------------------------------
-% v           = 1;
-% Ies         = -4:0.1:-1;
-% Iis         = -5:0.1:-1;
-% Gg          = 0.62;
-% Gains       = -0.5:0.25:0.5;
-% nTrials     = 3;
-% tmax        = 65000; % in units of tauE
-% wins        = [3 50];
-%-------------------------------------------------------------------------
 % VERSION 2: COMPUTE PEAK FREQ
 %-------------------------------------------------------------------------
+% v           = 1;
+% Ies         = -10:0.5:10;
+% Iis         = -10:0.5:10;
+% Gg          = 0:0.1:1;
+% Gains       = 0;
+% nTrials     = 1;
+% tmax        = 10000; % in units of tauE
+% wins        = [3 50];
+%-------------------------------------------------------------------------
+% VERSION 2: 
+%-------------------------------------------------------------------------
 v           = 2;
-Ies         = -4:0.1:-1;
-Iis         = -5:0.1:-1;
-Gg          = 0.62;
-Gains       = -0.5:0.25:0.5;
-nTrials     = 1;
-tmax        = 65000; % in units of tauE
-wins        = [3 50];
-%-------------------------------------------------------------------------
-% VERSION 9999: ONLY A TEST VERSION
-%-------------------------------------------------------------------------
-v           = 9999;
-Ies         = -2.8;
-Iis         = -3.5;
-Gg          = 2;
-Gains       = 0;
+Ies         = -5:0.5:7.5;
+Iis         = -10:0.5:2.5;
+Gg          = 0.7;
+Gains       = 0:0.25:0.25;
 nTrials     = 1;
 tmax        = 10000; % in units of tauE
-wins        = [3 30];
+wins        = [3 50];
 %-------------------------------------------------------------------------
 
 % load connectome
@@ -61,7 +50,7 @@ addpath ~/Documents/MATLAB/cbrewer/cbrewer/
 wII=4;
 wIE=16;
 wEI=12;
-wEE=12;
+wEE=3.5;
 
 tauE = 1;
 tauI = 2;
@@ -90,11 +79,11 @@ for iies = 1: length(Ies)
     for iG = 1 : length(Gg)
       for igain = 1 : length(Gains)
 %         
-%         if ~exist(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_rest_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt'],iies,iiis,iG,igain,v))
-%           system(['touch ' '~/pmod/proc/' sprintf('pmod_wc_wholebrain_rest_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt',iies,iiis,iG,igain,v)]);
-%         else
-%           continue
-%         end
+        if ~exist(sprintf(['~/pmod/proc/' 'pmod_wc_woolrich_rest_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt'],iies,iiis,iG,igain,v))
+          system(['touch ' '~/pmod/proc/' sprintf('pmod_wc_woolrich_rest_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt',iies,iiis,iG,igain,v)]);
+        else
+          continue
+        end
         tic
         g = Gg(iG);
         W = [wEE*eye(N)+g*C -wEI*eye(N); wIE*eye(N) -wII*eye(N)];
@@ -247,7 +236,7 @@ for iies = 1: length(Ies)
           flp = round(out.peakfreq)-2;           % lowpass frequency of filter
           fhi = round(out.peakfreq)+2;
           
-          delt  = resol;            % sampling interval
+          delt  = 1/(1/resol);            % sampling interval
           k     = 4;                  % 2nd order butterworth filter
           fnq   = 1/(2*delt);       % Nyquist frequency
           Wn    = [flp/fnq fhi/fnq]; % butterworth bandpass non-dimensional frequency
@@ -313,7 +302,7 @@ for iies = 1: length(Ies)
           toc
         end
         
-        save(sprintf('~/pmod/proc/pmod_wc_wholebrain_rest_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,v),'out')
+        save(sprintf('~/pmod/proc/pmod_wc_woolrich_rest_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,v),'out')
         
       end
     end

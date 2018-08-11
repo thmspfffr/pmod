@@ -1,3 +1,5 @@
+%% pmod_wc_twonodes.m
+
 clear
 
 % VERSION 2
@@ -9,6 +11,7 @@ SIG       = [0.005];
 Ies       = -8:0.1:8;
 Iis       = -8:0.1:9;
 gs        = 0:0.2:5;
+wins = [3 50];
 % -------------------------------
 nTrials = 1;
 
@@ -39,17 +42,28 @@ wIE=16;
 wEI=12;
 wEE=12;
 
+
+flp = 8;           % lowpass frequency of filter
+fhi = 13;
+
+delt  = resol;            % sampling interval
+k     = 4;                  % 2nd order butterworth filter
+fnq   = 1/(2*delt);       % Nyquist frequency
+Wn    = [flp/fnq fhi/fnq]; % butterworth bandpass non-dimensional frequency
+[bfilt,afilt] = butter(k,Wn);
+
 %%
 % fixed params:
 
 for iies = 1 : length(Ies)
   for iiis = 1 : length(Iis)
     for ig = 1 : length(gs)
-      %       if ~exist(['~/pmod/proc/' sprintf('pmod_wc_excbif_iis%d_ies%d_g%d_v%d_processing.txt',iiis,iies,ig,v)])
-      %         system(['touch ' '~/pmod/proc/' sprintf('pmod_wc_excbif_iis%d_ies%d_g%d_v%d_processing.txt',iiis,iies,ig,v)]);
-      %       else
-      %         continue
-      %       end
+      
+      if ~exist(['~/pmod/proc/' sprintf('pmod_wc_excbif_iis%d_ies%d_g%d_v%d_processing.txt',iiis,iies,ig,v)])
+        system(['touch ' '~/pmod/proc/' sprintf('pmod_wc_excbif_iis%d_ies%d_g%d_v%d_processing.txt',iiis,iies,ig,v)]);
+      else
+        continue
+      end
       
       
       % Connectivity:
@@ -93,7 +107,7 @@ for iies = 1 : length(Ies)
       pp          = 1:10:length(freq100);
       
       for trial = 1:nTrials
-        
+        fprintf('Simulating trial %d...\n',trial)
         r = rand(N,1);
         R = zeros(Tds,N);
         tt = 0;
@@ -111,6 +125,7 @@ for iies = 1 : length(Ies)
           K = feval(F,u);
           r = r + dt*(-r+ K)./tau' + sdt*randn(N,1);
           if mod(t,ds)==0
+            tt
             tt=tt+1;
             R(tt,:)=r;
           end
@@ -120,7 +135,7 @@ for iies = 1 : length(Ies)
         Ampl(:,1)=abs(R(:,1) + 1i*R(:,2));
         Ampl(:,2)=abs(R(:,3) + 1i*R(:,4));
         
-        outp.fc(trial) = corr(rE);
+        outp.fc(trial) = corr(rE(:,1),rE(:,2));
         outp.fc_ampl(trial) = corr(Ampl(:,1),Ampl(:,2));
         
         tmp           = tp_dfa(rE,[3 50],1/resol,0.5,15);
@@ -164,9 +179,16 @@ for iies = 1 : length(Ies)
         end
         
         [~,peak_idx]=max(smooth(mean(out.PSD(outp.f>3,:),2),20));
-        outp.peakfreq = outp.f(peak_idx+find(outp.f<4,1,'last')); 
+        outp.peakfreq = outp.f(peak_idx+find(outp.f<4,1,'last'));
         
         
+        % COMPUTE DFA, EXTRACT HURST
+        % ---------------------------
+        env = abs(hilbert(filtfilt(bfilt,afilt,rE)));
+        tmp                 = tp_dfa(env,wins,1/resol,0.5,15);
+        outp.dfa_env(trial,:)   = tmp.exp;
+        
+        outp.fc_env(trial) =corr(env(:,1),env(:,2));
         
       end
       

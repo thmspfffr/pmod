@@ -45,11 +45,11 @@ wEE=12;
 for iies = 1 : length(Ies)
   for iiis = 1 : length(Iis)
     for ig = 1 : length(gs)
-      %       if ~exist(['~/pmod/proc/' sprintf('pmod_wc_excbif_iis%d_ies%d_g%d_v%d_processing.txt',iiis,iies,ig,v)])
-      %         system(['touch ' '~/pmod/proc/' sprintf('pmod_wc_excbif_iis%d_ies%d_g%d_v%d_processing.txt',iiis,iies,ig,v)]);
-      %       else
-      %         continue
-      %       end
+%       if ~exist(['~/pmod/proc/' sprintf('pmod_wc_excbif_iis%d_ies%d_g%d_v%d_processing.txt',iiis,iies,ig,v)])
+%         system(['touch ' '~/pmod/proc/' sprintf('pmod_wc_excbif_iis%d_ies%d_g%d_v%d_processing.txt',iiis,iies,ig,v)]);
+%       else
+%         continue
+%       end
       
       
       % Connectivity:
@@ -58,7 +58,7 @@ for iies = 1 : length(Ies)
       W12 = [gs(ig) 0; 0 0];
       W21 = [gs(ig) 0; 0 0];
       W = [W11 W12; W21 W22];
-      
+
       Io=zeros(N,1);
       Io(2) = Iis(iiis);
       Io(4) = Iis(iiis);
@@ -86,11 +86,6 @@ for iies = 1 : length(Ies)
       Fe = @(x) 1./(1 + exp(-x/aE) );
       Fi = @(x) 1./(1 + exp(-x/aI) );
       F = @(x) [feval(Fe,x(1));feval(Fi,x(2));feval(Fe,x(3));feval(Fi,x(4))];
-      
-      T           = Tds*resol; %% define time of interval
-      freqs       = (0:Tds/2)/T; %% find the corresponding frequency in Hz
-      freq100     = freqs(freqs<100 & freqs>1);
-      pp          = 1:10:length(freq100);
       
       for trial = 1:nTrials
         
@@ -122,51 +117,54 @@ for iies = 1 : length(Ies)
         
         outp.fc(trial) = corr(rE);
         outp.fc_ampl(trial) = corr(Ampl(:,1),Ampl(:,2));
-        
-        tmp           = tp_dfa(rE,[3 50],1/resol,0.5,15);
+       
+       	tmp           = tp_dfa(rE,[3 50],1/resol,0.5,15);
         out.dfa(:,trial) = tmp.exp;
         
         for i=1:N
-          fprintf('Autocorr reg %d ...\n',i)
-          outp.osc(trial,:,i) = tp_detect_osc(rE(:,i));
-          %autocorr
-          lags = 1:round(2*(1/resol));
-          if license('checkout','econometrics_toolbox')
-            acorr = autocorr(rE(:,i),'NumLags',round(2*(1/resol)));
-          else
-            acorr = acf(rE(:,i),round(2*(1/resol)));
+            fprintf('Autocorr reg %d ...\n',i)
+            out.osc(trial,:,i) = tp_detect_osc(rE(:,i));
+            %autocorr
+            lags = 1:round(2*(1/resol));
+            if license('checkout','econometrics_toolbox')
+              acorr = autocorr(rE(:,i),'NumLags',round(2*(1/resol)));
+            else
+              acorr = acf(rE(:,i),round(2*(1/resol)));
+            end
+            
+            % get exp decay 
+            out.lambda(i,tr) = tp_fitexpdecay(acorr(1:size(lags,2)),lags,0.01);
+            
+            ii = find(acorr<.2,1,'first');
+            
+            if isempty(ii)
+              out.lags(i,tr) = nan;
+            else
+              out.lags(i,tr) = lags(ii);           
+            end    
+  
+            % COMPUTE POWER SPECTRUM
+            % ---------------------------
+            f = rE(:,i) - mean(rE(:,i));
+            xdft = fft(f);
+            xdft = xdft(1:floor(Tds/2)+1);
+            pw = (1/(Tds/2)) * abs(xdft).^2;
+            psd = pw(freqs<100 & freqs>1);
+            f = freqs(freqs<100 & freqs>1);
+            fnew = f(1:10:end);
+            psd  = psd(1:10:end);
+            out.PSD(:,i,tr) = psd';
+            out.f = fnew;
+            
+             % POWER SPECTRUM FIT
+           idx= find(log10(out.f)>1.5,1,'first');
+            X = [ones(1,length(out.f(idx:end)))' log10(out.f(idx:end))'];
+            Y = log10(out.PSD(idx:end,i,tr));
+            tmp = X\Y;   
+            out.psslope(i,tr)= tmp(2);
+        
+
           end
-          
-          % get exp decay
-          outp.lambda(i,trial) = tp_fitexpdecay(acorr(1:size(lags,2)),lags,0.01);
-          
-          ii = find(acorr<.2,1,'first');
-          
-          if isempty(ii)
-            outp.lags(i,trial) = nan;
-          else
-            outp.lags(i,trial) = lags(ii);
-          end
-          
-          % COMPUTE POWER SPECTRUM
-          % ---------------------------
-          f = rE(:,i) - mean(rE(:,i));
-          xdft = fft(f);
-          xdft = xdft(1:floor(Tds/2)+1);
-          pw = (1/(Tds/2)) * abs(xdft).^2;
-          psd = pw(freqs<100 & freqs>1);
-          f = freqs(freqs<100 & freqs>1);
-          fnew = f(1:10:end);
-          psd  = psd(1:10:end);
-          outp.PSD(:,i,trial) = psd';
-          outp.f = fnew;
-          
-        end
-        
-        [~,peak_idx]=max(smooth(mean(out.PSD(outp.f>3,:),2),20));
-        outp.peakfreq = outp.f(peak_idx+find(outp.f<4,1,'last')); 
-        
-        
         
       end
       

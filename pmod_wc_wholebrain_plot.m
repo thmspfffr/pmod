@@ -12,6 +12,7 @@ v_sim = 2;
 v_dfa = 2;
 % -------------------
 
+set(groot,{'DefaultAxesXColor','DefaultAxesYColor','DefaultAxesZColor'},{'k','k','k'})
 Gs = 1;
 
 % ---------
@@ -19,18 +20,12 @@ Gs = 1;
 % ---------
 load(sprintf(['~/pupmod/proc/conn/' 'pupmod_src_dfa_v%d.mat'],v_dfa));
 % ---------
-% LOAD EMPIRICAL KURAMOTO PARAMETER
-% ---------
-% % subj x m x foi x cond
-% load(sprintf(['~/pupmod/proc/conn/' 'pupmod_all_kuramoto_v%d.mat'],v));
-% kura_emp_rest = mean(kura_std(:,1,1,1)./kura_mean(:,1,1,1));
-% kura_emp_task = mean(kura_std(:,1,1,2)./kura_mean(:,1,1,2));
-% ---------
 % MATCH DFA WITH AAL ORDER USED FOR SIMULATIONS
 % ---------
 pars = [];
 pars.grid = 'medium';
 pars.N = 90;
+% ---------
 
 dfa_emp_rest = nanmean(outp.dfa_all(:,:,1,1,1),2);
 dfa_emp_task = nanmean(outp.dfa_all(:,:,1,1,2),2);
@@ -44,6 +39,8 @@ load(sprintf('~/pupmod/proc/conn/pupmod_src_powcorr_cleaned_v%d.mat',v_conn));
 load /home/tpfeffer/pupmod/proc/pow/pupmod_src_peakfreq_v3.mat
 peakfreq_rest = m_res(1);
 peakfreq_task = m_tsk(1);
+
+load ~/pupmod/proc/conn/pupmod_all_kuramoto_v1.mat
 
 mask = logical(tril(ones(90,90),-1));
 mask = find(triu(ones(90))-eye(90));
@@ -60,17 +57,8 @@ for iies = 1 : length(Ies)
     for iG = Gs
       for igain = 1:5
         %         igain
-%         if exist(sprintf('~/pmod/proc/pmod_wc_wholebrain_rest_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,v_sim))
-
         load(sprintf('~/pmod/proc/pmod_wc_wholebrain_rest_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,v_sim))
-%         continue
-%         else
-%           delete(sprintf('~/pmod/proc/pmod_wc_wholebrain_rest_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt',iies,iiis,iG,igain,v_sim))
-% 
-%           continue
-%         end
-          
-          
+
         if round(Ies(iies)*100)/100 == -2.8 && round( Iis(iiis)*100)/100 == -3.4
           disp('save stuff')
           FFCC = out.FC;
@@ -91,8 +79,10 @@ for iies = 1 : length(Ies)
         outp.peakfreq_diff_tsk(iies,iiis,iG,igain) = outp.peakfreq(iies,iiis,iG,igain)-peakfreq_task;
         
         pars.dim = 2;
-        outp.fc_sim_tmp = tp_match_aal(pars,mean(out.FC,3));
-        outp.fc_sim_tmp = mean(out.FC,3);
+        
+        outp.fc_sim_tmp = tp_match_aal(pars,out.FC,3);     
+        outp.fc_sim_env = tp_match_aal(pars,out.FC_env,3);
+        
         outp.fc_sim_var(:,iies,iiis,iG,igain) = std(nanmean(outp.fc_sim_tmp)./max(nanmean(outp.fc_sim_tmp)));
         
         [outp.r_rest_corr(iies,iiis,iG,igain), outp.p_rest_corr(iies,iiis,iG,igain)]=corr(outp.fc_sim_tmp(mask),fc_rest(mask));
@@ -120,6 +110,9 @@ for iies = 1 : length(Ies)
         % KURAMOTO
         outp.kuramoto_mean (iies,iiis,iG,igain) = mean(out.KOPmean);
         outp.kuramoto_std (iies,iiis,iG,igain)  = mean(out.KOPsd);
+        
+        outp.kuramoto_mean_diff (iies,iiis,iG,igain) = mean(out.KOPmean) - mean(kura_mean(:,1,1,1));
+        outp.kuramoto_std_diff (iies,iiis,iG,igain)  = mean(out.KOPsd)- mean(kura_std(:,1,1,1));
         
         outp.psslp(:,iies,iiis,iG,igain)      = out.psslope;
         outp.psslp_env(:,iies,iiis,iG,igain)  = out.psslope_env;
@@ -201,7 +194,7 @@ title('\lambda (model)');
 ax{2} = subplot(2,2,2); hold on
 par = squeeze(outp.r_rest_corr(:,:,G,igain));
 par(osc1>0.5)=nan;
-imagescnan(par,[0 0.1])
+imagescnan(par,[0 0.3])
 title('Corr(FC_{sim}, FC_{exp})');
 
 % plot correlation lambda model / MEG
@@ -252,7 +245,7 @@ figure; set(gcf,'color','w')
 ax{1} = subplot(2,2,1); hold on
 par = squeeze(outp.fc_sim_mean(:,:,G,3));
 par(osc1>0.5)=nan;
-imagescnan(par,[-0.01 0.01])
+imagescnan(par,[0 0.02])
 title('Mean FC_{sim}');
 
 % plot correlation FC model / MEG
@@ -302,7 +295,7 @@ igain = 3;
 ax{1} = subplot(2,2,1); hold on
 par = squeeze(outp.degree(:,:,G,igain));
 par(osc1>0.5)=nan;
-imagescnan(par,[0 0.7])
+imagescnan(par,[0 1])
 title('Degree');
 
 % plot peak freq model
@@ -322,10 +315,65 @@ for iax = 1 : length(ax)
   tp_editplots(ax{iax})
   colormap(ax{1},plasma)
   colormap(ax{iax},cmap)
-  
+  axis(ax{iax}, 'tight')
 end
 
 print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_wholebrain_degree_gain%d_G%d_v%d.pdf',igain,G,v_sim))
+
+%% KURAMOTO
+
+clear par ax
+
+figure; set(gcf,'color','w')
+
+igain = 3; G = 1;
+% Kuramoto mean
+ax{1} = subplot(2,2,1); hold on
+par = squeeze(outp.kuramoto_mean(:,:,G,igain));
+par(osc1>0.5)=nan;
+imagescnan(par,[0 0.25])
+title('Kuramoto parameter');
+
+% Kuramoto std - metastability
+ax{2} = subplot(2,2,2); hold on
+par = squeeze(outp.kuramoto_std(:,:,G,igain));
+par(osc1>0.5)=nan;
+imagescnan(par,[0 0.0002])
+title('Metastability');
+
+% Kuramoto mean: contrast
+ax{3} = subplot(2,2,3); hold on
+par = squeeze(outp.kuramoto_mean(:,:,G,4)-outp.kuramoto_mean(:,:,G,igain));
+par(osc1>0.5)=nan;
+imagescnan(par,[-0.075 0.075])
+title('Difference Kuramoto');
+
+% Kuramoto std - metastability
+ax{4} = subplot(2,2,4); hold on
+par = squeeze(outp.kuramoto_std(:,:,G,4)-outp.kuramoto_std(:,:,G,igain));
+par(osc1>0.5)=nan;
+imagescnan(par,[-0.0001 0.0001])
+title('Difference Metastability');
+
+
+for iax = 1 : length(ax)
+  
+  scatter(ax{iax},idx(2),idx(1),20,'markerfacecolor','w','markeredgecolor','k')
+  scatter(ax{iax},idx2(2),idx2(1),20,'markerfacecolor','r','markeredgecolor','k')
+  ylabel(ax{iax},'Excitatory input'); xlabel(ax{iax},'Inhibitory input')
+  set(ax{iax},'XTick',1:5:length(Iis),'XTickLabels',Iis(1:5:end))
+  set(ax{iax},'YTick',1:5:length(Ies),'YTickLabels',Ies(1:5:end))
+  tp_editplots(ax{iax})
+  colormap(ax{1},plasma)
+  colormap(ax{2},plasma)
+  colormap(ax{iax},cmap)
+  
+%   axis(ax{iax}, 'tight')
+end
+
+print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_wholebrain_kuramoto_gain%d_G%d_v%d.pdf',igain,G,v_sim))
+
+
 %%
 drug_gain = 4;
 
@@ -355,11 +403,14 @@ print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_wholebrain_degree_gain%d_G%d_v%d
 igain = 3;
 % plot peak freq model
 ax{1} = subplot(2,2,1); hold on
-par = squeeze(outp.r_rest_corr_unc(:,:,1,igain));
+par = squeeze(outp.peakfreq_diff_res(:,:,1,igain));
 par(osc1>0.5)=nan;
-imagescnan(par,[0 0.75])
+imagescnan(par,[-15 15])
 title('Degree');
 colormap(plasma)
+
+scatter(gca,idx(2),idx(1),20,'markerfacecolor','w','markeredgecolor','k')
+scatter(gca,idx2(2),idx2(1),20,'markerfacecolor','r','markeredgecolor','k')
 
 %% SPATIAL MAPS
 addpath /home/gnolte/meg_toolbox/meg/

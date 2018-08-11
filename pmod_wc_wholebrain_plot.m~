@@ -91,8 +91,10 @@ for iies = 1 : length(Ies)
         outp.peakfreq_diff_tsk(iies,iiis,iG,igain) = outp.peakfreq(iies,iiis,iG,igain)-peakfreq_task;
         
         pars.dim = 2;
-        outp.fc_sim_tmp = tp_match_aal(pars,mean(out.FC,3));
-        outp.fc_sim_tmp = mean(out.FC,3);
+        
+        outp.fc_sim_tmp = tp_match_aal(pars,out.FC,3);     
+        outp.fc_sim_env = tp_match_aal(pars,out.FC_env,3);
+        
         outp.fc_sim_var(:,iies,iiis,iG,igain) = std(nanmean(outp.fc_sim_tmp)./max(nanmean(outp.fc_sim_tmp)));
         
         [outp.r_rest_corr(iies,iiis,iG,igain), outp.p_rest_corr(iies,iiis,iG,igain)]=corr(outp.fc_sim_tmp(mask),fc_rest(mask));
@@ -168,8 +170,8 @@ for iG = 1 : Gs
   end
 end
 % 
-save(sprintf('~/pmod/proc/pmod_wholebrain_rest_all_v%d.mat',v_sim),'outp')
-% % 
+% save(sprintf('~/pmod/proc/pmod_wholebrain_rest_all_v%d.mat',v_sim),'outp')
+% % % 
 % else
 %   load(sprintf('~/pmod/proc/pmod_wholebrain_rest_all_v%d.mat',v_sim))
 % end
@@ -326,6 +328,60 @@ for iax = 1 : length(ax)
 end
 
 print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_wholebrain_degree_gain%d_G%d_v%d.pdf',igain,G,v_sim))
+
+%% KURAMOTO
+
+%%
+clear par ax
+
+figure; set(gcf,'color','w')
+
+igain = 3; G = 1;
+% Kuramoto mean
+ax{1} = subplot(2,2,1); hold on
+par = squeeze(outp.kuramoto_mean(:,:,G,igain));
+par(osc1>0.5)=nan;
+imagescnan(par,[0 1])
+title('Kuramoto pa');
+
+% Kuramoto std - metastability
+ax{2} = subplot(2,2,2); hold on
+par = squeeze(outp.kuramoto_std(:,:,G,igain));
+par(osc1>0.5)=nan;
+imagescnan(par,[-0.25 0.25])
+title('Difference Degree');
+
+% Kuramoto mean: contrast
+ax{3} = subplot(2,2,3); hold on
+par = squeeze(outp.kuramoto_mean(:,:,G,4)-outp.kuramoto_mean(:,:,G,igain));
+par(osc1>0.5)=nan;
+imagescnan(par,[-0.25 0.25])
+title('Difference Degree');
+
+% Kuramoto std - metastability
+ax{4} = subplot(2,2,4); hold on
+par = squeeze(outp.kuramoto_std(:,:,G,4)-outp.kuramoto_std(:,:,G,igain));
+par(osc1>0.5)=nan;
+imagescnan(par,[-0.25 0.25])
+title('Difference Degree');
+
+
+for iax = 1 : length(ax)
+  
+  scatter(ax{iax},idx(2),idx(1),20,'markerfacecolor','w','markeredgecolor','k')
+  scatter(ax{iax},idx2(2),idx2(1),20,'markerfacecolor','r','markeredgecolor','k')
+  ylabel(ax{iax},'Excitatory input'); xlabel(ax{iax},'Inhibitory input')
+  set(ax{iax},'XTick',1:5:length(Iis),'XTickLabels',Iis(1:5:end))
+  set(ax{iax},'YTick',1:5:length(Ies),'YTickLabels',Ies(1:5:end))
+  tp_editplots(ax{iax})
+  colormap(ax{1},plasma)
+  colormap(ax{iax},cmap)
+  
+end
+
+print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_wholebrain_degree_gain%d_G%d_v%d.pdf',igain,G,v_sim))
+
+
 %%
 drug_gain = 4;
 
@@ -355,11 +411,14 @@ print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_wholebrain_degree_gain%d_G%d_v%d
 igain = 3;
 % plot peak freq model
 ax{1} = subplot(2,2,1); hold on
-par = squeeze(outp.r_rest_corr_unc(:,:,1,igain));
+par = squeeze(outp.peakfreq_diff_res(:,:,1,igain));
 par(osc1>0.5)=nan;
-imagescnan(par,[0 0.75])
+imagescnan(par,[-15 15])
 title('Degree');
 colormap(plasma)
+
+scatter(gca,idx(2),idx(1),20,'markerfacecolor','w','markeredgecolor','k')
+scatter(gca,idx2(2),idx2(1),20,'markerfacecolor','r','markeredgecolor','k')
 
 %% SPATIAL MAPS
 addpath /home/gnolte/meg_toolbox/meg/
@@ -378,11 +437,11 @@ d = mean(outp.fc_sim_all(:,:,idx(1),idx(2),1,3));
 
 par_interp = spatfiltergauss(d,g1,dd,g2);
 
-if bayes
-  para.colorlimits = [0 0.03];
+para =[];
+para.colorlimits = [0 0.03];
 
  
 % PLOT RESULTS
-para.filename = sprintf('~/pconn_all/plots/all_src_tsk_%s_mask%d_c%d_f%d_v%d.png',str,mask,icontr,ifoi,v_stat);
-tp_showsource(par_interp,cmap,sa_meg_template,para);
+para.filename = sprintf('~/pmod/plots/all_src_tsk_v%d.png',v_sim);
+tp_showsource(par_interp,cmap,sa_template,para);
 

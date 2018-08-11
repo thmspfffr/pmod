@@ -12,25 +12,37 @@ clear
 %-------------------------------------------------------------------------
 % VERSION 1: baseline (no drug), low # trials, long run time (~550s)
 %-------------------------------------------------------------------------
-v           = 1;
-Ies         = -4:0.1:-1;
-Iis         = -5:0.1:-1;
-Gg          = 0.62;
-Gains       = 0;
-nTrials     = 3;
-tmax        = 5000; % in units of tauE
-N           = 90;
-%-------------------------------------------------------------------------
-% VERSION 2: No coupling
-%-------------------------------------------------------------------------
-% v           = 2;
+% v           = 1;
 % Ies         = -4:0.1:-1;
 % Iis         = -5:0.1:-1;
 % Gg          = 0.62;
 % Gains       = 0;
-% nTrials     = 10;
+% nTrials     = 3;
 % tmax        = 5000; % in units of tauE
-% N = 1;
+% N           = 90;
+%-------------------------------------------------------------------------
+% VERSION 2: woolrich 1
+%-------------------------------------------------------------------------
+v           = 2;
+Ies         = -10:0.5:10;
+Iis         = -10:0.5:10;
+Gg          = 0:0.1:1;
+Gains       = 0;
+nTrials     = 1;
+tmax        = 1000; % in units of tauE
+wins        = [3 50];
+N           = 90;
+%-------------------------------------------------------------------------
+% VERSION 2:  woolrich 2
+%-------------------------------------------------------------------------
+v           = 3;
+Ies         = -5:0.5:7.5;
+Iis         = -10:0.5:2.5;
+Gg          = 0.7;
+Gains       = 0:0.25:0.25;
+nTrials     = 1;
+tmax        = 10000; % in units of tauE
+wins        = [3 50];
 %-------------------------------------------------------------------------
 
 % load connectome
@@ -102,13 +114,13 @@ for iies = 1: length(Ies)
         g = Gg(iG);
         W = [wEE*eye(N)+g*C -wEI*eye(N); wIE*eye(N) -wII*eye(N)];
         
-        FC = zeros(N,N,1);
+%         FC = zeros(N,N,1);
         
-        Cee = zeros(1,1);
-        CeeSD = zeros(2,1);
+%         Cee = zeros(1,1);
+%         CeeSD = zeros(2,1);
         
-        KOPsd   = zeros(nTrials,1);
-        KOPmean = zeros(nTrials,1);
+%         KOPsd   = zeros(nTrials,1);
+%         KOPmean = zeros(nTrials,1);
         
         %--------------------
         % Control params.
@@ -141,14 +153,14 @@ for iies = 1: length(Ies)
         %     FCval{1}    = zeros(length(isub),nTrials);
         %     Epsilon{1}  = zeros(N,nTrials);
         
-        T       = Tds*resol; %% define time of interval
-        freqs   = (0:Tds/2)/T; %% find the corresponding frequency in Hz
-        nfreqs  = length(freqs);
-        freq100 = freqs(freqs<100 & freqs>1);
-        pp      = 1:10:length(freq100);
-        PSD     = zeros(length(pp),N,nTrials);
+%         T       = Tds*resol; %% define time of interval
+%         freqs   = (0:Tds/2)/T; %% find the corresponding frequency in Hz
+% %         nfreqs  = length(freqs);
+%         freq100 = freqs(freqs<100 & freqs>1);
+%         pp      = 1:10:length(freq100);
+%         PSD     = zeros(length(pp),N,nTrials);
         
-        PSDstruct(1).frequencies = freq100(1:10:end)';
+%         PSDstruct(1).frequencies = freq100(1:10:end)';
         
         
         for tr=1:nTrials
@@ -158,7 +170,7 @@ for iies = 1: length(Ies)
           Ri  = zeros(Tds,N);
           tt  = 0;
           %         transient:
-          for t = 1:1000
+          for t = 1:500
             u = W*r + Io;
             K = feval(F,u);
             r = r + dt*(-r + K)./tau; %+ sqrt(dt);
@@ -177,12 +189,12 @@ for iies = 1: length(Ies)
           end
           
           %correlation:
-          rE = R;
-          rI = Ri;
+%           rE = R;
+%           rI = Ri;
           
 %           plot(rE(:,1));  hold on
           
-          z             = rE + 1i*rI;
+%           z             = rE + 1i*rI;
           %         ku            = sum(z,2)/N;
           %         KOP           = abs(ku);
           %         KOPsd(tr,1)   = std(KOP);
@@ -240,11 +252,12 @@ end
 error('!')
 
 %%
-vv =1;
+osc1 = zeros(length(Ies),length(Iis),length(Gg),length(Gains))
+vv =2;
 for iies = 1 : length(Ies)
   iies
   for iiis = 1 : length(Iis)
-    for iG = 1
+    for iG = 1:length(Gg)
       for igain = 1 %: length(Gains)
 %         try
         %       load(sprintf('~/pmod/proc/pmod_WC_wholebrain_rest_Ie%d_Ii%d_v%d.mat',iies,iiis,vv))

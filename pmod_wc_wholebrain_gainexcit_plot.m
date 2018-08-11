@@ -3,7 +3,7 @@
 %-------------------------------------------------------------------------
 % Version 1 - time is shorter than usual
 %-------------------------------------------------------------------------
-v_sim           = 1;
+v_sim           = 2;
 Ies         = [-2.8 -1.8];
 Iis         = [-3.5 -2.4];
 Gg          = 0.62;
@@ -83,11 +83,12 @@ if ~exist(sprintf('~/pmod/proc/pmod_wholebrain_gainexcit_all_v%d.mat',v_sim))
         
         pars.dim = 2;
         outp.fc_sim_tmp = tp_match_aal(pars,mean(out.FC,3));
-        outp.fc_sim_tmp = mean(out.FC,3);
         outp.fc_sim_var(:,ei,igain,iexc) = std(nanmean(outp.fc_sim_tmp)./max(nanmean(outp.fc_sim_tmp)));
         
-        [outp.r_rest_corr(ei,igain,iexc), outp.p_rest_corr(iies,iiis,iG,igain)]=corr(outp.fc_sim_tmp(mask),fc_rest(mask));
-        [outp.r_rest_corr_avg(ei,igain,iexc), outp.p_rest_corr_avg(iies,iiis,iG,igain)]=corr(nanmean(outp.fc_sim_tmp)',nanmean(fc_rest)');
+        outp.fc_sim_env = tp_match_aal(pars,mean(out.FC_env,3));
+        
+        [outp.r_rest_corr(ei,igain,iexc), outp.p_rest_corr(ei,igain,iexc)]=corr(outp.fc_sim_tmp(mask),fc_rest(mask));
+        [outp.r_rest_corr_avg(ei,igain,iexc), outp.p_rest_corr_avg(ei,igain,iexc)]=corr(nanmean(outp.fc_sim_tmp)',nanmean(fc_rest)');
         
         outp.r_rest_corr_unc(ei,igain,iexc) = dot(outp.fc_sim_tmp(mask),fc_rest(mask)) / sqrt(dot(outp.fc_sim_tmp(mask),outp.fc_sim_tmp(mask)) * dot(fc_rest(mask),fc_rest(mask)));
         %
