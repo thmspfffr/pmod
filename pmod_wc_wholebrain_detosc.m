@@ -20,6 +20,10 @@ clear
 % nTrials     = 3;
 % tmax        = 5000; % in units of tauE
 % N           = 90;
+% wII=4;
+% wIE=16;
+% wEI=12;
+% wEE=12;
 %-------------------------------------------------------------------------
 % VERSION 2: woolrich 1
 %-------------------------------------------------------------------------
@@ -32,17 +36,25 @@ nTrials     = 1;
 tmax        = 1000; % in units of tauE
 wins        = [3 50];
 N           = 90;
+% wII=4;
+% wIE=16;
+% wEI=12;
+% wEE=3.5;
 %-------------------------------------------------------------------------
 % VERSION 2:  woolrich 2
 %-------------------------------------------------------------------------
 v           = 3;
-Ies         = -5:0.5:7.5;
-Iis         = -10:0.5:2.5;
-Gg          = 0.7;
-Gains       = 0:0.25:0.25;
+Ies         = -7:0.5:8;
+Iis         = -10:0.5:4;
+Gg          = 0.3:0.2:0.9;
+Gains       = 0:0;
 nTrials     = 1;
 tmax        = 10000; % in units of tauE
 wins        = [3 50];
+wII=4;
+wIE=16;
+wEI=12;
+wEE=12;
 %-------------------------------------------------------------------------
 
 % load connectome
@@ -62,10 +74,7 @@ addpath ~/Documents/MATLAB/cbrewer/cbrewer/
 %--------------------------------------------------------------------------
 
 % Connectivity:
-wII=4;
-wIE=16;
-wEI=12;
-wEE=12;
+
 
 tauE = 1;
 tauI = 2;
@@ -252,7 +261,7 @@ end
 error('!')
 
 %%
-osc1 = zeros(length(Ies),length(Iis),length(Gg),length(Gains))
+osc1 = zeros(length(Ies),length(Iis),length(Gg),length(Gains));
 vv =2;
 for iies = 1 : length(Ies)
   iies

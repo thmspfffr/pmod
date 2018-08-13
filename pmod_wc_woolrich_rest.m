@@ -20,17 +20,40 @@ clear
 % nTrials     = 1;
 % tmax        = 10000; % in units of tauE
 % wins        = [3 50];
+% wII=4;
+% wIE=16;
+% wEI=12;
+% wEE=3.5;
 %-------------------------------------------------------------------------
 % VERSION 2: 
 %-------------------------------------------------------------------------
-v           = 2;
-Ies         = -5:0.5:7.5;
-Iis         = -10:0.5:2.5;
-Gg          = 0.7;
+% v           = 2;
+% Ies         = -5:0.5:7.5;
+% Iis         = -10:0.5:2.5;
+% Gg          = 0.7;
+% Gains       = 0:0.25:0.25;
+% nTrials     = 1;
+% tmax        = 10000; % in units of tauE
+% wins        = [3 50];
+% wII=4;
+% wIE=16;
+% wEI=12;
+% wEE=3.5;
+%-------------------------------------------------------------------------
+% VERSION 3: 
+%-------------------------------------------------------------------------
+v           = 3;
+Ies         = -7:0.5:8;
+Iis         = -10:0.5:4;
+Gg          = 0.3:0.2:0.9;
 Gains       = 0:0.25:0.25;
 nTrials     = 1;
 tmax        = 10000; % in units of tauE
 wins        = [3 50];
+wII=4;
+wIE=16;
+wEI=12;
+wEE=12;
 %-------------------------------------------------------------------------
 
 % load connectome
@@ -46,11 +69,9 @@ addpath ~/Documents/MATLAB/cbrewer/cbrewer/
 % PARAMETER DEFINITIONS
 %--------------------------------------------------------------------------
 
+
 % Connectivity:
-wII=4;
-wIE=16;
-wEI=12;
-wEE=3.5;
+
 
 tauE = 1;
 tauI = 2;
@@ -219,7 +240,7 @@ for iies = 1: length(Ies)
             out.f = fnew;
             
              % POWER SPECTRUM FIT
-           idx= find(log10(out.f)>1.5,1,'first');
+            idx= find(log10(out.f)>1.5,1,'first');
             X = [ones(1,length(out.f(idx:end)))' log10(out.f(idx:end))'];
             Y = log10(out.PSD(idx:end,i,tr));
             tmp = X\Y;   

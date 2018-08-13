@@ -15,29 +15,14 @@
 %-------------------------------------------------------------------------
 % VERSION 2: 
 %-------------------------------------------------------------------------
-% v_sim           = 2;
-% Ies         = -5:0.5:7.5;
-% Iis         = -10:0.5:2.5;
-% Gg          = 0.7;
-% Gains       = 0:0.25:0.25;
-% nTrials     = 1;
-% tmax        = 10000; % in units of tauE
-% wins        = [3 50];
-%-------------------------------------------------------------------------
-% VERSION 3: 
-%-------------------------------------------------------------------------
-v_sim           = 3;
-Ies         = -7:0.5:8;
-Iis         = -10:0.5:4;
-Gg          = 0.3:0.2:0.9;
+v_sim           = 2;
+Ies         = -5:0.5:7.5;
+Iis         = -10:0.5:2.5;
+Gg          = 0.7;
 Gains       = 0:0.25:0.25;
 nTrials     = 1;
 tmax        = 10000; % in units of tauE
 wins        = [3 50];
-wII=4;
-wIE=16;
-wEI=12;
-wEE=12;
 %-------------------------------------------------------------------------
 
 % connectivity, AAL
@@ -161,9 +146,9 @@ error('!')
 % Peak frequency
 % Correlation model with MEG: Lambda and FC
 % ------------------------------------------
-% if (v==2 | v==3) && size(osc1,1)>26
-%   osc1 = osc1(11:36,1:26,:,:);
-% end
+if (v==2 | v==3) && size(osc1,1)>26
+  osc1 = osc1(11:36,1:26,:,:);
+end
 
 clear par
 % ei = 2
@@ -249,7 +234,7 @@ title('FCraw)');
 
 % plot correlation FC model / MEG
 ax{2} = subplot(2,2,2); hold on
-par = squeeze(outp.fc_sim_env_mean(:,:,iG,igain));
+par = squeeze(outp.fc_sim_env_mean(:,:,iG));
 par(osc1(:,:,iG,igain)>0.5)=nan;
 imagescnan(par,[0 0.05])
 title('FCenv)');
@@ -278,80 +263,13 @@ for iax = 1 : length(ax)
   line(ax{iax},[find(Iis==Iis_old(end)) find(Iis==Iis_old(end))],[find(Ies==Ies_old(1)) find(Ies==Ies_old(end))],'color','w')
   line(ax{iax},[find(Iis==Iis_old(end)) find(Iis==Iis_old(1))],[find(Ies==Ies_old(end)) find(Ies==Ies_old(end))],'color','w')
   
+  
+  
   ylabel(ax{iax},'Excitatory input'); xlabel(ax{iax},'Inhibitory input')
   set(ax{iax},'XTick',1:5:length(Iis),'XTickLabels',Iis(1:5:end))
   set(ax{iax},'YTick',1:5:length(Ies),'YTickLabels',Ies(1:5:end))
   
   colormap(plasma)
-  tp_editplots(ax{iax})
-end
-
-% print(gcf,'-dpdf',sprintf('~/Dropbox/projects/phd/pmod/plots/pmod_wc_wholebrain_lambda_excitgain_iG%d_v%d.pdf',iG,v_sim))
-%% GAIN VS NO GAIN
-% Lambda
-% Peak frequency
-% Correlation model with MEG: Lambda and FC
-% ------------------------------------------
-addpath ~/Documents/MATLAB/cbrewer/cbrewer/
-cmap = cbrewer('div', 'RdBu', 100,'pchip');
-cmap = cmap(end:-1:1,:);
-
-clear par
-% ei = 2
-idx = [find(round(Ies*100)/100==-3) find(round(Iis*100)/100==-3.5000)];
-idx2 = [find(round(Ies*100)/100==-2) find(round(Iis*100)/100==-2.5000)];
-Ies_old         = -4:0.1:-1;
-Iis_old         = -5:0.1:-1;
-igain = 2;
-iG =1;
-figure; set(gcf,'color','w')
-
-% plot lambda
-ax{1} = subplot(2,2,1); hold on
-par = squeeze(outp.fc_sim_mean(:,:,iG,igain))-squeeze(outp.fc_sim_mean(:,:,iG,1));
-% par(osc1(:,:,iG,1)>0.5)=nan;
-imagescnan(par,[-0.05 0.05])
-title('FCraw)');
-
-% plot correlation FC model / MEG
-ax{2} = subplot(2,2,2); hold on
-par = squeeze(outp.fc_sim_env_mean(:,:,iG,igain))-squeeze(outp.fc_sim_env_mean(:,:,iG,1));
-% par(osc1(:,:,iG,1)>0.5)=nan;
-imagescnan(par,[-0.05 0.05])
-title('FCenv)');
-
-% plot correlation FC model / MEG
-ax{3} = subplot(2,2,3); hold on
-par = squeeze(outp.r_rest_corr(:,:,iG,igain));
-% par(osc1(:,:,iG,1)>0.5)=nan;
-imagescnan(par,[0 0.3])
-title('Corr(FCraw)');
-
-% plot correlation FC model / MEG
-ax{4} = subplot(2,2,4); hold on
-par = squeeze(outp.r_env_rest_corr(:,:,iG,igain));
-% par(osc1(:,:,iG,1)>0.5)=nan;
-imagescnan(par,[0 0.3])
-title('Corr(FCenv)');
-
-for iax = 1 : length(ax)
-  
-  scatter(ax{iax},idx(2),idx(1),20,'markerfacecolor','w','markeredgecolor','k')
-  scatter(ax{iax},idx2(2),idx2(1),20,'markerfacecolor','r','markeredgecolor','k')
-  
-  line(ax{iax},[find(Iis==Iis_old(1)) find(Iis==Iis_old(1))],[find(Ies==Ies_old(1)) find(Ies==Ies_old(end))],'color','w')
-  line(ax{iax},[find(Iis==Iis_old(1)) find(Iis==Iis_old(end))],[find(Ies==Ies_old(1)) find(Ies==Ies_old(1))],'color','w')
-  line(ax{iax},[find(Iis==Iis_old(end)) find(Iis==Iis_old(end))],[find(Ies==Ies_old(1)) find(Ies==Ies_old(end))],'color','w')
-  line(ax{iax},[find(Iis==Iis_old(end)) find(Iis==Iis_old(1))],[find(Ies==Ies_old(end)) find(Ies==Ies_old(end))],'color','w')
-  
-  
-  
-  ylabel(ax{iax},'Excitatory input'); xlabel(ax{iax},'Inhibitory input')
-  set(ax{iax},'XTick',1:5:length(Iis),'XTickLabels',Iis(1:5:end))
-  set(ax{iax},'YTick',1:5:length(Ies),'YTickLabels',Ies(1:5:end))
-  
-  colormap(ax{iax},cmap)
-%   colormap(
   tp_editplots(ax{iax})
 end
 
