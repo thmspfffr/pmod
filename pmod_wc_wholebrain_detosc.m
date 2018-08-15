@@ -16,7 +16,7 @@ clear
 % Ies         = -4:0.1:-1;
 % Iis         = -5:0.1:-1;
 % Gg          = 0.62;
-% Gains       = 0;
+% Gains       = -0.5:0.25:0.5;
 % nTrials     = 3;
 % tmax        = 5000; % in units of tauE
 % N           = 90;
@@ -41,13 +41,13 @@ N           = 90;
 % wEI=12;
 % wEE=3.5;
 %-------------------------------------------------------------------------
-% VERSION 2:  woolrich 2
+% VERSION 3:  woolrich 2
 %-------------------------------------------------------------------------
 v           = 3;
 Ies         = -7:0.5:8;
 Iis         = -10:0.5:4;
 Gg          = 0.3:0.2:0.9;
-Gains       = 0:0;
+Gains       = 0;
 nTrials     = 1;
 tmax        = 10000; % in units of tauE
 wins        = [3 50];
@@ -262,13 +262,12 @@ error('!')
 
 %%
 osc1 = zeros(length(Ies),length(Iis),length(Gg),length(Gains));
-vv =2;
+vv =3;
 for iies = 1 : length(Ies)
   iies
   for iiis = 1 : length(Iis)
     for iG = 1:length(Gg)
-      for igain = 1 %: length(Gains)
-%         try
+      for igain = 1%:length(Gains)
         %       load(sprintf('~/pmod/proc/pmod_WC_wholebrain_rest_Ie%d_Ii%d_v%d.mat',iies,iiis,vv))
         load(sprintf('~/pmod/proc/pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,vv))
         

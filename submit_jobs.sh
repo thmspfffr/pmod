@@ -6,7 +6,7 @@
 
 #PBS -q batch
 #PBS -l walltime=700:00:00
-#PBS -l nodes=1:ppn=1
+#PBS -l nodes=1:ppn=2
 #PBS -l mem=10gb
 
 
@@ -19,5 +19,5 @@ chmod g=wx $PBS_JOBNAME
 
 sleep "$var"
 
-matlab -nodisplay -nodesktop -r "pmod_wc_twonodes; exit"  1> ~/jobs/$PBS_JOBID.out 2> ~/jobs/$PBS_JOBID.err
+matlab -nodisplay -nodesktop -r "pmod_wc_wholebrain_plot; exit"  1> ~/jobs/$PBS_JOBID.out 2> ~/jobs/$PBS_JOBID.err
 

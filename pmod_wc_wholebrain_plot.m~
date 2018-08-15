@@ -12,6 +12,7 @@ v_sim = 2;
 v_dfa = 2;
 % -------------------
 
+set(groot,{'DefaultAxesXColor','DefaultAxesYColor','DefaultAxesZColor'},{'k','k','k'})
 Gs = 1;
 
 % ---------
@@ -19,18 +20,12 @@ Gs = 1;
 % ---------
 load(sprintf(['~/pupmod/proc/conn/' 'pupmod_src_dfa_v%d.mat'],v_dfa));
 % ---------
-% LOAD EMPIRICAL KURAMOTO PARAMETER
-% ---------
-% % subj x m x foi x cond
-% load(sprintf(['~/pupmod/proc/conn/' 'pupmod_all_kuramoto_v%d.mat'],v));
-% kura_emp_rest = mean(kura_std(:,1,1,1)./kura_mean(:,1,1,1));
-% kura_emp_task = mean(kura_std(:,1,1,2)./kura_mean(:,1,1,2));
-% ---------
 % MATCH DFA WITH AAL ORDER USED FOR SIMULATIONS
 % ---------
 pars = [];
 pars.grid = 'medium';
 pars.N = 90;
+% ---------
 
 dfa_emp_rest = nanmean(outp.dfa_all(:,:,1,1,1),2);
 dfa_emp_task = nanmean(outp.dfa_all(:,:,1,1,2),2);
@@ -45,6 +40,8 @@ load /home/tpfeffer/pupmod/proc/pow/pupmod_src_peakfreq_v3.mat
 peakfreq_rest = m_res(1);
 peakfreq_task = m_tsk(1);
 
+load ~/pupmod/proc/conn/pupmod_all_kuramoto_v1.mat
+
 mask = logical(tril(ones(90,90),-1));
 mask = find(triu(ones(90))-eye(90));
 
@@ -52,25 +49,16 @@ fc_rest     =  squeeze(nanmean(cleandat(:,:,:,1,1,6),3));
 fc_task     =  squeeze(nanmean(cleandat(:,:,:,1,2,6),3));
 fc_rest_var =  std(nanmean(squeeze(nanmean(cleandat(:,:,:,1,1,6),3)))./max(nanmean(squeeze(nanmean(cleandat(:,:,:,1,1,6),3)))));
 
-% if ~exist(sprintf('~/pmod/proc/pmod_wholebrain_rest_all_v%d.mat',v_sim))
+if ~exist(sprintf('~/pmod/proc/pmod_wholebrain_rest_all_v%d.mat',v_sim))
 
 for iies = 1 : length(Ies)
   iies
   for iiis = 1 : length(Iis)
     for iG = Gs
-      for igain = 1:5
+      for igain = 1:length(Gains)
         %         igain
-%         if exist(sprintf('~/pmod/proc/pmod_wc_wholebrain_rest_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,v_sim))
-
         load(sprintf('~/pmod/proc/pmod_wc_wholebrain_rest_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,v_sim))
-%         continue
-%         else
-%           delete(sprintf('~/pmod/proc/pmod_wc_wholebrain_rest_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt',iies,iiis,iG,igain,v_sim))
-% 
-%           continue
-%         end
-          
-          
+
         if round(Ies(iies)*100)/100 == -2.8 && round( Iis(iiis)*100)/100 == -3.4
           disp('save stuff')
           FFCC = out.FC;
@@ -92,12 +80,14 @@ for iies = 1 : length(Ies)
         
         pars.dim = 2;
         
-        outp.fc_sim_tmp = tp_match_aal(pars,out.FC,3);     
-        outp.fc_sim_env = tp_match_aal(pars,out.FC_env,3);
+        outp.fc_sim_tmp = tp_match_aal(pars,out.FC,3);  
+        outp.fc_sim_env_tmp = tp_match_aal(pars,out.FC_env,3);  
         
         outp.fc_sim_var(:,iies,iiis,iG,igain) = std(nanmean(outp.fc_sim_tmp)./max(nanmean(outp.fc_sim_tmp)));
         
         [outp.r_rest_corr(iies,iiis,iG,igain), outp.p_rest_corr(iies,iiis,iG,igain)]=corr(outp.fc_sim_tmp(mask),fc_rest(mask));
+        [outp.r_env_rest_corr(iies,iiis,iG,igain), outp.p_env_rest_corr(iies,iiis,iG,igain)]=corr(outp.fc_sim_env_tmp(mask),fc_rest(mask));
+
         [outp.r_rest_corr_avg(iies,iiis,iG,igain), outp.p_rest_corr_avg(iies,iiis,iG,igain)]=corr(nanmean(outp.fc_sim_tmp)',nanmean(fc_rest)');
         
         outp.r_rest_corr_unc(iies,iiis,iG,igain) = dot(outp.fc_sim_tmp(mask),fc_rest(mask)) / sqrt(dot(outp.fc_sim_tmp(mask),outp.fc_sim_tmp(mask)) * dot(fc_rest(mask),fc_rest(mask)));
@@ -105,16 +95,19 @@ for iies = 1 : length(Ies)
         pars.dim = 1;
         
         [outp.dfa_r_rest(iies,iiis,iG,igain), outp.dfa_p_rest(iies,iiis,iG,igain)] = corr(dfa_emp_rest(:),tp_match_aal(pars,repmat(outp.dfa_sim(:,iies,iiis,iG,igain),[1 90]),pars));
-        %
+       	[outp.dfa_env_r_rest(iies,iiis,iG,igain), outp.dfa_env_p_rest(iies,iiis,iG,igain)] = corr(dfa_emp_rest(:),tp_match_aal(pars,repmat(outp.dfa_env_sim(:,iies,iiis,iG,igain),[1 90]),pars));
+
         [outp.lambda_r_rest(iies,iiis,iG,igain), outp.lambda_p_rest(iies,iiis,iG,igain)] = corr(lambda_emp_rest,tp_match_aal(pars,repmat(outp.lambda(:,iies,iiis,iG,igain),[1 90]),pars));
         [outp.lambda_r_task(iies,iiis,iG,igain), outp.lambda_p_task(iies,iiis,iG,igain)] = corr(lambda_emp_task,tp_match_aal(pars,repmat(outp.lambda(:,iies,iiis,iG,igain),[1 90]),pars));
         
+        [outp.lambda__env_r_rest(iies,iiis,iG,igain), outp.lambda_env_p_rest(iies,iiis,iG,igain)] = corr(lambda_emp_rest,tp_match_aal(pars,repmat(outp.lambda_env(:,iies,iiis,iG,igain),[1 90]),pars));
+
         outp.dist_fc_rest (iies,iiis,iG,igain)  = mean(outp.fc_sim_tmp(mask))-mean(fc_rest(mask));
         outp.dist_fc_task (iies,iiis,iG,igain)  = mean(outp.fc_sim_tmp(mask))-mean(fc_task(mask));
         
         outp.fc_sim_mean(iies,iiis,iG,igain) = mean(outp.fc_sim_tmp(mask));
         outp.fc_sim_all(:,:,iies,iiis,iG,igain) = outp.fc_sim_tmp;
-        %         outp.fc_sim_env(iies,iiis,iG,igain) = mean(outp.fc_sim_env_tmp(mask));
+        outp.fc_sim_env_mean(iies,iiis,iG,igain) = mean(outp.fc_sim_env_tmp(mask));
         %
         outp.Ies(iies) = out.Ie;
         outp.Iis(iiis) = out.Ii;
@@ -122,6 +115,9 @@ for iies = 1 : length(Ies)
         % KURAMOTO
         outp.kuramoto_mean (iies,iiis,iG,igain) = mean(out.KOPmean);
         outp.kuramoto_std (iies,iiis,iG,igain)  = mean(out.KOPsd);
+        
+        outp.kuramoto_mean_diff (iies,iiis,iG,igain) = mean(out.KOPmean) - mean(kura_mean(:,1,1,1));
+        outp.kuramoto_std_diff (iies,iiis,iG,igain)  = mean(out.KOPsd)- mean(kura_std(:,1,1,1));
         
         outp.psslp(:,iies,iiis,iG,igain)      = out.psslope;
         outp.psslp_env(:,iies,iiis,iG,igain)  = out.psslope_env;
@@ -170,24 +166,93 @@ for iG = 1 : Gs
   end
 end
 % 
-% save(sprintf('~/pmod/proc/pmod_wholebrain_rest_all_v%d.mat',v_sim),'outp')
-% % % 
-% else
-%   load(sprintf('~/pmod/proc/pmod_wholebrain_rest_all_v%d.mat',v_sim))
-% end
+save(sprintf('~/pmod/proc/pmod_wholebrain_rest_all_v%d.mat',v_sim),'outp')
+% % 
+else
+  load(sprintf('~/pmod/proc/pmod_wholebrain_rest_all_v%d.mat',v_sim))
+end
 
 error('!')
-%% PLOT BASIC PARAMETERS
-% Lambda
-% Peak frequency
-% Correlation model with MEG: Lambda and FC
+
+%% PLOT BASIC PARAMETERS: Functional connectivity
 % ------------------------------------------
 clear par
 
 idx = [find(round(Ies*100)/100==-2.8) find(round(Iis*100)/100==-3.5000)];
 idx2 = [find(round(Ies*100)/100==-1.8) find(round(Iis*100)/100==-2.4000)];
 
-igain = 3;
+igain = 5;
+G = 1;
+
+figure; set(gcf,'color','w')
+
+% plot FC
+ax{1} = subplot(2,2,1); hold on
+par = squeeze(outp.fc_sim_mean(:,:,G,igain));
+par(osc1>0.5)=nan;
+imagescnan(par,[0 0.01])
+title('FC_{FR}');
+
+% plot FC env
+ax{2} = subplot(2,2,2); hold on
+par = squeeze(outp.fc_sim_env_mean(:,:,G,igain));
+par(osc1>0.5)=nan;
+imagescnan(par,[0 0.01])
+title('FC_{Env}');
+
+% plot correlation FC sim w exp
+ax{3} = subplot(2,2,3); hold on
+par = squeeze(outp.r_rest_corr(:,:,G,igain));
+par(osc1>0.5)=nan;
+imagescnan(par,[0 0.3])
+title('r(FC_{FR})');
+
+% plot peak freq model
+ax{4} = subplot(2,2,4); hold on
+par = squeeze(outp.r_env_rest_corr(:,:,G,igain));
+par(osc1>0.5)=nan;
+imagescnan(par,[0 0.3])
+title('r(FC_{Env})');
+
+for iax = 1 : length(ax)
+  scatter(ax{iax},idx(2),idx(1),20,'markerfacecolor','w','markeredgecolor','k')
+  scatter(ax{iax},idx2(2),idx2(1),20,'markerfacecolor','r','markeredgecolor','k')
+  if iax == 1
+    ylabel(ax{iax},'Excitatory input');
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
+  elseif iax == 2
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
+  elseif iax == 3
+    xlabel(ax{iax},'Inhibitory input')
+    ylabel(ax{iax},'Excitatory input');
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
+  elseif iax ==4
+    xlabel(ax{iax},'Inhibitory input')
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
+  end
+  tp_editplots(ax{iax})
+  colormap(plasma)
+  c = colorbar(ax{iax}); axis(ax{iax},'tight')
+  c.Ticks = [min(c.Ticks) max(c.Ticks)];
+ 
+end
+
+
+print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_wholebrain_fc_gain%d_G%d_v%d.pdf',igain,G,v_sim))
+
+
+%% PLOT BASIC PARAMETERS: Timescales
+% ------------------------------------------
+clear par
+
+idx = [find(round(Ies*100)/100==-2.8) find(round(Iis*100)/100==-3.5000)];
+idx2 = [find(round(Ies*100)/100==-1.8) find(round(Iis*100)/100==-2.4000)];
+
+igain = 5
 G = 1;
 
 figure; set(gcf,'color','w')
@@ -196,44 +261,129 @@ figure; set(gcf,'color','w')
 ax{1} = subplot(2,2,1); hold on
 par = squeeze(mean(1./outp.lambda(:,:,:,G,igain)));
 par(osc1>0.5)=nan;
-imagescnan(par,[4 18])
-title('\lambda (model)');
+imagescnan(par,[7 15])
+title('\lambda_{FR}');
 
 % plot correlation FC model / MEG
 ax{2} = subplot(2,2,2); hold on
-par = squeeze(outp.r_rest_corr(:,:,G,igain));
+par = squeeze(mean(1./outp.lambda_env(:,:,:,G,igain)));
 par(osc1>0.5)=nan;
-imagescnan(par,[0 0.1])
-title('Corr(FC_{sim}, FC_{exp})');
+imagescnan(par,[140 150])
+title('\lambda_{Env}');
 
 % plot correlation lambda model / MEG
 ax{3} = subplot(2,2,3); hold on
 par = squeeze(outp.lambda_r_rest(:,:,G,igain));
 par(osc1>0.5)=nan;
 imagescnan(par,[0 0.10])
-title('Corr(\lambda_{sim},\lambda_{exp})');
+title('r(\lambda_{FR})');
 
 % plot peak freq model
 ax{4} = subplot(2,2,4); hold on
-par = squeeze(outp.peakfreq(:,:,G,igain));
+par = squeeze(outp.lambda__env_r_rest(:,:,G,igain));
 par(osc1>0.5)=nan;
-imagescnan(par,[2 20])
-title('Peak frequency');
+imagescnan(par,[0 0.1])
+title('r(\lambda_{Env})');
+
 
 for iax = 1 : length(ax)
-  
   scatter(ax{iax},idx(2),idx(1),20,'markerfacecolor','w','markeredgecolor','k')
   scatter(ax{iax},idx2(2),idx2(1),20,'markerfacecolor','r','markeredgecolor','k')
-  ylabel(ax{iax},'Excitatory input'); xlabel(ax{iax},'Inhibitory input')
-  set(ax{iax},'XTick',1:5:length(Iis),'XTickLabels',Iis(1:5:end))
-  set(ax{iax},'YTick',1:5:length(Ies),'YTickLabels',Ies(1:5:end))
+  if iax == 1
+    ylabel(ax{iax},'Excitatory input');
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
+  elseif iax == 2
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
+  elseif iax == 3
+    xlabel(ax{iax},'Inhibitory input')
+    ylabel(ax{iax},'Excitatory input');
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
+  elseif iax ==4
+    xlabel(ax{iax},'Inhibitory input')
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
+  end
   tp_editplots(ax{iax})
   colormap(plasma)
-  
+  c = colorbar(ax{iax}); axis(ax{iax},'tight')
+  c.Ticks = [min(c.Limits) max(c.Limits)];
+ 
 end
 
 print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_wholebrain_lambda_gain%d_G%d_v%d.pdf',igain,G,v_sim))
 
+%% PLOT BASIC PARAMETERS: DFA
+% ------------------------------------------
+clear par
+
+idx = [find(round(Ies*100)/100==-2.8) find(round(Iis*100)/100==-3.5000)];
+idx2 = [find(round(Ies*100)/100==-1.8) find(round(Iis*100)/100==-2.4000)];
+
+igain = 1;
+G = 1;
+
+figure; set(gcf,'color','w')
+
+% plot lambda
+ax{1} = subplot(2,2,1); hold on
+par = squeeze(mean(outp.dfa_sim(:,:,:,G,igain)));
+par(osc1>0.5)=nan;
+imagescnan(par,[0.5 0.7])
+title('DFA_{FR}');
+
+% plot correlation FC model / MEG
+ax{2} = subplot(2,2,2); hold on
+par = squeeze(mean(outp.dfa_env_sim(:,:,:,G,igain)));
+par(osc1>0.5)=nan;
+imagescnan(par,[0.50 0.70])
+title('DFA_{Env}');
+
+% plot correlation lambda model / MEG
+ax{3} = subplot(2,2,3); hold on
+par = squeeze(outp.dfa_r_rest(:,:,G,igain));
+par(osc1>0.5)=nan;
+imagescnan(par,[-0.2 0.20])
+title('r(DFA_{FR})');
+
+% plot peak freq model
+ax{4} = subplot(2,2,4); hold on
+par = squeeze(outp.r_env_rest_corr(:,:,G,igain));
+par(osc1>0.5)=nan;
+imagescnan(par,[0 0.2])
+title('r(DFA_{Env})');
+
+
+for iax = 1 : length(ax)
+ scatter(ax{iax},idx(2),idx(1),20,'markerfacecolor','w','markeredgecolor','k')
+  scatter(ax{iax},idx2(2),idx2(1),20,'markerfacecolor','r','markeredgecolor','k')
+  if iax == 1
+    ylabel(ax{iax},'Excitatory input');
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
+  elseif iax == 2
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
+  elseif iax == 3
+    xlabel(ax{iax},'Inhibitory input')
+    ylabel(ax{iax},'Excitatory input');
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
+  elseif iax ==4
+    xlabel(ax{iax},'Inhibitory input')
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
+  end
+  tp_editplots(ax{iax})
+  colormap(plasma)
+  c = colorbar(ax{iax}); axis(ax{iax},'tight')
+  c.Ticks = [min(c.Limits) max(c.Limits)];
+ 
+end
+
+print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_wholebrain_dfa_gain%d_G%d_v%d.pdf',igain,G,v_sim))
 
 %% PLOT GAIN VS NO GAIN
 % increase in gain vs. baseline
@@ -242,7 +392,7 @@ clear par
 idx = [find(round(Ies*100)/100==-2.8) find(round(Iis*100)/100==-3.5000)];
 idx2 = [find(round(Ies*100)/100==-1.8) find(round(Iis*100)/100==-2.4000)];
 
-igain = 4;
+igain = 1;
 G = 1;
 
 cmap = cbrewer('div', 'RdBu', 100,'pchip');
@@ -252,86 +402,133 @@ figure; set(gcf,'color','w')
 
 % plot lambda
 ax{1} = subplot(2,2,1); hold on
-par = squeeze(outp.fc_sim_mean(:,:,G,3));
-par(osc1>0.5)=nan;
-imagescnan(par,[-0.01 0.01])
-title('Mean FC_{sim}');
-
-% plot correlation FC model / MEG
-ax{2} = subplot(2,2,2); hold on
 par = squeeze(abs(outp.fc_sim_mean(:,:,G,igain)))-abs(squeeze(outp.fc_sim_mean(:,:,G,3)));
 par(osc1>0.5)=nan;
 imagescnan(par,[-0.02 0.02])
-title('FC_{sim}: Gain vs Baseline');
+title('Contrast: FC_{FR}');
 
 % plot correlation lambda model / MEG
-ax{3} = subplot(2,2,3); hold on
-par = squeeze(mean(1./outp.lambda(:,:,:,G,igain)))-squeeze(mean(1./outp.lambda(:,:,:,G,3)));
+ax{2} = subplot(2,2,2); hold on
+par = squeeze(abs(outp.fc_sim_env_mean(:,:,G,igain)))-abs(squeeze(outp.fc_sim_env_mean(:,:,G,3)));
 par(osc1>0.5)=nan;
-imagescnan(par,[-10 10])
-title('\lambda: Gain vs Baseline');
+imagescnan(par,[-0.02 0.02])
+title('Contrast: FC_{env}');
+
+ax{3} = subplot(2,2,3); hold on
+par = squeeze(mean(1./outp.lambda(:,:,:,G,igain)))-squeeze(1./mean(outp.lambda(:,:,:,G,3)));
+par(osc1>0.5)=nan;
+imagescnan(par,[-5 5])
+title('Contrast: Lambda_{FR}');
 
 % plot peak freq model
 ax{4} = subplot(2,2,4); hold on
-par = squeeze(outp.peakfreq(:,:,G,igain))-squeeze(outp.peakfreq(:,:,G,3));
+par = squeeze(1./mean(outp.lambda_env(:,:,:,G,igain)))-squeeze(1./mean(outp.lambda_env(:,:,:,G,3)));
 par(osc1>0.5)=nan;
-imagescnan(par,[-10 10])
-title('Peak frequency');
+imagescnan(par,[-60 60])
+title('Contrast: Lambda_{Env}');
 
 for iax = 1 : length(ax)
-  
-  scatter(ax{iax},idx(2),idx(1),20,'markerfacecolor','w','markeredgecolor','k')
+ scatter(ax{iax},idx(2),idx(1),20,'markerfacecolor','w','markeredgecolor','k')
   scatter(ax{iax},idx2(2),idx2(1),20,'markerfacecolor','r','markeredgecolor','k')
-  ylabel(ax{iax},'Excitatory input'); xlabel(ax{iax},'Inhibitory input')
-  set(ax{iax},'XTick',1:5:length(Iis),'XTickLabels',Iis(1:5:end))
-  set(ax{iax},'YTick',1:5:length(Ies),'YTickLabels',Ies(1:5:end))
+  if iax == 1
+    ylabel(ax{iax},'Excitatory input');
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
+  elseif iax == 2
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
+  elseif iax == 3
+    xlabel(ax{iax},'Inhibitory input')
+    ylabel(ax{iax},'Excitatory input');
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
+  elseif iax ==4
+    xlabel(ax{iax},'Inhibitory input')
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
+  end
   tp_editplots(ax{iax})
-  colormap(ax{1},plasma)
-  colormap(ax{iax},cmap)
-  
+  colormap(cmap)
+  c = colorbar(ax{iax}); axis(ax{iax},'tight')
+  c.Ticks = [min(c.Limits) max(c.Limits)];
+ 
 end
+
 
 print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_wholebrain_gainvsbaseline_gain%d_G%d_v%d.pdf',igain,G,v_sim))
 
 
 %%
-clear par
+clear par ax
 figure; set(gcf,'color','w')
-clear ax
+% clear 
 
 igain = 3;
 % plot peak freq model
 ax{1} = subplot(2,2,1); hold on
-par = squeeze(outp.degree(:,:,G,igain));
+par = squeeze(outp.kuramoto_mean(:,:,G,igain));
 par(osc1>0.5)=nan;
-imagescnan(par,[0 0.7])
-title('Degree');
+imagescnan(par,[0 0.3])
+title('Kuramoto');
 
 % plot peak freq model
-ax{2} = subplot(2,2,2); hold on
-par = squeeze(outp.degree(:,:,G,4))-squeeze(outp.degree(:,:,G,3));
+ax{3} = subplot(2,2,3); hold on
+par = squeeze(outp.kuramoto_mean(:,:,G,4))-squeeze(outp.kuramoto_mean(:,:,G,3));
 par(osc1>0.5)=nan;
-imagescnan(par,[-0.25 0.25])
-title('Difference Degree');
+imagescnan(par,[-0.05 0.05])
+title('Contrast: Kuramoto');
+
+igain = 3;
+% plot peak freq model
+ax{2} = subplot(2,2,2); hold on
+par = squeeze(outp.kuramoto_std(:,:,G,igain));
+par(osc1>0.5)=nan;
+imagescnan(par,[0 0.0002])
+title('Metastability');
+
+% plot peak freq model
+ax{4} = subplot(2,2,4); hold on
+par = squeeze(outp.kuramoto_std(:,:,G,igain))-squeeze(outp.kuramoto_std(:,:,G,3));
+par(osc1>0.5)=nan;
+imagescnan(par,[-0.0025 0.0025])
+title('Contrast: Metastability');
 
 for iax = 1 : length(ax)
-  
-  scatter(ax{iax},idx(2),idx(1),20,'markerfacecolor','w','markeredgecolor','k')
+ scatter(ax{iax},idx(2),idx(1),20,'markerfacecolor','w','markeredgecolor','k')
   scatter(ax{iax},idx2(2),idx2(1),20,'markerfacecolor','r','markeredgecolor','k')
-  ylabel(ax{iax},'Excitatory input'); xlabel(ax{iax},'Inhibitory input')
-  set(ax{iax},'XTick',1:5:length(Iis),'XTickLabels',Iis(1:5:end))
-  set(ax{iax},'YTick',1:5:length(Ies),'YTickLabels',Ies(1:5:end))
+  if iax == 1
+    colormap(ax{iax},plasma)
+    ylabel(ax{iax},'Excitatory input');
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
+  elseif iax == 2
+    colormap(ax{iax},plasma)
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
+  elseif iax == 3
+    colormap(ax{iax},cmap)
+    xlabel(ax{iax},'Inhibitory input')
+    ylabel(ax{iax},'Excitatory input');
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
+  elseif iax ==4
+    colormap(ax{iax},cmap)
+    xlabel(ax{iax},'Inhibitory input')
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
+  end
   tp_editplots(ax{iax})
-  colormap(ax{1},plasma)
-  colormap(ax{iax},cmap)
   
+  c = colorbar(ax{iax}); axis(ax{iax},'tight')
+  c.Ticks = [min(c.Limits) max(c.Limits)];
+ 
 end
+
 
 print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_wholebrain_degree_gain%d_G%d_v%d.pdf',igain,G,v_sim))
 
 %% KURAMOTO
 
-%%
 clear par ax
 
 figure; set(gcf,'color','w')
@@ -341,29 +538,29 @@ igain = 3; G = 1;
 ax{1} = subplot(2,2,1); hold on
 par = squeeze(outp.kuramoto_mean(:,:,G,igain));
 par(osc1>0.5)=nan;
-imagescnan(par,[0 1])
-title('Kuramoto pa');
+imagescnan(par,[0 0.25])
+title('Kuramoto parameter');
 
 % Kuramoto std - metastability
 ax{2} = subplot(2,2,2); hold on
 par = squeeze(outp.kuramoto_std(:,:,G,igain));
 par(osc1>0.5)=nan;
-imagescnan(par,[-0.25 0.25])
-title('Difference Degree');
+imagescnan(par,[0 0.0002])
+title('Metastability');
 
 % Kuramoto mean: contrast
 ax{3} = subplot(2,2,3); hold on
 par = squeeze(outp.kuramoto_mean(:,:,G,4)-outp.kuramoto_mean(:,:,G,igain));
 par(osc1>0.5)=nan;
-imagescnan(par,[-0.25 0.25])
-title('Difference Degree');
+imagescnan(par,[-0.075 0.075])
+title('Difference Kuramoto');
 
 % Kuramoto std - metastability
 ax{4} = subplot(2,2,4); hold on
 par = squeeze(outp.kuramoto_std(:,:,G,4)-outp.kuramoto_std(:,:,G,igain));
 par(osc1>0.5)=nan;
-imagescnan(par,[-0.25 0.25])
-title('Difference Degree');
+imagescnan(par,[-0.0001 0.0001])
+title('Difference Metastability');
 
 
 for iax = 1 : length(ax)
@@ -375,11 +572,13 @@ for iax = 1 : length(ax)
   set(ax{iax},'YTick',1:5:length(Ies),'YTickLabels',Ies(1:5:end))
   tp_editplots(ax{iax})
   colormap(ax{1},plasma)
+  colormap(ax{2},plasma)
   colormap(ax{iax},cmap)
   
+%   axis(ax{iax}, 'tight')
 end
 
-print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_wholebrain_degree_gain%d_G%d_v%d.pdf',igain,G,v_sim))
+print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_wholebrain_kuramoto_gain%d_G%d_v%d.pdf',igain,G,v_sim))
 
 
 %%

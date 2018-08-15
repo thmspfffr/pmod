@@ -23,25 +23,36 @@ clear
 %-------------------------------------------------------------------------
 % VERSION 2: COMPUTE PEAK FREQ
 %-------------------------------------------------------------------------
-v           = 2;
-Ies         = -4:0.1:-1;
-Iis         = -5:0.1:-1;
-Gg          = 0.62;
-Gains       = -0.5:0.25:0.5;
+% v           = 2;
+% Ies         = -4:0.1:-1;
+% Iis         = -5:0.1:-1;
+% Gg          = 0.62;
+% Gains       = -0.5:0.25:0.5;
+% nTrials     = 1;
+% tmax        = 65000; % in units of tauE
+% wins        = [3 50];
+%-------------------------------------------------------------------------
+% VERSION 3: COMPUTE PEAK FREQ
+%-------------------------------------------------------------------------
+v           = 3;
+Ies         = -5:0.2:2;
+Iis         = -12:0.2:1;
+Gg          = 0.2:0.2:1.4;
+Gains       = 0:0.25:0.25;
 nTrials     = 1;
 tmax        = 65000; % in units of tauE
 wins        = [3 50];
 %-------------------------------------------------------------------------
 % VERSION 9999: ONLY A TEST VERSION
 %-------------------------------------------------------------------------
-v           = 9999;
-Ies         = -2.8;
-Iis         = -3.5;
-Gg          = 2;
-Gains       = 0;
-nTrials     = 1;
-tmax        = 10000; % in units of tauE
-wins        = [3 30];
+% v           = 9999;
+% Ies         = -2.8;
+% Iis         = -3.5;
+% Gg          = 2;
+% Gains       = 0;
+% nTrials     = 1;
+% tmax        = 10000; % in units of tauE
+% wins        = [3 30];
 %-------------------------------------------------------------------------
 
 % load connectome
@@ -90,11 +101,11 @@ for iies = 1: length(Ies)
     for iG = 1 : length(Gg)
       for igain = 1 : length(Gains)
 %         
-%         if ~exist(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_rest_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt'],iies,iiis,iG,igain,v))
-%           system(['touch ' '~/pmod/proc/' sprintf('pmod_wc_wholebrain_rest_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt',iies,iiis,iG,igain,v)]);
-%         else
-%           continue
-%         end
+        if ~exist(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_rest_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt'],iies,iiis,iG,igain,v))
+          system(['touch ' '~/pmod/proc/' sprintf('pmod_wc_wholebrain_rest_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt',iies,iiis,iG,igain,v)]);
+        else
+          continue
+        end
         tic
         g = Gg(iG);
         W = [wEE*eye(N)+g*C -wEI*eye(N); wIE*eye(N) -wII*eye(N)];
@@ -133,7 +144,7 @@ for iies = 1: length(Ies)
         freqs       = (0:Tds/2)/T; %% find the corresponding frequency in Hz
         freq100     = freqs(freqs<100 & freqs>1);
         pp          = 1:10:length(freq100);
-        out.PSD     = zeros(length(pp),N,nTrials);  
+        PSD     = zeros(length(pp),N,nTrials);  
         out.PSDstruct(1).frequencies = freq100(1:10:end)';
         
         % RUN SIMULATION
@@ -173,9 +184,9 @@ for iies = 1: length(Ies)
           % KURAMOTO PARAMETERS
           % ---------------------
           ku                = sum(z,2)/N;   
-          out.KOP           = abs(ku);
-          out.KOPsd(tr,1)   = std(out.KOP);
-          out.KOPmean(tr,1) = mean(out.KOP);
+          KOP           = abs(ku);
+          out.KOPsd(tr,1)   = std(KOP);
+          out.KOPmean(tr,1) = mean(KOP);
           
           clear ku KOP z
 
@@ -226,13 +237,13 @@ for iies = 1: length(Ies)
             f = freqs(freqs<100 & freqs>1);
             fnew = f(1:10:end);
             psd  = psd(1:10:end);
-            out.PSD(:,i,tr) = psd';
+            PSD(:,i,tr) = psd';
             out.f = fnew;
             
              % POWER SPECTRUM FIT
            idx= find(log10(out.f)>1.5,1,'first');
             X = [ones(1,length(out.f(idx:end)))' log10(out.f(idx:end))'];
-            Y = log10(out.PSD(idx:end,i,tr));
+            Y = log10(PSD(idx:end,i,tr));
             tmp = X\Y;   
             out.psslope(i,tr)= tmp(2);
         
@@ -241,7 +252,7 @@ for iies = 1: length(Ies)
           
           % EXTRACT PEAK FREQ
           % ---------------------------
-          [~,peak_idx]=max(smooth(mean(out.PSD(out.f>3,:),2),20));
+          [~,peak_idx]=max(smooth(mean(PSD(out.f>3,:),2),20));
           out.peakfreq = out.f(peak_idx+find(out.f<4,1,'last')); 
           
           flp = round(out.peakfreq)-2;           % lowpass frequency of filter
@@ -297,13 +308,13 @@ for iies = 1: length(Ies)
             f = freqs(freqs<100 & freqs>1);
             fnew = f(1:10:end);
             psd  = psd(1:10:end);
-            out.PSD_env(:,i,tr) = psd';
+            PSD_env(:,i,tr) = psd';
             out.f_env = fnew;
             
              % POWER SPECTRUM FIT
             idx= find(log10(out.f_env)>0.5,1,'first');
             X = [ones(1,length(out.f_env(idx:end)))' log10(out.f_env(idx:end))'];
-            Y = log10(out.PSD_env(idx:end,i,tr));
+            Y = log10(PSD_env(idx:end,i,tr));
             tmp = X\Y;   
             out.psslope_env(i,tr)= tmp(2);
             

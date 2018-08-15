@@ -83,7 +83,7 @@ fc_rest     =  squeeze(nanmean(cleandat(:,:,:,1,1,6),3));
 fc_task     =  squeeze(nanmean(cleandat(:,:,:,1,2,6),3));
 fc_rest_var =  std(nanmean(squeeze(nanmean(cleandat(:,:,:,1,1,6),3)))./max(nanmean(squeeze(nanmean(cleandat(:,:,:,1,1,6),3)))));
 %%
-% if ~exist(sprintf('~/pmod/proc/pmod_wholebrain_woolrich_all_v%d.mat',v_sim))
+if ~exist(sprintf('~/pmod/proc/pmod_wholebrain_woolrich_all_v%d.mat',v_sim))
 
 for iies = 1: length(Ies)
   iies
@@ -126,6 +126,12 @@ for iies = 1: length(Ies)
           outp.fc_sim_mean(iies,iiis,iG,igain) = mean(outp.fc_sim_tmp(mask));
           outp.fc_sim_env_mean(iies,iiis,iG,igain) = mean(outp.fc_sim_env(mask));
           
+          outp.dfa_env(iies,iiis,iG,igain) = mean(out.dfa_env);
+          outp.dfa(iies,iiis,iG,igain) = mean(out.dfa);
+          outp.dist_dfa_env(iies,iiis,iG,igain) = mean(out.dfa_env) - mean(dfa_emp_rest);
+          outp.corr_dfa_env(iies,iiis,iG,igain) = corr(out.dfa_env(:),tp_match_aal(pars,repmat(dfa_emp_rest(:),[1 90])));
+          outp.corr_dfa_env_nomatch(iies,iiis,iG,igain) = corr(out.dfa_env(:),dfa_emp_rest(:));
+          
           
           outp.Ies(iies) = out.Ie;
           outp.Iis(iiis) = out.Ii;
@@ -149,14 +155,97 @@ end
 
 
 save(sprintf('~/pmod/proc/pmod_wholebrain_woolrich_all_v%d.mat',v_sim),'outp')
-%
-% else
-%     load(sprintf('~/pmod/proc/pmod_wholebrain_woolrich_all_v%d.mat',v_sim))
-% end
+
+else
+    load(sprintf('~/pmod/proc/pmod_wholebrain_woolrich_all_v%d.mat',v_sim))
+end
 
 error('!')
 
-%% PLOT BASIC PARAMETERS
+%% PLOT BASIC PARAMETERS - FC 
+% FC
+for iG = 1 : 4
+clear par
+% ei = 2
+idx = [find(round(Ies*100)/100==-3) find(round(Iis*100)/100==-3.5000)];
+idx2 = [find(round(Ies*100)/100==-2) find(round(Iis*100)/100==-2.5000)];
+Ies_old         = -4:0.1:-1;
+Iis_old         = -5:0.1:-1;
+igain = 1;
+% iG =4;
+figure; set(gcf,'color','w')
+
+% plot lambda
+ax{1} = subplot(2,2,1); hold on
+par = squeeze(outp.fc_sim_mean(:,:,iG,igain));
+par(osc1(:,:,iG,igain)>0.5)=nan;
+imagescnan(par,[0 0.02])
+title(sprintf('FC_{FR} (G: %.2f)',Gg(iG)));
+
+% plot correlation FC model / MEG
+ax{2} = subplot(2,2,2); hold on
+par = squeeze(outp.fc_sim_env_mean(:,:,iG,igain));
+par(osc1(:,:,iG,igain)>0.5)=nan;
+imagescnan(par,[0 0.02])
+title('FC_{Env}');
+
+% plot correlation lambda model / MEG
+ax{3} = subplot(2,2,3); hold on
+par = squeeze(outp.r_rest_corr(:,:,iG,igain));
+par(osc1(:,:,iG,igain)>0.5)=nan;
+imagescnan(par,[0 0.15])
+title('r(FC_{FR})');
+
+% plot peak freq model
+ax{4} = subplot(2,2,4); hold on
+par = squeeze(outp.r_env_rest_corr(:,:,iG,igain));
+par(osc1(:,:,iG,igain)>0.5)=nan;
+imagescnan(par,[0 0.15])
+title('r(FC_{Env})');
+
+
+for iax = 1 : length(ax)
+ scatter(ax{iax},idx(2),idx(1),20,'markerfacecolor','w','markeredgecolor','k')
+  scatter(ax{iax},idx2(2),idx2(1),20,'markerfacecolor','r','markeredgecolor','k')
+  if iax == 1
+    colormap(ax{iax},plasma)
+    ylabel(ax{iax},'Excitatory input');
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:7:length(Iis),'XTickLabels',num2cell(Iis(1:7:end)))
+  elseif iax == 2
+    colormap(ax{iax},plasma)
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:7:length(Iis),'XTickLabels',num2cell(Iis(1:7:end)))
+  elseif iax == 3
+    colormap(ax{iax},plasma)
+    xlabel(ax{iax},'Inhibitory input')
+    ylabel(ax{iax},'Excitatory input');
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:7:length(Iis),'XTickLabels',num2cell(Iis(1:7:end)))
+  elseif iax ==4
+    colormap(ax{iax},plasma)
+    xlabel(ax{iax},'Inhibitory input')
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:7:length(Iis),'XTickLabels',num2cell(Iis(1:7:end)))
+  end
+  
+  line(ax{iax},[find(Iis==Iis_old(1)) find(Iis==Iis_old(1))],[find(Ies==Ies_old(1)) find(Ies==Ies_old(end))],'color','w')
+  line(ax{iax},[find(Iis==Iis_old(1)) find(Iis==Iis_old(end))],[find(Ies==Ies_old(1)) find(Ies==Ies_old(1))],'color','w')
+  line(ax{iax},[find(Iis==Iis_old(end)) find(Iis==Iis_old(end))],[find(Ies==Ies_old(1)) find(Ies==Ies_old(end))],'color','w')
+  line(ax{iax},[find(Iis==Iis_old(end)) find(Iis==Iis_old(1))],[find(Ies==Ies_old(end)) find(Ies==Ies_old(end))],'color','w')
+  
+  tp_editplots(ax{iax})
+  
+  c = colorbar(ax{iax}); axis(ax{iax},'tight')
+  c.Ticks = [min(c.Limits) max(c.Limits)];
+ 
+end
+
+print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_woolrich_fc_iG%d_v%d.pdf',iG,v_sim))
+end
+
+
+%% PLOT BASIC PARAMETERS - LAMBDAS 
 % Lambda
 % Peak frequency
 % Correlation model with MEG: Lambda and FC
@@ -164,7 +253,7 @@ error('!')
 % if (v==2 | v==3) && size(osc1,1)>26
 %   osc1 = osc1(11:36,1:26,:,:);
 % end
-
+for iG = 1 : 4
 clear par
 % ei = 2
 idx = [find(round(Ies*100)/100==-3) find(round(Iis*100)/100==-3.5000)];
@@ -172,121 +261,159 @@ idx2 = [find(round(Ies*100)/100==-2) find(round(Iis*100)/100==-2.5000)];
 Ies_old         = -4:0.1:-1;
 Iis_old         = -5:0.1:-1;
 igain = 1;
-iG =1;
+% iG =1;
 figure; set(gcf,'color','w')
 
 % plot lambda
 ax{1} = subplot(2,2,1); hold on
-par = squeeze(mean(1./outp.lambda_env(:,:,:,iG,igain)));
+par = squeeze(mean(1./outp.lambda(:,:,:,iG,igain)));
 par(osc1(:,:,iG,igain)>0.5)=nan;
-imagescnan(par,[100 200])
-title('\lambda (model)');
+imagescnan(par,[7 15])
+title(sprintf('\\lambda_{FR} (G: %.2f)',Gg(iG)));
 
 % plot correlation FC model / MEG
 ax{2} = subplot(2,2,2); hold on
-par = squeeze(outp.r_env_rest_corr(:,:,iG,igain));
+par = squeeze(mean(1./outp.lambda_env(:,:,:,iG,igain)));
 par(osc1(:,:,iG,igain)>0.5)=nan;
-imagescnan(par,[0 0.4])
-title('Corr(FC_{sim}, FC_{exp})');
+imagescnan(par,[75 200])
+title('\lambda_{Env}');
 
 % plot correlation lambda model / MEG
 ax{3} = subplot(2,2,3); hold on
 par = squeeze(outp.lambda_r_rest(:,:,iG,igain));
 par(osc1(:,:,iG,igain)>0.5)=nan;
 imagescnan(par,[0 0.15])
-title('Corr(\lambda_{sim},\lambda_{exp})');
+title('r(\lambda_{FR})');
 
 % plot peak freq model
 ax{4} = subplot(2,2,4); hold on
-par = squeeze(outp.peakfreq(:,:,iG,igain));
+par = squeeze(outp.r_env_rest_corr(:,:,iG,igain));
 par(osc1(:,:,iG,igain)>0.5)=nan;
-imagescnan(par,[2 30])
-title('Peak frequency');
+imagescnan(par,[0 0.15])
+title('r(\lambda_{Env})');
+
 
 for iax = 1 : length(ax)
-  
-  scatter(ax{iax},idx(2),idx(1),20,'markerfacecolor','w','markeredgecolor','k')
+ scatter(ax{iax},idx(2),idx(1),20,'markerfacecolor','w','markeredgecolor','k')
   scatter(ax{iax},idx2(2),idx2(1),20,'markerfacecolor','r','markeredgecolor','k')
+  if iax == 1
+    colormap(ax{iax},plasma)
+    ylabel(ax{iax},'Excitatory input');
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:7:length(Iis),'XTickLabels',num2cell(Iis(1:7:end)))
+  elseif iax == 2
+    colormap(ax{iax},plasma)
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:7:length(Iis),'XTickLabels',num2cell(Iis(1:7:end)))
+  elseif iax == 3
+    colormap(ax{iax},plasma)
+    xlabel(ax{iax},'Inhibitory input')
+    ylabel(ax{iax},'Excitatory input');
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:7:length(Iis),'XTickLabels',num2cell(Iis(1:7:end)))
+  elseif iax ==4
+    colormap(ax{iax},plasma)
+    xlabel(ax{iax},'Inhibitory input')
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:7:length(Iis),'XTickLabels',num2cell(Iis(1:7:end)))
+  end
   
   line(ax{iax},[find(Iis==Iis_old(1)) find(Iis==Iis_old(1))],[find(Ies==Ies_old(1)) find(Ies==Ies_old(end))],'color','w')
   line(ax{iax},[find(Iis==Iis_old(1)) find(Iis==Iis_old(end))],[find(Ies==Ies_old(1)) find(Ies==Ies_old(1))],'color','w')
   line(ax{iax},[find(Iis==Iis_old(end)) find(Iis==Iis_old(end))],[find(Ies==Ies_old(1)) find(Ies==Ies_old(end))],'color','w')
   line(ax{iax},[find(Iis==Iis_old(end)) find(Iis==Iis_old(1))],[find(Ies==Ies_old(end)) find(Ies==Ies_old(end))],'color','w')
   
-  
-  
-  ylabel(ax{iax},'Excitatory input'); xlabel(ax{iax},'Inhibitory input')
-  set(ax{iax},'XTick',1:5:length(Iis),'XTickLabels',Iis(1:5:end))
-  set(ax{iax},'YTick',1:5:length(Ies),'YTickLabels',Ies(1:5:end))
-  
-  colormap(plasma)
   tp_editplots(ax{iax})
+  
+  c = colorbar(ax{iax}); axis(ax{iax},'tight')
+  c.Ticks = [min(c.Limits) max(c.Limits)];
+ 
 end
 
-% print(gcf,'-dpdf',sprintf('~/Dropbox/projects/phd/pmod/plots/pmod_wc_wholebrain_lambda_excitgain_iG%d_v%d.pdf',iG,v_sim))
-
+print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_woolrich_lambdas_iG%d_v%d.pdf',iG,v_sim))
+end
 %% PLOT BASIC PARAMETERS
 % Lambda
 % Peak frequency
 % Correlation model with MEG: Lambda and FC
 % ------------------------------------------
 clear par
+for iG =1 : 4
 % ei = 2
 idx = [find(round(Ies*100)/100==-3) find(round(Iis*100)/100==-3.5000)];
 idx2 = [find(round(Ies*100)/100==-2) find(round(Iis*100)/100==-2.5000)];
 Ies_old         = -4:0.1:-1;
 Iis_old         = -5:0.1:-1;
 igain = 1;
-iG =1;
 figure; set(gcf,'color','w')
 
 % plot lambda
 ax{1} = subplot(2,2,1); hold on
 par = squeeze(outp.fc_sim_mean(:,:,iG,igain));
-par(osc1(:,:,iG,igain)>0.5)=nan;
-imagescnan(par,[0 0.05])
-title('FCraw)');
+par(osc1(:,:,iG,1)>0.5)=nan;
+imagescnan(par,[0 0.1])
+title(sprintf('FC_{FR} (%.2f)',Gg(iG)));
 
 % plot correlation FC model / MEG
 ax{2} = subplot(2,2,2); hold on
 par = squeeze(outp.fc_sim_env_mean(:,:,iG,igain));
-par(osc1(:,:,iG,igain)>0.5)=nan;
-imagescnan(par,[0 0.05])
-title('FCenv)');
+par(osc1(:,:,iG,1)>0.5)=nan;
+imagescnan(par,[0 0.1])
+title('FC_{env}');
 
 % plot correlation FC model / MEG
 ax{3} = subplot(2,2,3); hold on
 par = squeeze(outp.r_rest_corr(:,:,iG,igain));
-par(osc1(:,:,iG,igain)>0.5)=nan;
+par(osc1(:,:,iG,1)>0.5)=nan;
 imagescnan(par,[0 0.3])
-title('Corr(FCraw)');
+title('r(FC_{FR})');
 
 % plot correlation FC model / MEG
 ax{4} = subplot(2,2,4); hold on
 par = squeeze(outp.r_env_rest_corr(:,:,iG,igain));
-par(osc1(:,:,iG,igain)>0.5)=nan;
+par(osc1(:,:,iG,1)>0.5)=nan;
 imagescnan(par,[0 0.3])
-title('Corr(FCenv)');
+title('r(FC_{env})');
 
 for iax = 1 : length(ax)
-  
-  scatter(ax{iax},idx(2),idx(1),20,'markerfacecolor','w','markeredgecolor','k')
+ scatter(ax{iax},idx(2),idx(1),20,'markerfacecolor','w','markeredgecolor','k')
   scatter(ax{iax},idx2(2),idx2(1),20,'markerfacecolor','r','markeredgecolor','k')
+  if iax == 1
+    colormap(ax{iax},plasma)
+    ylabel(ax{iax},'Excitatory input');
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:7:length(Iis),'XTickLabels',num2cell(Iis(1:7:end)))
+  elseif iax == 2
+    colormap(ax{iax},plasma)
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:7:length(Iis),'XTickLabels',num2cell(Iis(1:7:end)))
+  elseif iax == 3
+    colormap(ax{iax},plasma)
+    xlabel(ax{iax},'Inhibitory input')
+    ylabel(ax{iax},'Excitatory input');
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:7:length(Iis),'XTickLabels',num2cell(Iis(1:7:end)))
+  elseif iax ==4
+    colormap(ax{iax},plasma)
+    xlabel(ax{iax},'Inhibitory input')
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:7:length(Iis),'XTickLabels',num2cell(Iis(1:7:end)))
+  end
   
   line(ax{iax},[find(Iis==Iis_old(1)) find(Iis==Iis_old(1))],[find(Ies==Ies_old(1)) find(Ies==Ies_old(end))],'color','w')
   line(ax{iax},[find(Iis==Iis_old(1)) find(Iis==Iis_old(end))],[find(Ies==Ies_old(1)) find(Ies==Ies_old(1))],'color','w')
   line(ax{iax},[find(Iis==Iis_old(end)) find(Iis==Iis_old(end))],[find(Ies==Ies_old(1)) find(Ies==Ies_old(end))],'color','w')
   line(ax{iax},[find(Iis==Iis_old(end)) find(Iis==Iis_old(1))],[find(Ies==Ies_old(end)) find(Ies==Ies_old(end))],'color','w')
   
-  ylabel(ax{iax},'Excitatory input'); xlabel(ax{iax},'Inhibitory input')
-  set(ax{iax},'XTick',1:5:length(Iis),'XTickLabels',Iis(1:5:end))
-  set(ax{iax},'YTick',1:5:length(Ies),'YTickLabels',Ies(1:5:end))
-  
-  colormap(plasma)
   tp_editplots(ax{iax})
+  
+  c = colorbar(ax{iax}); axis(ax{iax},'tight')
+  c.Ticks = [min(c.Limits) max(c.Limits)];
+ 
 end
 
-% print(gcf,'-dpdf',sprintf('~/Dropbox/projects/phd/pmod/plots/pmod_wc_wholebrain_lambda_excitgain_iG%d_v%d.pdf',iG,v_sim))
+print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_woolrich_fc_iG%d_v%d.pdf',iG,v_sim))
+end
 %% GAIN VS NO GAIN
 % Lambda
 % Peak frequency
@@ -295,7 +422,8 @@ end
 addpath ~/Documents/MATLAB/cbrewer/cbrewer/
 cmap = cbrewer('div', 'RdBu', 100,'pchip');
 cmap = cmap(end:-1:1,:);
-
+cmap = brighten(cmap,0.6);
+for iG =1 : 4
 clear par
 % ei = 2
 idx = [find(round(Ies*100)/100==-3) find(round(Iis*100)/100==-3.5000)];
@@ -303,56 +431,224 @@ idx2 = [find(round(Ies*100)/100==-2) find(round(Iis*100)/100==-2.5000)];
 Ies_old         = -4:0.1:-1;
 Iis_old         = -5:0.1:-1;
 igain = 2;
-iG =1;
 figure; set(gcf,'color','w')
 
 % plot lambda
 ax{1} = subplot(2,2,1); hold on
 par = squeeze(outp.fc_sim_mean(:,:,iG,igain))-squeeze(outp.fc_sim_mean(:,:,iG,1));
-% par(osc1(:,:,iG,1)>0.5)=nan;
-imagescnan(par,[-0.05 0.05])
-title('FCraw)');
+par(osc1(:,:,iG,1)>0.5)=nan;
+imagescnan(par,[-0.01 0.01])
+title(sprintf('Contrast: FC_{FR} (G = %.2f)',Gg(iG)));
 
 % plot correlation FC model / MEG
 ax{2} = subplot(2,2,2); hold on
 par = squeeze(outp.fc_sim_env_mean(:,:,iG,igain))-squeeze(outp.fc_sim_env_mean(:,:,iG,1));
-% par(osc1(:,:,iG,1)>0.5)=nan;
-imagescnan(par,[-0.05 0.05])
-title('FCenv)');
+par(osc1(:,:,iG,1)>0.5)=nan;
+imagescnan(par,[-0.01 0.01])
+title('Contrast: FC_{env}');
 
 % plot correlation FC model / MEG
 ax{3} = subplot(2,2,3); hold on
-par = squeeze(outp.r_rest_corr(:,:,iG,igain));
-% par(osc1(:,:,iG,1)>0.5)=nan;
-imagescnan(par,[0 0.3])
-title('Corr(FCraw)');
+par = squeeze(1./mean(outp.lambda(:,:,:,iG,igain)))-squeeze(1./mean(outp.lambda(:,:,:,iG,1)));
+par(osc1(:,:,iG,1)>0.5)=nan;
+imagescnan(par,[-5 5])
+title('Contrast: \lambda_{raw}');
 
 % plot correlation FC model / MEG
 ax{4} = subplot(2,2,4); hold on
-par = squeeze(outp.r_env_rest_corr(:,:,iG,igain));
-% par(osc1(:,:,iG,1)>0.5)=nan;
-imagescnan(par,[0 0.3])
-title('Corr(FCenv)');
+par = squeeze(1./mean(outp.lambda_env(:,:,:,iG,igain)))-squeeze(1./mean(outp.lambda_env(:,:,:,iG,1)));
+par(osc1(:,:,iG,1)>0.5)=nan;
+imagescnan(par,[-30 30])
+title('Contrast: \lambda_{Env}');
 
 for iax = 1 : length(ax)
-  
-  scatter(ax{iax},idx(2),idx(1),20,'markerfacecolor','w','markeredgecolor','k')
+ scatter(ax{iax},idx(2),idx(1),20,'markerfacecolor','w','markeredgecolor','k')
   scatter(ax{iax},idx2(2),idx2(1),20,'markerfacecolor','r','markeredgecolor','k')
+  if iax == 1
+    colormap(ax{iax},cmap);
+    ylabel(ax{iax},'Excitatory input');
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:7:length(Iis),'XTickLabels',num2cell(Iis(1:7:end)))
+  elseif iax == 2
+    colormap(ax{iax},cmap); 
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:7:length(Iis),'XTickLabels',num2cell(Iis(1:7:end)))
+  elseif iax == 3
+    colormap(ax{iax},cmap); 
+    xlabel(ax{iax},'Inhibitory input')
+    ylabel(ax{iax},'Excitatory input');
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:7:length(Iis),'XTickLabels',num2cell(Iis(1:7:end)))
+  elseif iax ==4
+    colormap(ax{iax},cmap); 
+    xlabel(ax{iax},'Inhibitory input')
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:7:length(Iis),'XTickLabels',num2cell(Iis(1:7:end)))
+  end
+  
+  line(ax{iax},[find(Iis==Iis_old(1)) find(Iis==Iis_old(1))],[find(Ies==Ies_old(1)) find(Ies==Ies_old(end))],'color','k')
+  line(ax{iax},[find(Iis==Iis_old(1)) find(Iis==Iis_old(end))],[find(Ies==Ies_old(1)) find(Ies==Ies_old(1))],'color','k')
+  line(ax{iax},[find(Iis==Iis_old(end)) find(Iis==Iis_old(end))],[find(Ies==Ies_old(1)) find(Ies==Ies_old(end))],'color','k')
+  line(ax{iax},[find(Iis==Iis_old(end)) find(Iis==Iis_old(1))],[find(Ies==Ies_old(end)) find(Ies==Ies_old(end))],'color','k')
+  
+  tp_editplots(ax{iax})
+  
+  c = colorbar(ax{iax}); axis(ax{iax},'tight')
+  c.Ticks = [min(c.Limits) max(c.Limits)];
+ 
+end
+
+print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_woolrich_contrast_iG%d_v%d.pdf',iG,v_sim))
+end
+
+%% PLOT BASIC PARAMETERS - LAMBDAS 
+% Lambda
+% Peak frequency
+% Correlation model with MEG: Lambda and FC
+% ------------------------------------------
+% if (v==2 | v==3) && size(osc1,1)>26
+%   osc1 = osc1(11:36,1:26,:,:);
+% end
+for iG = 1 : 4
+clear par
+% ei = 2
+idx = [find(round(Ies*100)/100==-3) find(round(Iis*100)/100==-3.5000)];
+idx2 = [find(round(Ies*100)/100==-2) find(round(Iis*100)/100==-2.5000)];
+Ies_old         = -4:0.1:-1;
+Iis_old         = -5:0.1:-1;
+igain = 1;
+% iG =1;
+figure; set(gcf,'color','w')
+
+% plot lambda
+ax{1} = subplot(2,2,1); hold on
+par = squeeze(outp.dfa(:,:,iG,igain));
+par(osc1(:,:,iG,igain)>0.5)=nan;
+imagescnan(par,[0.5 0.65])
+title(sprintf('DFA_{FR} (G: %.2f)',Gg(iG)));
+
+% plot correlation FC model / MEG
+ax{2} = subplot(2,2,2); hold on
+par = squeeze(outp.dfa_env(:,:,iG,igain));
+par(osc1(:,:,iG,igain)>0.5)=nan;
+imagescnan(par,[0.5 0.65])
+title('DFA_{Env}');
+
+% plot correlation lambda model / MEG
+ax{3} = subplot(2,2,3); hold on
+par = squeeze(outp.dfa(:,:,iG,2))-squeeze(outp.dfa(:,:,iG,1));
+par(osc1(:,:,iG,igain)>0.5)=nan;
+imagescnan(par,[-0.05 0.05])
+title('r(DFA_{FR})');
+
+% plot peak freq model
+ax{4} = subplot(2,2,4); hold on
+par = squeeze(outp.dfa_env(:,:,iG,2))-squeeze(outp.dfa_env(:,:,iG,1));
+par(osc1(:,:,iG,igain)>0.5)=nan;
+imagescnan(par,[-0.05 0.05])
+title('r(DFA_{Env})');
+
+
+for iax = 1 : length(ax)
+ scatter(ax{iax},idx(2),idx(1),20,'markerfacecolor','w','markeredgecolor','k')
+  scatter(ax{iax},idx2(2),idx2(1),20,'markerfacecolor','r','markeredgecolor','k')
+  if iax == 1
+    colormap(ax{iax},plasma)
+    ylabel(ax{iax},'Excitatory input');
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:7:length(Iis),'XTickLabels',num2cell(Iis(1:7:end)))
+  elseif iax == 2
+    colormap(ax{iax},plasma)
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:7:length(Iis),'XTickLabels',num2cell(Iis(1:7:end)))
+  elseif iax == 3
+    colormap(ax{iax},cmap)
+    xlabel(ax{iax},'Inhibitory input')
+    ylabel(ax{iax},'Excitatory input');
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:7:length(Iis),'XTickLabels',num2cell(Iis(1:7:end)))
+  elseif iax ==4
+    colormap(ax{iax},cmap)
+    xlabel(ax{iax},'Inhibitory input')
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:7:length(Iis),'XTickLabels',num2cell(Iis(1:7:end)))
+  end
   
   line(ax{iax},[find(Iis==Iis_old(1)) find(Iis==Iis_old(1))],[find(Ies==Ies_old(1)) find(Ies==Ies_old(end))],'color','w')
   line(ax{iax},[find(Iis==Iis_old(1)) find(Iis==Iis_old(end))],[find(Ies==Ies_old(1)) find(Ies==Ies_old(1))],'color','w')
   line(ax{iax},[find(Iis==Iis_old(end)) find(Iis==Iis_old(end))],[find(Ies==Ies_old(1)) find(Ies==Ies_old(end))],'color','w')
   line(ax{iax},[find(Iis==Iis_old(end)) find(Iis==Iis_old(1))],[find(Ies==Ies_old(end)) find(Ies==Ies_old(end))],'color','w')
   
-  
-  
-  ylabel(ax{iax},'Excitatory input'); xlabel(ax{iax},'Inhibitory input')
-  set(ax{iax},'XTick',1:5:length(Iis),'XTickLabels',Iis(1:5:end))
-  set(ax{iax},'YTick',1:5:length(Ies),'YTickLabels',Ies(1:5:end))
-  
-  colormap(ax{iax},cmap)
-%   colormap(
   tp_editplots(ax{iax})
+  
+  c = colorbar(ax{iax}); axis(ax{iax},'tight')
+  c.Ticks = [min(c.Limits) max(c.Limits)];
+ 
 end
 
-% print(gcf,'-dpdf',sprintf('~/Dropbox/projects/phd/pmod/plots/pmod_wc_wholebrain_lambda_excitgain_iG%d_v%d.pdf',iG,v_sim))
+print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_woolrich_dfa_iG%d_v%d.pdf',iG,v_sim))
+end
+
+%% PLOT BASIC PARAMETERS - LAMBDAS 
+% Lambda
+% Peak frequency
+% Correlation model with MEG: Lambda and FC
+% ------------------------------------------
+% if (v==2 | v==3) && size(osc1,1)>26
+%   osc1 = osc1(11:36,1:26,:,:);
+% end
+clear par ax
+
+for iG = 1 : 4
+% ei = 2
+idx = [find(round(Ies*100)/100==-3) find(round(Iis*100)/100==-3.5000)];
+idx2 = [find(round(Ies*100)/100==-2) find(round(Iis*100)/100==-2.5000)];
+Ies_old         = -4:0.1:-1;
+Iis_old         = -5:0.1:-1;
+igain = 1;
+% iG =1;
+figure; set(gcf,'color','w')
+
+% plot lambda
+ax{1} = subplot(2,2,1); hold on
+par = squeeze(outp.peakfreq(:,:,iG,igain));
+par(osc1(:,:,iG,igain)>0.5)=nan;
+imagescnan(par,[2 20])
+title(sprintf('Peak Freq. (G: %.2f)',Gg(iG)));
+
+% plot correlation FC model / MEG
+ax{2} = subplot(2,2,2); hold on
+par = squeeze(outp.peakfreq(:,:,iG,2))-squeeze(outp.peakfreq(:,:,iG,igain));
+par(osc1(:,:,iG,igain)>0.5)=nan;
+imagescnan(par,[-5 5])
+title('Contrast: Peak Freq.');
+
+
+for iax = 1 : length(ax)
+  scatter(ax{iax},idx(2),idx(1),20,'markerfacecolor','w','markeredgecolor','k')
+  scatter(ax{iax},idx2(2),idx2(1),20,'markerfacecolor','r','markeredgecolor','k')
+  if iax == 1
+    colormap(ax{iax},plasma)
+    ylabel(ax{iax},'Excitatory input');
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:7:length(Iis),'XTickLabels',num2cell(Iis(1:7:end)))
+  elseif iax == 2
+    colormap(ax{iax},cmap)
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:7:length(Iis),'XTickLabels',num2cell(Iis(1:7:end)))
+  end
+  
+  line(ax{iax},[find(Iis==Iis_old(1)) find(Iis==Iis_old(1))],[find(Ies==Ies_old(1)) find(Ies==Ies_old(end))],'color','w')
+  line(ax{iax},[find(Iis==Iis_old(1)) find(Iis==Iis_old(end))],[find(Ies==Ies_old(1)) find(Ies==Ies_old(1))],'color','w')
+  line(ax{iax},[find(Iis==Iis_old(end)) find(Iis==Iis_old(end))],[find(Ies==Ies_old(1)) find(Ies==Ies_old(end))],'color','w')
+  line(ax{iax},[find(Iis==Iis_old(end)) find(Iis==Iis_old(1))],[find(Ies==Ies_old(end)) find(Ies==Ies_old(end))],'color','w')
+  
+  tp_editplots(ax{iax})
+  
+  c = colorbar(ax{iax}); axis(ax{iax},'tight')
+  c.Ticks = [min(c.Limits) max(c.Limits)];
+ 
+end
+
+print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_woolrich_peakfreq_iG%d_v%d.pdf',iG,v_sim))
+end
