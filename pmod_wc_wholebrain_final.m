@@ -1,4 +1,4 @@
-%% pmod_wc_wholebrain_rest
+%% pmod_wc_wholebrain_final
 % Stochastic simulation of 2*N WC nodes during "rest"
 %-------------------------------------------------------------------------
 
@@ -10,60 +10,15 @@ clear
 % recordings.
 
 %-------------------------------------------------------------------------
-% VERSION 1: baseline (no drug), low # trials, long run time (~550s)
-%-------------------------------------------------------------------------
-% v           = 1;
-% Ies         = -4:0.1:-1;
-% Iis         = -5:0.1:-1;
-% Gg          = 0.62;
-% Gains       = -0.5:0.25:0.5;
-% nTrials     = 3;
-% tmax        = 65000; % in units of tauE
-% wins        = [3 50];
-%-------------------------------------------------------------------------
-% VERSION 2: COMPUTE PEAK FREQ
-%-------------------------------------------------------------------------
-% v           = 2;
-% Ies         = -4:0.1:-1;
-% Iis         = -5:0.1:-1;
-% Gg          = 0.62;
-% Gains       = -0.5:0.25:0.5;
-% nTrials     = 1;
-% tmax        = 65000; % in units of tauE
-% wins        = [3 50];
-%-------------------------------------------------------------------------
-% VERSION 3: COMPUTE PEAK FREQ
-%-------------------------------------------------------------------------
-% v           = 3;
-% Ies         = -5:0.2:2;
-% Iis         = -12:0.2:1;
-% Gg          = 0.2:0.2:1.4;
-% Gains       = 0:0.25:0.25;
-% nTrials     = 1;
-% tmax        = 65000; % in units of tauE
-% wins        = [3 50];
-%-------------------------------------------------------------------------
-% VERSION 4: After meeting with tobi, 15-08-2018
+% VERSION 1: After meeting with tobi, 15-08-2018
 %-------------------------------------------------------------------------
 v           = 4;
 Ies         = -4:0.1:-1;
 Iis         = -5:0.1:-1;
-Gg          = 0:0.1:1;
-Gains       = 0:0.05:0.3;
+Gg          = 0:0.2:1;
+Gains       = 0:0.05:0.2;
 nTrials     = 3;
 tmax        = 6500; % in units of tauE
-% wins        = [3 50];
-%-------------------------------------------------------------------------
-% VERSION 9999: ONLY A TEST VERSION
-%-------------------------------------------------------------------------
-% v           = 9999;
-% Ies         = -2.8;
-% Iis         = -3.5;
-% Gg          = 2;
-% Gains       = 0;
-% nTrials     = 1;
-% tmax        = 10000; % in units of tauE
-% wins        = [3 30];
 %-------------------------------------------------------------------------
 
 % load connectome
@@ -112,8 +67,8 @@ for iies = 1: length(Ies)
     for iG = 1 : length(Gg)
       for igain = 1 : length(Gains)
 %         
-        if ~exist(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_rest_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt'],iies,iiis,iG,igain,v))
-          system(['touch ' '~/pmod/proc/' sprintf('pmod_wc_wholebrain_rest_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt',iies,iiis,iG,igain,v)]);
+        if ~exist(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt'],iies,iiis,iG,igain,v))
+          system(['touch ' '~/pmod/proc/' sprintf('pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt',iies,iiis,iG,igain,v)]);
         else
           continue
         end
@@ -251,13 +206,13 @@ for iies = 1: length(Ies)
             PSD(:,i,tr) = psd';
             out.f = fnew;
             
-             % POWER SPECTRUM FIT
-            idx= find(log10(out.f)>1.5,1,'first');
-            X = [ones(1,length(out.f(idx:end)))' log10(out.f(idx:end))'];
-            Y = log10(PSD(idx:end,i,tr));
-            tmp = X\Y;   
-            out.psslope(i,tr)= tmp(2);
-        
+%              % POWER SPECTRUM FIT
+%             idx= find(log10(out.f)>1.5,1,'first');
+%             X = [ones(1,length(out.f(idx:end)))' log10(out.f(idx:end))'];
+%             Y = log10(PSD(idx:end,i,tr));
+%             tmp = X\Y;   
+%             out.psslope(i,tr)= tmp(2);
+%         
 
           end
           
@@ -331,23 +286,23 @@ for iies = 1: length(Ies)
             
             % COMPUTE POWER SPECTRUM
             % ---------------------------
-            f = env(:,i) - mean(env(:,i));
-            xdft = fft(f);
-            xdft = xdft(1:floor(Tds/2)+1);
-            pw = (1/(Tds/2)) * abs(xdft).^2;
-            psd = pw(freqs<100 & freqs>1);
-            f = freqs(freqs<100 & freqs>1);
-            fnew = f(1:10:end);
-            psd  = psd(1:10:end);
-            PSD_env(:,i,tr) = psd';
-            out.f_env = fnew;
-            
-             % POWER SPECTRUM FIT
-            idx= find(log10(out.f_env)>0.5,1,'first');
-            X = [ones(1,length(out.f_env(idx:end)))' log10(out.f_env(idx:end))'];
-            Y = log10(PSD_env(idx:end,i,tr));
-            tmp = X\Y;   
-            out.psslope_env(i,tr)= tmp(2);
+%             f = env(:,i) - mean(env(:,i));
+%             xdft = fft(f);
+%             xdft = xdft(1:floor(Tds/2)+1);
+%             pw = (1/(Tds/2)) * abs(xdft).^2;
+%             psd = pw(freqs<100 & freqs>1);
+%             f = freqs(freqs<100 & freqs>1);
+%             fnew = f(1:10:end);
+%             psd  = psd(1:10:end);
+%             PSD_env(:,i,tr) = psd';
+%             out.f_env = fnew;
+%             
+%              % POWER SPECTRUM FIT
+%             idx= find(log10(out.f_env)>0.5,1,'first');
+%             X = [ones(1,length(out.f_env(idx:end)))' log10(out.f_env(idx:end))'];
+%             Y = log10(PSD_env(idx:end,i,tr));
+%             tmp = X\Y;   
+%             out.psslope_env(i,tr)= tmp(2);
             
           end
 
@@ -355,7 +310,7 @@ for iies = 1: length(Ies)
           toc
         end
         
-        save(sprintf('~/pmod/proc/pmod_wc_wholebrain_rest_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,v),'out')
+        save(sprintf('~/pmod/proc/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,v),'out')
         
       end
     end

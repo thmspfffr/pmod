@@ -262,7 +262,7 @@ error('!')
 
 %%
 osc1 = zeros(length(Ies),length(Iis),length(Gg),length(Gains));
-vv =3;
+vv =1;
 for iies = 1 : length(Ies)
   iies
   for iiis = 1 : length(Iis)

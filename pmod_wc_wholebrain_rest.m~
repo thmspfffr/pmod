@@ -23,14 +23,47 @@ clear
 %-------------------------------------------------------------------------
 % VERSION 2: COMPUTE PEAK FREQ
 %-------------------------------------------------------------------------
-v           = 2;
+% v           = 2;
+% Ies         = -4:0.1:-1;
+% Iis         = -5:0.1:-1;
+% Gg          = 0.62;
+% Gains       = -0.5:0.25:0.5;
+% nTrials     = 1;
+% tmax        = 65000; % in units of tauE
+% wins        = [3 50];
+%-------------------------------------------------------------------------
+% VERSION 3: COMPUTE PEAK FREQ
+%-------------------------------------------------------------------------
+% v           = 3;
+% Ies         = -5:0.2:2;
+% Iis         = -12:0.2:1;
+% Gg          = 0.2:0.2:1.4;
+% Gains       = 0:0.25:0.25;
+% nTrials     = 1;
+% tmax        = 65000; % in units of tauE
+% wins        = [3 50];
+%-------------------------------------------------------------------------
+% VERSION 4: After meeting with tobi, 15-08-2018
+%-------------------------------------------------------------------------
+v           = 4;
 Ies         = -4:0.1:-1;
 Iis         = -5:0.1:-1;
-Gg          = 0.62;
-Gains       = -0.5:0.25:0.5;
-nTrials     = 1;
-tmax        = 65000; % in units of tauE
-wins        = [3 50];
+Gg          = 0:0.1:1;
+Gains       = 0:0.05:0.3;
+nTrials     = 3;
+tmax        = 6500; % in units of tauE
+% wins        = [3 50];
+%-------------------------------------------------------------------------
+% VERSION 9999: ONLY A TEST VERSION
+%-------------------------------------------------------------------------
+% v           = 9999;
+% Ies         = -2.8;
+% Iis         = -3.5;
+% Gg          = 2;
+% Gains       = 0;
+% nTrials     = 1;
+% tmax        = 10000; % in units of tauE
+% wins        = [3 30];
 %-------------------------------------------------------------------------
 
 % load connectome
@@ -122,7 +155,7 @@ for iies = 1: length(Ies)
         freqs       = (0:Tds/2)/T; %% find the corresponding frequency in Hz
         freq100     = freqs(freqs<100 & freqs>1);
         pp          = 1:10:length(freq100);
-        out.PSD     = zeros(length(pp),N,nTrials);  
+        PSD     = zeros(length(pp),N,nTrials);  
         out.PSDstruct(1).frequencies = freq100(1:10:end)';
         
         % RUN SIMULATION
@@ -162,9 +195,9 @@ for iies = 1: length(Ies)
           % KURAMOTO PARAMETERS
           % ---------------------
           ku                = sum(z,2)/N;   
-          out.KOP           = abs(ku);
-          out.KOPsd(tr,1)   = std(out.KOP);
-          out.KOPmean(tr,1) = mean(out.KOP);
+          KOP           = abs(ku);
+          out.KOPsd(tr,1)   = std(KOP);
+          out.KOPmean(tr,1) = mean(KOP);
           
           clear ku KOP z
 
@@ -172,8 +205,8 @@ for iies = 1: length(Ies)
           % COMPUTE LONG RANGE TEMPORAL CORRELATIONS
           % On E time course
           % ---------------------
-          tmp           = tp_dfa(rE,wins,1/resol,0.5,15);
-          out.dfa(tr,:) = tmp.exp;
+%           tmp           = tp_dfa(rE,wins,1/resol,0.5,15);
+%           out.dfa(tr,:) = tmp.exp;
  
           % FC matrix
           % ---------------------
@@ -215,13 +248,13 @@ for iies = 1: length(Ies)
             f = freqs(freqs<100 & freqs>1);
             fnew = f(1:10:end);
             psd  = psd(1:10:end);
-            out.PSD(:,i,tr) = psd';
+            PSD(:,i,tr) = psd';
             out.f = fnew;
             
              % POWER SPECTRUM FIT
-           idx= find(log10(out.f)>1.5,1,'first');
-            X = [ones(1,length(out.f(idx:end)))' log10(out.f()'];
-            Y = log10(out.PSD(:,i,tr));
+            idx= find(log10(out.f)>1.5,1,'first');
+            X = [ones(1,length(out.f(idx:end)))' log10(out.f(idx:end))'];
+            Y = log10(PSD(idx:end,i,tr));
             tmp = X\Y;   
             out.psslope(i,tr)= tmp(2);
         
@@ -230,13 +263,13 @@ for iies = 1: length(Ies)
           
           % EXTRACT PEAK FREQ
           % ---------------------------
-          [~,peak_idx]=max(smooth(mean(out.PSD(out.f>3,:),2),20));
+          [~,peak_idx]=max(smooth(mean(PSD(out.f>3,:),2),20));
           out.peakfreq = out.f(peak_idx+find(out.f<4,1,'last')); 
           
-          flp = round(out.peakfreq)-2;           % lowpass frequency of filter
-          fhi = round(out.peakfreq)+2;
+          flp = 9;           % lowpass frequency of filter
+          fhi = 13;
           
-          delt  = 1/(1/resol);            % sampling interval
+          delt  = resol;            % sampling interval
           k     = 4;                  % 2nd order butterworth filter
           fnq   = 1/(2*delt);       % Nyquist frequency
           Wn    = [flp/fnq fhi/fnq]; % butterworth bandpass non-dimensional frequency
@@ -245,16 +278,36 @@ for iies = 1: length(Ies)
           % COMPUTE DFA, EXTRACT HURST
           % ---------------------------
           env = abs(hilbert(filtfilt(bfilt,afilt,rE)));
-          tmp                 = tp_dfa(env,wins,1/resol,0.5,15);
-          out.dfa_env(tr,:)   = tmp.exp;
           
+          flp = 12;           % lowpass frequency of filter
+          fhi = 20;
+          
+          delt  = resol;            % sampling interval
+          k     = 4;                  % 2nd order butterworth filter
+          fnq   = 1/(2*delt);       % Nyquist frequency
+          Wn    = [flp/fnq fhi/fnq]; % butterworth bandpass non-dimensional frequency
+          [bfilt,afilt] = butter(k,Wn);
+          env_beta = abs(hilbert(filtfilt(bfilt,afilt,rE)));
+       
           % COMPUTE CORRELATIONS BASED ON ENV
+          % ---------------------------
+          % Alpha range
           % ---------------------------
           rc                  = corrcoef(env);         
           out.FC_env          = out.FC_env + rc/nTrials;
           fc_env              = rc(isub);
           out.Cee_env         = out.Cee_env + mean(fc)/nTrials;
           out.CeeSD_env       = out.CeeSD_env + var(fc)/nTrials;
+          % ---------------------------
+          clear rc fc_env
+          % ---------------------------
+          % Beta filtered
+          % ---------------------------
+          rc                  = corrcoef(env_beta);         
+          out.FC_env_beta     = out.FC_env + rc/nTrials;
+          fc_env              = rc(isub);
+          out.Cee_env_beta    = out.Cee_env + mean(fc)/nTrials;
+          out.CeeSD_env_beta  = out.CeeSD_env + var(fc)/nTrials;
           % ---------------------------
           
           for i = 1 : N
@@ -267,12 +320,7 @@ for iies = 1: length(Ies)
             
             jj = find(acorr_env<.2,1,'first');
 
-            if isempty(ii)
-              out.lags(i,tr) = nan;
-            else
-              out.lags(i,tr) = lags(ii);
-            end
-            if isempty(jj)
+            if isempty(jj) || jj > length(lags)
               out.lags_env(i,tr) = nan;
             else
               out.lags_env(i,tr) = lags(jj);
@@ -283,23 +331,23 @@ for iies = 1: length(Ies)
             
             % COMPUTE POWER SPECTRUM
             % ---------------------------
-            f = env(:,i) - mean(env(:,i));
-            xdft = fft(f);
-            xdft = xdft(1:floor(Tds/2)+1);
-            pw = (1/(Tds/2)) * abs(xdft).^2;
-            psd = pw(freqs<100 & freqs>1);
-            f = freqs(freqs<100 & freqs>1);
-            fnew = f(1:10:end);
-            psd  = psd(1:10:end);
-            out.PSD_env(:,i,tr) = psd';
-            out.f_env = fnew;
-            
-             % POWER SPECTRUM FIT
-            idx= find(log10(out.f_env)>1.5,1,'first');
-            X = [ones(1,length(out.f_env(idx:end)))' log10(out.f_env(idx:end))'];
-            Y = log10(out.PSD_env(idx:end,i,tr));
-            tmp = X\Y;   
-            out.psslope_env(i,tr)= tmp(2);
+%             f = env(:,i) - mean(env(:,i));
+%             xdft = fft(f);
+%             xdft = xdft(1:floor(Tds/2)+1);
+%             pw = (1/(Tds/2)) * abs(xdft).^2;
+%             psd = pw(freqs<100 & freqs>1);
+%             f = freqs(freqs<100 & freqs>1);
+%             fnew = f(1:10:end);
+%             psd  = psd(1:10:end);
+%             PSD_env(:,i,tr) = psd';
+%             out.f_env = fnew;
+%             
+%              % POWER SPECTRUM FIT
+%             idx= find(log10(out.f_env)>0.5,1,'first');
+%             X = [ones(1,length(out.f_env(idx:end)))' log10(out.f_env(idx:end))'];
+%             Y = log10(PSD_env(idx:end,i,tr));
+%             tmp = X\Y;   
+%             out.psslope_env(i,tr)= tmp(2);
             
           end
 

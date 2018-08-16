@@ -392,7 +392,7 @@ clear par
 idx = [find(round(Ies*100)/100==-2.8) find(round(Iis*100)/100==-3.5000)];
 idx2 = [find(round(Ies*100)/100==-1.8) find(round(Iis*100)/100==-2.4000)];
 
-igain = 1;
+igain = 5;
 G = 1;
 
 cmap = cbrewer('div', 'RdBu', 100,'pchip');
@@ -592,7 +592,160 @@ end
 
 print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_wholebrain_degreefreq_gain%d_G%d_v%d.pdf',igain,G,v_sim))
 %%
+cmap = cbrewer('div', 'RdBu', 100,'pchip');
+cmap = cmap(end:-1:1,:);
 
+clear par ax
+figure; set(gcf,'color','w')
+% clear 
+
+igain = 3;
+% plot peak freq model
+ax{1} = subplot(2,2,1); hold on
+par = squeeze(outp.peakfreq_diff_res(:,:,1,igain));
+par(osc1>0.5)=nan;
+imagescnan(par,[-3 3])
+title('Peak freq: Difference');
+
+
+% plot peak freq model
+ax{2} = subplot(2,2,2); hold on
+par = squeeze(outp.peakfreq_diff_res(:,:,1,igain));
+par(abs(par)<1)=1; par(abs(par)>1)=0; 
+par(osc1>0.5)=nan; m1 = par>0;
+imagescnan(par,[-1 1])
+title('Peak freq: Masked');
+
+% plot peak freq model
+ax{3} = subplot(2,2,3); hold on
+par = squeeze(outp.r_env_rest_corr(:,:,1,igain));
+par(osc1>0.5)=nan;
+imagescnan(par,[0 0.3])
+title('Peak freq: Masked');
+
+igain = 3;
+% plot peak freq model
+ax{4} = subplot(2,2,4); hold on
+par = squeeze(outp.r_env_rest_corr(:,:,1,igain));
+par(abs(par)<0.2)=0; par(abs(par)>0.2)=1;
+par(osc1>0.5)=nan; m2 = par>0;
+imagescnan(par,[-1 1])
+title('Peak freq: Masked');
+
+for iax = 1 : 4
+ scatter(ax{iax},idx(2),idx(1),20,'markerfacecolor','w','markeredgecolor','k')
+%   scatter(ax{iax},idx2(2),idx2(1),20,'markerfacecolor','r','markeredgecolor','k')
+  if iax == 1
+    colormap(ax{iax},cmap)
+    ylabel(ax{iax},'Excitatory input');
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
+  elseif iax == 2
+    colormap(ax{iax},cmap)
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
+  elseif iax == 3
+    colormap(ax{iax},plasma)
+    xlabel(ax{iax},'Inhibitory input')
+    ylabel(ax{iax},'Excitatory input');
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
+  elseif iax ==4
+    colormap(ax{iax},cmap)
+    xlabel(ax{iax},'Inhibitory input')
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
+  end
+  tp_editplots(ax{iax})
+  
+  c = colorbar(ax{iax}); axis(ax{iax},'tight')
+  c.Ticks = [min(c.Limits) max(c.Limits)];
+ 
+end
+
+figure; set(gcf,'color','w')
+ax{1} = subplot(2,2,1); hold on
+par = double(m1&m2);
+par(osc1>0.5)=nan;
+imagescnan(par,[-1 1])
+title('Peak freq: Masked');
+colormap(gca,cmap)
+
+[i,k]=find(m1&m2)
+idx = [round(mean(i)) round(mean(k))];
+
+d_frest_ftask = peakfreq_task-peakfreq_rest;
+
+% plot peak freq model
+ax{2} = subplot(2,2,2); hold on
+par = (squeeze(outp.peakfreq(:,:,1,igain))-outp.peakfreq(idx(1),idx(2),1,igain))-d_frest_ftask;
+par(abs(par)<1)=1; par(abs(par)>1)=0;
+par(osc1>0.5)=nan; m1 = par>0;
+imagescnan(par,[-1 1])
+title('Peak freq: Difference');
+
+% plot peak freq model
+ax{3} = subplot(2,2,3); hold on
+par = double(m1&m2);
+par(osc1>0.5)=nan;
+
+imagescnan(par,[-1 1])
+title('Peak freq: Difference');
+colormap(cmap)
+
+
+[i,k]=find(m1&m2)
+idx2 = [round(mean(i)) round(mean(k))];
+
+ax{4} = subplot(2,2,4); hold on
+par =zeros(size((par)));
+par(osc1>0.5)=nan;
+imagescnan(par,[-1 1]);
+title('Peak freq: Difference');
+
+
+for iax = 1 : 4
+ scatter(ax{iax},idx(2),idx(1),20,'markerfacecolor','w','markeredgecolor','k')
+  if iax == 1
+    colormap(ax{iax},plasma)
+    ylabel(ax{iax},'Excitatory input');
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
+  elseif iax == 2
+    colormap(ax{iax},plasma)
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
+  elseif iax == 3
+    colormap(ax{iax},plasma)
+    xlabel(ax{iax},'Inhibitory input')
+    ylabel(ax{iax},'Excitatory input');
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
+  elseif iax == 4
+    colormap(ax{iax},plasma)
+    xlabel(ax{iax},'Inhibitory input')
+    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+    set(ax{iax},'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
+    scatter(ax{4},idx2(2),idx2(1),20,'markerfacecolor','r','markeredgecolor','k')
+
+  end
+  tp_editplots(ax{iax})
+  
+%   c = colorbar(ax{iax}); 
+axis(ax{iax},'tight')
+%   c.Ticks = [min(c.Limits) max(c.Limits)];
+%  
+end
+
+clear par
+par.rest = [Ies(idx(2)) Iis(idx(1))];
+par.task = [Ies(idx2(2)) Iis(idx2(1))];
+par.descr = 'First entry: Excitation (Ies), Second entry: Inhibition (Iis)';
+save(sprintf('~/pmod/proc/pmod_wc_wholebrain_rest_v%d.mat',v_sim),'par')
+
+
+
+%%
 igain = 3;
 % plot peak freq model
 ax{1} = subplot(2,2,1); hold on

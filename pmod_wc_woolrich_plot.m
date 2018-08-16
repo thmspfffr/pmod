@@ -48,7 +48,7 @@ v_dfa = 2;
 % -------------------
 
 Gs = 1;
-v = v_sim
+v = v_sim;
 % ---------
 % LOAD EMPIRICAL DFA (LCMV)
 % ---------
@@ -115,8 +115,7 @@ for iies = 1: length(Ies)
           outp.r_rest_corr_unc(iies,iiis,iG,igain) = dot(outp.fc_sim_tmp(mask),fc_rest(mask)) / sqrt(dot(outp.fc_sim_tmp(mask),outp.fc_sim_tmp(mask)) * dot(fc_rest(mask),fc_rest(mask)));
           %
           pars.dim = 1;
-          
-          
+
           [outp.lambda_r_rest(iies,iiis,iG,igain), outp.lambda_p_rest(iies,iiis,iG,igain)] = corr(lambda_emp_rest,tp_match_aal(pars,repmat(outp.lambda(:,iies,iiis,iG),[1 90]),pars));
           [outp.lambda_r_task(iies,iiis,iG,igain), outp.lambda_p_task(iies,iiis,iG,igain)] = corr(lambda_emp_task,tp_match_aal(pars,repmat(outp.lambda(:,iies,iiis,iG),[1 90]),pars));
           
