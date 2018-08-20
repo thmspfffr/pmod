@@ -263,8 +263,6 @@ for iies = 1: length(Ies)
           fc_env              = rc(isub);
           out.Cee_env         = out.Cee_env + mean(fc)/nTrials;
           out.CeeSD_env       = out.CeeSD_env + var(fc)/nTrials;
-          tmp                 = tp_dfa(env,wins,1/resol,0.5,15);
-          out.dfa_env         = tmp.exp;
           % ---------------------------
           clear rc fc_env
           % ---------------------------
