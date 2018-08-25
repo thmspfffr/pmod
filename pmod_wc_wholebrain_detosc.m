@@ -42,7 +42,7 @@ clear
 % wEE=3.5;
 %-------------------------------------------------------------------------
 % VERSION 3:  woolrich 2
-%-------------------------------------------------------------------------
+% -------------------------------------------------------------------------
 % v           = 3;
 % Ies         = -7:0.5:8;
 % Iis         = -10:0.5:4;
@@ -58,19 +58,34 @@ clear
 %-------------------------------------------------------------------------
 % VERSION 4:  final
 %-------------------------------------------------------------------------
-v           = 4;
-Ies         = -4:0.1:-1;
-Iis         = -5:0.1:-1;
-Gg          = 0:0.2:1;
-Gains       = 0:0.05:0.2;
+% v           = 4;
+% Ies         = -4:0.1:-1;
+% Iis         = -5:0.1:-1;
+% Gg          = 0:0.2:1;
+% Gains       = 0:0.05:0.2;
+% nTrials     = 1;
+% tmax        = 10000; % in units of tauE
+% wII=4;
+% wIE=16;
+% wEI=12;
+% wEE=12;
+%-------------------------------------------------------------------------
+% VERSION 3: After meeting with tobi, 24-08-2018
+%-------------------------------------------------------------------------
+v           = 3;
+Ies         = -4:0.01:-1;
+Iis         = -5:0.01:-1;
+Gg          = 0.6;
+Gains       = 0;
 nTrials     = 1;
 tmax        = 10000; % in units of tauE
-wins        = [3 50];
 wII=4;
 wIE=16;
 wEI=12;
 wEE=12;
 %-------------------------------------------------------------------------
+
+
 N = 90;
 % load connectome
 load ~/pmod/matlab/EC.mat %Matt_EC
@@ -276,23 +291,36 @@ end
 error('!')
 
 %%
-osc1 = zeros(length(Ies),length(Iis),length(Gg),length(Gains));
-vv =1;
-for iies = 1 : length(Ies)
-  iies
-  for iiis = 1 : length(Iis)
-    for iG = 1:length(Gg)
-      for igain = 1%:length(Gains)
-        %       load(sprintf('~/pmod/proc/pmod_WC_wholebrain_rest_Ie%d_Ii%d_v%d.mat',iies,iiis,vv))
-        load(sprintf('~/pmod/proc/pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,vv))
-        
-        osc1(iies,iiis,iG,igain) = mean(squeeze(mean(squeeze(out.osc1),1)));
-%             osc2(iies,iiis,iG,igain) = mean(squeeze(mean(squeeze(out.osc2),1)));
-%         osc3(iies,iiis,iG,igain) = mean(squeeze(mean(squeeze(out.osc3),1)));
-%         catch me
-%           osc1(iies,iiis,iG,igain) = nan;
-%         end
+vv =4;
+
+if ~exist(sprintf('~/pmod/proc/pmod_wc_wholebrain_detosc_all_v%d.mat',vv))
+  if vv ==4 
+    osc1 = zeros(length(Ies),length(Iis),length(Gg),1);
+  else
+    osc1 = zeros(length(Ies),length(Iis),length(Gg),length(Gains));
+  end
+  for iies = 1 : length(Ies)
+    iies
+    for iiis = 1 : length(Iis)
+      for iG = 1:length(Gg)
+        for igain = 1%:length(Gains)
+          %       load(sprintf('~/pmod/proc/pmod_WC_wholebrain_rest_Ie%d_Ii%d_v%d.mat',iies,iiis,vv))
+          load(sprintf('~/pmod/proc/pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,vv))
+
+          osc1(iies,iiis,iG,igain) = mean(squeeze(mean(squeeze(out.osc1),1)));
+  %             osc2(iies,iiis,iG,igain) = mean(squeeze(mean(squeeze(out.osc2),1)));
+  %         osc3(iies,iiis,iG,igain) = mean(squeeze(mean(squeeze(out.osc3),1)));
+  %         catch me
+  %           osc1(iies,iiis,iG,igain) = nan;
+  %         end
+        end
       end
     end
   end
+
+save(sprintf('~/pmod/proc/pmod_wc_wholebrain_detosc_all_v%d.mat',vv),'osc1')
+
+else
+  load(sprintf('~/pmod/proc/pmod_wc_wholebrain_detosc_all_v%d.mat',vv))
+
 end

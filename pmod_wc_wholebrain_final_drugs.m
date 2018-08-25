@@ -1,4 +1,4 @@
-%% pmod_wc_wholebrain_final
+%% pmod_wc_wholebrain_final_drugs
 % Stochastic simulation of 2*N WC nodes during "rest"
 %-------------------------------------------------------------------------
 
@@ -8,50 +8,52 @@ clear
 % changes in E and I due to task from recordings and keep those parameters
 % fixed for the drug simulations. Vary excitability and gain for the drug
 % recordings.
-%-------------------------------------------------------------------------
-% VERSION 2: After meeting with tobi, 24-08-2018: even more fine gained
-% %-------------------------------------------------------------------------
-% v           = 2;
-% Ies         = -4:0.005:-1;
-% Iis         = -5:0.005:-1;
-% Gg          = 0.6;
-% Gains       = 0;
-% nTrials     = 1;
-% tmax        = 6500; % in units of tauE
-% wins = [2 20]; 
-%-------------------------------------------------------------------------
-% VERSION 3: After meeting with tobi, 24-08-2018
-%-------------------------------------------------------------------------
-v           = 3;
-Ies         = -4:0.01:-1;
-Iis         = -5:0.01:-1;
-Gg          = 0.6;
-Gains       = 0;
-nTrials     = 1;
-tmax        = 6500; % in units of tauE
-wins = [2 20]; 
+
+
+
 %-------------------------------------------------------------------------
 % VERSION 4: After meeting with tobi, 15-08-2018
 %-------------------------------------------------------------------------
 % v           = 4;
-% Ies         = -4:0.1:-1;
-% Iis         = -5:0.1:-1;
-% Gg          = 0:0.2:1;
-% Gains       = 0:0.05:0.2;
+% load(sprintf('~/pmod/proc/pmod_wc_wholebrain_rest_v%d.mat',v))
+% Ies         = [par.rest(1) par.task(1)];
+% Iis         = [par.rest(2) par.task(2)];
+% E_gain      = 0.75:0.025:1.25;
+% I_gain      = 0.75:0.025:1.25;
+% Gg          = 0.60;
+% Gains       = 0;
 % nTrials     = 3;
 % tmax        = 6500; % in units of tauE
+% wins = [2 20];
 %-------------------------------------------------------------------------
-% VERSION 5: After meeting with tobi, 15-08-2018
+% VERSION 5 After meeting with tobi, 15-08-2018
 %-------------------------------------------------------------------------
 % v           = 5;
-% Ies         = -4:0.1:-1;
-% Iis         = -5:0.1:-1;
-% Gg          = 0:0.2:1;
-% Gains       = 0:0.05:0.2;
-% nTrials     = 1;
-% tmax        = 65000; % in units of tauE
+% load(sprintf('~/pmod/proc/pmod_wc_wholebrain_rest_v%d.mat',4))
+% Ies         = [par.rest(1) par.task(1)];
+% Iis         = [par.rest(2) par.task(2)];
+% E_gain      = 0.85:0.01:1.15;
+% I_gain      = 1;
+% Gg          = 0.60;
+% Gains       = -0.15:0.01:0.15;
+% nTrials     = 5;
+% tmax        = 6500; % in units of tauE
+% wins = [2 20];
+%----------
+% VERSION 6 After meeting with tobi, 15-08-2018
 %-------------------------------------------------------------------------
-
+v           = 6;
+load(sprintf('~/pmod/proc/pmod_wc_wholebrain_rest_v%d.mat',4))
+Ies         = [par.rest(1) par.task(1)];
+Iis         = [par.rest(2) par.task(2)];
+E_gain      = 0.5:0.02:1.5;
+I_gain      = 1;
+Gg          = 0.60;
+Gains       = -0.5:0.02:0.5;
+nTrials     = 5;
+tmax        = 6500; % in units of tauE
+wins = [2 20];
+%----------
 % load connectome
 load ~/pmod/matlab/EC.mat %Matt_EC
 C = EC;
@@ -93,20 +95,25 @@ sigma = 0.0005;
 
 isub = find( triu(ones(N)) - eye(N) );
 %%
-for iies = 1: length(Ies)
-  for iiis = 1: length(Iis)
-    for iG = 1 : length(Gg)
+
+for exc_gain = 1 : length(E_gain)
+  for inh_gain = 1 : 1
+    for iies = 1: length(Ies)
       for igain = 1 : length(Gains)
-%         
-        if ~exist(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt'],iies,iiis,iG,igain,v))
-          system(['touch ' '~/pmod/proc/' sprintf('pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt',iies,iiis,iG,igain,v)]);
+        %
+        if ~exist(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_final_drugs_Ie%d_ExcGain%d_InhGain%d_gain%d_v%d_processing.txt'],iies,exc_gain,inh_gain,igain,v))
+          system(['touch ' '~/pmod/proc/' sprintf('pmod_wc_wholebrain_final_drugs_Ie%d_ExcGain%d_InhGain%d_gain%d_v%d_processing.txt',iies,exc_gain,inh_gain,igain,v)]);
         else
           continue
         end
-        tic
-        g = Gg(iG);
-        W = [wEE*eye(N)+g*C -wEI*eye(N); wIE*eye(N) -wII*eye(N)];
         
+        tic
+        g = 0.6;
+        
+        % Modulate synapses here
+%         W = [(E_gain(exc_gain)*wEE)*eye(N)+g*C -wEI*eye(N); wIE*eye(N) -(I_gain(inh_gain)*wII)*eye(N)];
+      	W = [(E_gain(exc_gain)*wEE)*eye(N)+g*C -wEI*eye(N); wIE*eye(N) -(E_gain(end-(exc_gain-1))*wII)*eye(N)];
+
         out.FC = zeros(N,N,1);
         out.Cee = zeros(1,1);
         out.CeeSD = zeros(2,1);
@@ -120,7 +127,7 @@ for iies = 1: length(Ies)
         % Control params.
         %--------------------
         out.Ie = Ies(iies);
-        out.Ii = Iis(iiis);
+        out.Ii = Iis(iies);
         out.Gain = Gains(igain);
         
         % Working point:
@@ -141,14 +148,14 @@ for iies = 1: length(Ies)
         freqs       = (0:Tds/2)/T; %% find the corresponding frequency in Hz
         freq100     = freqs(freqs<100 & freqs>1);
         pp          = 1:10:length(freq100);
-        PSD     = zeros(length(pp),N,nTrials);  
+        PSD     = zeros(length(pp),N,nTrials);
         out.PSDstruct(1).frequencies = freq100(1:10:end)';
         
         % RUN SIMULATION
         % ---------------------
-
+        
         for tr=1:nTrials
-          fprintf('Rest, Ie%d, Ii%d, trial%d ...\n',iies,iiis,tr)
+%           fprintf('Rest, Ie%d, Ii%d, trial%d ...\n',exc_gain,inh_gain,tr)
           r   = 0.001*rand(2*N,1);
           R   = zeros(Tds,N);
           Ri  = zeros(Tds,N);
@@ -173,59 +180,61 @@ for iies = 1: length(Ies)
           end
           
           rE = R;
-          rI = Ri;  
-         	z  = rE + 1i*rI;
-
-          clear R Ri rI 
- 
+          rI = Ri;
+          % excitation-inhibition FR ratio
+          out.EI = mean(rE./rI);
+          z  = rE + 1i*rI;
+          
+          clear R Ri rI
+          
           % KURAMOTO PARAMETERS
           % ---------------------
-          ku                = sum(z,2)/N;   
+          ku                = sum(z,2)/N;
           KOP           = abs(ku);
           out.KOPsd(tr,1)   = std(KOP);
           out.KOPmean(tr,1) = mean(KOP);
           
           clear ku KOP z
-
+          
           % ---------------------
           % COMPUTE LONG RANGE TEMPORAL CORRELATIONS
           % On E time course
           % ---------------------
-%           tmp           = tp_dfa(rE,wins,1/resol,0.5,15);
-%           out.dfa(tr,:) = single(tmp.exp);
- 
+          tmp           = tp_dfa(rE,wins,1/resol,0.5,15);
+          out.dfa(tr,:) = single(tmp.exp);
+          
           % FC matrix
           % ---------------------
           rc       	= corrcoef(rE);
           out.FC  	= single(out.FC) + single(rc/nTrials);
           fc      	= rc(isub);
-%           out.Cee  	= out.Cee + mean(fc)/nTrials;
-%           out.CeeSD	= out.CeeSD + var(fc)/nTrials;
-                
+          %           out.Cee  	= out.Cee + mean(fc)/nTrials;
+          %           out.CeeSD	= out.CeeSD + var(fc)/nTrials;
+          
           for i=1:N
-%             fprintf('Autocorr reg %d ...\n',i)
-% %             out.osc(tr,:,i) = tp_detect_osc(rE(:,i));
-%             %autocorr
-%             lags = 1:round(2*(1/resol));
-%             if license('checkout','econometrics_toolbox')
-%               acorr = autocorr(rE(:,i),'NumLags',round(2*(1/resol)));
-%             else
-%               acorr = acf(rE(:,i),round(2*(1/resol)));
-%             end
+            fprintf('Autocorr reg %d ...\n',i)
+            %             out.osc(tr,:,i) = tp_detect_osc(rE(:,i));
+            %autocorr
+            lags = 1:round(2*(1/resol));
+            if license('checkout','econometrics_toolbox')
+              acorr = autocorr(rE(:,i),'NumLags',round(2*(1/resol)));
+            else
+              acorr = acf(rE(:,i),round(2*(1/resol)));
+            end
             
-%             % get exp decay 
-%             out.lambda(i,tr) = tp_fitexpdecay(acorr(1:size(lags,2)),lags,0.01);
-%             
-%             ii = find(acorr<.2,1,'first');
-%             
-%             if isempty(ii)
-%               out.lags(i,tr) = nan;
-%             else
-%               out.lags(i,tr) = lags(ii);           
-%             end    
-%   
-%             % COMPUTE POWER SPECTRUM
-%             % ---------------------------
+            % get exp decay
+            out.lambda(i,tr) = tp_fitexpdecay(acorr(1:size(lags,2)),lags,0.01);
+            
+            ii = find(acorr<.2,1,'first');
+            
+            if isempty(ii)
+              out.lags(i,tr) = nan;
+            else
+              out.lags(i,tr) = lags(ii);
+            end
+            
+            % COMPUTE POWER SPECTRUM
+            % ---------------------------
             f = rE(:,i) - mean(rE(:,i));
             xdft = fft(f);
             xdft = xdft(1:floor(Tds/2)+1);
@@ -237,20 +246,20 @@ for iies = 1: length(Ies)
             PSD(:,i,tr) = psd';
             f = fnew;
             
-%              % POWER SPECTRUM FIT
-%             idx= find(log10(out.f)>1.5,1,'first');
-%             X = [ones(1,length(out.f(idx:end)))' log10(out.f(idx:end))'];
-%             Y = log10(PSD(idx:end,i,tr));
-%             tmp = X\Y;   
-%             out.psslope(i,tr)= tmp(2);
-%         
-% 
+            %              % POWER SPECTRUM FIT
+            %             idx= find(log10(out.f)>1.5,1,'first');
+            %             X = [ones(1,length(out.f(idx:end)))' log10(out.f(idx:end))'];
+            %             Y = log10(PSD(idx:end,i,tr));
+            %             tmp = X\Y;
+            %             out.psslope(i,tr)= tmp(2);
+            %
+            
           end
           
           % EXTRACT PEAK FREQ
           % ---------------------------
           [~,peak_idx]=max(smooth(mean(PSD(f>3,:),2),20));
-          out.peakfreq = f(peak_idx+find(f<4,1,'last')); 
+          out.peakfreq = f(peak_idx+find(f<4,1,'last'));
           
           flp = 9;           % lowpass frequency of filter
           fhi = 13;
@@ -274,115 +283,88 @@ for iies = 1: length(Ies)
           Wn    = [flp/fnq fhi/fnq]; % butterworth bandpass non-dimensional frequency
           [bfilt,afilt] = butter(k,Wn);
           env_beta = abs(hilbert(filtfilt(bfilt,afilt,rE)));
-       
+          
           % COMPUTE CORRELATIONS BASED ON ENV
           % ---------------------------
           % Alpha range
           % ---------------------------
-          rc                  = corrcoef(env);         
+          rc                  = corrcoef(env);
           out.FC_env          = single(out.FC_env) + single(rc/nTrials);
           fc_env              = rc(isub);
           out.Cee_env         = out.Cee_env + mean(fc)/nTrials;
           out.CeeSD_env       = out.CeeSD_env + var(fc)/nTrials;
-%           tmp                 = tp_dfa(env,wins,1/resol,0.5,15);
-%           out.dfa_env         = tmp.exp;
+          tmp                 = tp_dfa(env,wins,1/resol,0.5,15);
+          out.dfa_env         = tmp.exp;
           % ---------------------------
           clear rc fc_env
           % ---------------------------
           % Beta filtered
           % ---------------------------
-          rc                  = corrcoef(env_beta);         
+          rc                  = corrcoef(env_beta);
           out.FC_env_beta     = single(out.FC_env) + single(rc/nTrials);
           fc_env              = rc(isub);
           out.Cee_env_beta    = out.Cee_env + mean(fc)/nTrials;
           out.CeeSD_env_beta  = out.CeeSD_env + var(fc)/nTrials;
           % ---------------------------
-%           
-%           for i = 1 : N
-%             fprintf('Autocorr reg %d ...\n',i)
-%             if license('checkout','econometrics_toolbox')
-%               acorr_env = autocorr(env(:,i),'NumLags',round(2*(1/resol)));
-%             else
-%               acorr_env = acf(env(:,i),round(2*(1/resol)));
-%             end
-%             
-%             jj = find(acorr_env<.2,1,'first');
-% 
-%             if isempty(jj) || jj > length(lags)
-%               out.lags_env(i,tr) = nan;
-%             else
-%               out.lags_env(i,tr) = lags(jj);
-%             end
-%             
-%             %fit exp decay
-%            	out.lambda_env(i,tr) = tp_fitexpdecay(acorr_env(1:size(lags,2)),lags,0.01);
+          
+          for i = 1 : N
+            fprintf('Autocorr reg %d ...\n',i)
+            if license('checkout','econometrics_toolbox')
+              acorr_env = autocorr(env(:,i),'NumLags',round(2*(1/resol)));
+            else
+              acorr_env = acf(env(:,i),round(2*(1/resol)));
+            end
+            
+            jj = find(acorr_env<.2,1,'first');
+            
+            if isempty(jj) || jj > length(lags)
+              out.lags_env(i,tr) = nan;
+            else
+              out.lags_env(i,tr) = lags(jj);
+            end
+            
+            %fit exp decay
+            out.lambda_env(i,tr) = tp_fitexpdecay(acorr_env(1:size(lags,2)),lags,0.01);
             
             % COMPUTE POWER SPECTRUM
             % ---------------------------
-%             f = env(:,i) - mean(env(:,i));
-%             xdft = fft(f);
-%             xdft = xdft(1:floor(Tds/2)+1);
-%             pw = (1/(Tds/2)) * abs(xdft).^2;
-%             psd = pw(freqs<100 & freqs>1);
-%             f = freqs(freqs<100 & freqs>1);
-%             fnew = f(1:10:end);
-%             psd  = psd(1:10:end);
-%             PSD_env(:,i,tr) = psd';
-%             out.f_env = fnew;
-%             
-%              % POWER SPECTRUM FIT
-%             idx= find(log10(out.f_env)>0.5,1,'first');
-%             X = [ones(1,length(out.f_env(idx:end)))' log10(out.f_env(idx:end))'];
-%             Y = log10(PSD_env(idx:end,i,tr));
-%             tmp = X\Y;   
-%             out.psslope_env(i,tr)= tmp(2);
+            %             f = env(:,i) - mean(env(:,i));
+            %             xdft = fft(f);
+            %             xdft = xdft(1:floor(Tds/2)+1);
+            %             pw = (1/(Tds/2)) * abs(xdft).^2;
+            %             psd = pw(freqs<100 & freqs>1);
+            %             f = freqs(freqs<100 & freqs>1);
+            %             fnew = f(1:10:end);
+            %             psd  = psd(1:10:end);
+            %             PSD_env(:,i,tr) = psd';
+            %             out.f_env = fnew;
+            %
+            %              % POWER SPECTRUM FIT
+            %             idx= find(log10(out.f_env)>0.5,1,'first');
+            %             X = [ones(1,length(out.f_env(idx:end)))' log10(out.f_env(idx:end))'];
+            %             Y = log10(PSD_env(idx:end,i,tr));
+            %             tmp = X\Y;
+            %             out.psslope_env(i,tr)= tmp(2);
             
-%           end
+          end
           
           
-
+          
           clear rE rI env
           toc
         end
         
-%         out.lambda_env = single(mean(out.lambda_env,2));
-%        	out.lags_env = single(mean(out.lags_env,2));
-%         out.lambda = single(mean(out.lambda,2));
-%        	out.lags = single(mean(out.lags,2));
-
+        out.lambda_env = single(mean(out.lambda_env,2));
+        out.lags_env = single(mean(out.lags_env,2));
+        out.lambda = single(mean(out.lambda,2));
+        out.lags = single(mean(out.lags,2));
         
-        save(sprintf('~/pmod/proc/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,v),'out')
-        while 1
-          try 
-            load(sprintf('~/pmod/proc/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,v))
-            break
-          catch me
-            save(sprintf('~/pmod/proc/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,v),'out')
-            continue
-          end
-        end
+        save(sprintf('~/pmod/proc/pmod_wc_wholebrain_final_drugs_Ie%d_ExcGain%d_InhGain%d_gain%d_v%d.mat',iies,exc_gain,inh_gain,igain,v),'out')
         
       end
     end
   end
 end
+
 error('!')
-%%
 
-for iies = 1: length(Ies)
-  iies
-  for iiis = 1: length(Iis)
-    for iG = 1 : length(Gg)
-      for igain = 1 : length(Gains)
-%             
-        try 
-        load(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat'],iies,iiis,iG,igain,v))
-          catch me
-          delete(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt'],iies,iiis,iG,igain,v))
-          warning('!')
-        end
-        
-      end
-    end
-  end
-end
