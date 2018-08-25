@@ -63,6 +63,7 @@ mask = logical(tril(ones(90,90),-1));
 pars.dim = 2;
 pars.grid = 'medium';
 pars.N = 90;
+pars.transfer = 'to_bcn'
 
 fc_rest     =  tp_match_aal(pars,squeeze(nanmean(cleandat(:,:,:,1,1,6),3)));
 fc_task     =  tp_match_aal(pars,squeeze(nanmean(cleandat(:,:,:,1,2,6),3)));
@@ -73,7 +74,7 @@ fc_rest_indiv = fc_rest_indiv(mask,:);
 fc_task_indiv = reshape(squeeze(cleandat(:,:,:,1,2,6)),[90*90 28]);
 fc_task_indiv = fc_task_indiv(mask,:);
 
-if ~exist(sprintf('~/pmod/proc/pmod_wc_wholebrain_final_all_v%d.mat',v_sim))
+% if ~exist(sprintf('~/pmod/proc/pmod_wc_wholebrain_final_all_v%d.mat',v_sim))
 
 for iies = 1 : length(Ies)
   iies
@@ -179,9 +180,9 @@ end
 % 
   save(sprintf('~/pmod/proc/pmod_wc_wholebrain_final_all_v%d.mat',v_sim),'outp')
 % % % 
-else
-  load(sprintf('~/pmod/proc/pmod_wc_wholebrain_final_all_v%d.mat',v_sim))
-end
+% else
+%   load(sprintf('~/pmod/proc/pmod_wc_wholebrain_final_all_v%d.mat',v_sim))
+% end
 
 error('!')
 
@@ -261,7 +262,7 @@ print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_wholebrain_final_fc_gain%d_G%d_v
 %% PLOT BASIC PARAMETERS: Timescales
 % ------------------------------------------
 clear par
-
+oscthresh = 0;
 % idx = [find(round(Ies*100)/100==-2.8) find(round(Iis*100)/100==-3.5000)];
 % idx2 = [find(round(Ies*100)/100==-1.8) find(round(Iis*100)/100==-2.4000)];
 
@@ -273,28 +274,28 @@ figure; set(gcf,'color','w')
 % plot lambda
 ax{1} = subplot(2,2,1); hold on
 par = squeeze(mean(1./outp.lambda(:,:,:,G,igain)));
-par(osc1>0.5)=nan;
+par(osc>oscthresh)=nan;
 imagescnan(par,[7 15])
 title('\lambda_{FR}');
 
 % plot correlation FC model / MEG
 ax{2} = subplot(2,2,2); hold on
 par = squeeze(mean(1./outp.lambda_env(:,:,:,G,igain)));
-par(osc1>0.5)=nan;
+par(osc>oscthresh)=nan;
 imagescnan(par,[135 145])
 title('\lambda_{Env}');
 
 % plot correlation lambda model / MEG
 ax{3} = subplot(2,2,3); hold on
 par = squeeze(outp.lambda_r_rest(:,:,G,igain));
-par(osc1>0.5)=nan;
+par(osc>oscthresh)=nan;
 imagescnan(par,[0 0.10])
 title('r(\lambda_{FR})');
 
 % plot peak freq model
 ax{4} = subplot(2,2,4); hold on
 par = squeeze(outp.lambda_env_r_rest(:,:,G,igain));
-par(osc1>0.5)=nan;
+par(osc>oscthresh)=nan;
 imagescnan(par,[0 0.1])
 title('r(\lambda_{Env})');
 

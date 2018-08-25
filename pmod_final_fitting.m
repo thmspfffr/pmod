@@ -184,7 +184,7 @@ else
 end
 
 error('!')
-osc = osc1(:,:,4,1);
+% osc = osc1(:,:,4,1);
 
 %% DETERMINE GLOBAL COUPLING PARAMETER FIRST
 
@@ -267,7 +267,7 @@ imagescnan(par,[0 3],'NanColor',nancol)
 title('r(FC_{sim},FC_{MEG})');
 
 % plot peak freq model
-fdr_p = fdr1(reshape(squeeze(outp.p_env_rest_corr(:,:,iG,igain)),[41*31 1]),0.05);
+fdr_p = fdr1(reshape(squeeze(outp.p_env_rest_corr(:,:,iG,igain)),[31*41 1]),0.05);
 ax{4} = subplot(2,2,4); hold on
 par = -log10(squeeze(outp.p_env_rest_corr(:,:,iG,igain)));
 par(par<-log(fdr_p))=0; par(par>=-log(fdr_p))=1;
