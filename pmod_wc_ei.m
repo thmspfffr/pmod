@@ -34,6 +34,18 @@ Gg = 0.60;
 Gains = [-0.2:0.1:0.2];
 wins =[2 20];
 %-------------------------------------------------------------------------
+load(sprintf('~/pmod/proc/pmod_wc_highres_indivfits_taskandrest_v%d.mat',3))
+v           = 4;
+Ies         = round(mean(indiv_idx.ie*10))/10;
+Iis         = round(mean(indiv_idx.ii*10))/10;
+wEE_mod     = 0.8:0.01:1.2;
+wIE_mod     = 0.8:0.01:1.2;
+nTrials     = 1;
+tmax        = 6500; % in units of tauE
+Gg          = 0.60;
+wins        = [2 20];
+%-------------------------------------------------------------------------
+
 
 % load connectome
 load ~/pmod/matlab/EC.mat %Matt_EC
@@ -75,7 +87,7 @@ sigma = 0.0005;
 %Qn = (sigma*dt)^2*eye(2*N);
 
 isub = find( triu(ones(N)) - eye(N) );
-%%
+
 for iies = 1: length(Ies)
   for iiis = 1: length(Iis)
     for ei = 1 : length(EIs)

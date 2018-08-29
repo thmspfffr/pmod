@@ -364,104 +364,19 @@ par.descr = 'First entry: Excitation (Ies), Second entry: Inhibition (Iis)';
 save(sprintf('~/pmod/proc/pmod_final_fitting_fits_v%d.mat',v_sim),'par')
 
 
-%%
-[i,k]=find(m1&m2)
-idx = [round(mean(i)) round(mean(k))];
-
-figure; set(gcf,'color','w')
-ax{1} = subplot(2,2,1); hold on
-par = double(m1&m2);
-par(osc>oscthres)=nan;
-imagescnan(par,[-1 1])
-title('Peak freq: Masked');
-colormap(gca,redblue)
-
-d_frest_ftask = peakfreq_task-peakfreq_rest;
-
-% plot peak freq model
-ax{2} = subplot(2,2,2); hold on
-par = (squeeze(outp.peakfreq(:,:,4,1))-outp.peakfreq(idx(1),idx(2),4,1))-d_frest_ftask;
-par(abs(par)<2)=1; par(abs(par)>=2)=0;
-par(osc>oscthres)=nan; 
-m1 = par>0;
-imagescnan(par,[-1 1])
-title('Peak freq: Task vs rest');
-
-% plot peak freq model
-ax{3} = subplot(2,2,3); hold on
-par = double(m1&m2);
-par(osc>oscthres)=nan;
-
-imagescnan(par,[-1 1])
-title('Peak freq: Difference');
-colormap(redblue)
-
-
-[i,k]=find(m1&m2)
-idx2 = [round(mean(i)) round(mean(k))];
-
-ax{4} = subplot(2,2,4); hold on
-par =zeros(size((par)));
-% par(osc1>0.5)=nan;
-imagescnan(par,[-1 1]);
-title('Peak freq: Difference');
-
-
-for iax = 1 : 4
-  scatter(ax{iax},idx(2),idx(1),20,'markerfacecolor','w','markeredgecolor','k')
-  if iax == 1
-    colormap(ax{iax},redblue)
-    ylabel(ax{iax},'Excitatory input');
-    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
-    set(ax{iax},'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
-  elseif iax == 2
-    colormap(ax{iax},redblue)
-    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
-    set(ax{iax},'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
-  elseif iax == 3
-    colormap(ax{iax},redblue)
-    xlabel(ax{iax},'Inhibitory input')
-    ylabel(ax{iax},'Excitatory input');
-    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
-    set(ax{iax},'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
-  elseif iax == 4
-    colormap(ax{iax},redblue)
-    xlabel(ax{iax},'Inhibitory input')
-    set(ax{iax},'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
-    set(ax{iax},'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
-    scatter(ax{4},idx2(2),idx2(1),20,'markerfacecolor','r','markeredgecolor','k')
-
-  end
-  tp_editplots(ax{iax})
-  
-%   c = colorbar(ax{iax}); 
-axis(ax{iax},'tight')
-%   c.Ticks = [min(c.Limits) max(c.Limits)];
-%  
-end
-
-clear par
-par.rest = [Ies(idx(2)) Iis(idx(1))];
-par.task = [Ies(idx2(2)) Iis(idx2(1))];
-par.descr = 'First entry: Excitation (Ies), Second entry: Inhibition (Iis)';
-
-save(sprintf('~/pmod/proc/pmod_final_fitting_fits_v%d.mat',v_sim),'par')
-
-
-
 %% INDIV SUBJ
 
 % osc=zeros(301,401)
-
+oscthresh = .5
 h=figure; set(gcf,'color','w')
 
 width = 4;
-bif_mask = zeros(31,41);
-for i = 1 : 31
-  if isempty(find(osc(i,:)>0,1,'last'))
+bif_mask = zeros(size(osc));
+for i = 1 : size(bif_mask,1)
+  if isempty(find(osc(i,:)>oscthresh,1,'last'))
     idx=0;
   else
-    idx = find(osc(i,:)>0,1,'last')
+    idx = find(osc(i,:)>oscthresh,1,'last')
     if idx-width < 1
 
       bif_mask(i,idx-(width+(idx-(width+1))):idx+width)=1;
@@ -483,41 +398,56 @@ tp_editplots
 for isubj = 1 : 28
   % plot lambda
   ax{1} = subplot(6,5,isubj+1); hold on
-  par = squeeze(outp.p_env_rest_indiv_corr(isubj,:,:,1,1))<0.05; par=double(par);
-  
+  p_corr = fdr1(reshape(squeeze(outp.p_env_rest_indiv_corr(isubj,:,:,4,1)),[31*41 1]),0.05);
+  par = squeeze(outp.p_env_rest_indiv_corr(isubj,:,:,4,1))<p_corr; par=double(par);
+
   par(osc>0)=0;
-  par(~bif_mask)=0
+  par(~bif_mask)=0;
   
   bw = bwlabel(par,8);
   bw(osc>0)=0;
-  for i = 1 : max(bw(:))
-    if sum(bw(:)==i) <= 3
-      bw(bw==i)=0;
-    end
+  cnt = [];
+  for iclust = 1 : max(bw(:))
+    cnt(iclust) = sum(bw(:)==iclust);
   end
+  
+  if isempty(cnt)
+    continue
+  end
+  
+  
+  [~,k(isubj)]=max(cnt);
+%   
+%   if sum(cnt==max(cnt)>1)
+%     for iclust = 1 : sum(cnt==max(cnt))
+%       find(bw==
+%     end
+%   end
+%   
 
-  par = bw;
+  par(bw==k(isubj))=1;
+  par(bw~=k(isubj))=nan;
   par(osc>0)=nan;
 
   imagescnan(par,[-1 1])
   colormap(redblue)
 
-  set(gca,'YTick',1:100:length(Ies ),'YTickLabels',num2cell(Ies(1:100:end)))
-  set(gca,'XTick',1:100:length(Iis),'XTickLabels',num2cell(Iis(1:100:end)))
+  set(gca,'YTick',1:10:length(Ies ),'YTickLabels',num2cell(Ies(1:10:end)))
+  set(gca,'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
 
-  [i,k]=find(par>0);
-  idx(isubj,:) = [round(mean(i)) round(mean(k))];
+  [i,kk]=find(par>0);
+  idx(isubj,:) = [round(mean(i)) round(mean(kk))];
   scatter(gca,idx(isubj,2),idx(isubj,1),20,'markerfacecolor','w','markeredgecolor','k');
   tp_editplots
 end
 
-set(h,'Position',[50 50 1200 900])
-set(h,'Renderer','Painters')
-print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_fits_indiv.pdf'))
+% set(h,'Position',[50 50 1200 900])
+% set(h,'Renderer','Painters')
+% print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_fits_indiv.pdf'))
 
 save(sprintf('~/pmod/proc/pmod_final_fitting_indivfits_v%d.mat',v_sim),'idx')
 
-close all
+% close all
 %%
 figure; set(gcf,'color','white')
 
@@ -555,8 +485,11 @@ print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_fits_indiv_sum.pdf'))
 %% GET INDIV TASK PARAMETERS
 indiv_change_prc = 100*(mean(fc_task_indiv,1)-mean(fc_rest_indiv,1))./mean(fc_rest_indiv,1);
 
+
+
+
 for isubj = 1:28
-  if isnan(idx(isubj,1))
+  if isnan(idx(isubj,1)) || idx(isubj,1)==0
     continue
   end
   fc_tvr_sim = 100*(outp.fc_sim_mean(:,:,4,1)-outp.fc_sim_mean(idx(isubj,1),idx(isubj,2),4,1))./outp.fc_sim_mean(idx(isubj,1),idx(isubj,2),4,1)
@@ -564,11 +497,26 @@ for isubj = 1:28
   d = indiv_change_prc(isubj)-fc_tvr_sim;
   d(osc>0) = nan;
 
-
+  mask = zeros(31,41);
+  i = 0;
+  while 1
+    if idx(isubj,1)+i <= 31
+      mask(idx(isubj,1)+i,idx(isubj,2)+i) = 1;
+    else
+      break
+    end
+    mask(idx(isubj,1)+i,1:idx(isubj,2)+i)=1;
+    i = i + 1;
+  end
+  mask(1:idx(isubj,1),1:idx(isubj,2)) = 1;
+  mask(1:idx(isubj,1),:) = 1; mask = ~mask;
+  
+  mask = mask&bif_mask
 
 thresh = 1;
-d(~bif_mask) = Inf;
-d(1:idx(isubj,1),1:idx(isubj,2)) = Inf;
+% d(~logical(bif_mask)) = Inf;
+d(~logical(mask)) = Inf;
+% d(1:idx(isubj,1),1:idx(isubj,2)) = Inf;
 
 while 1
   clust = reshape(bwlabel(abs(d)<thresh,8),[31*41 1]);
@@ -580,7 +528,7 @@ while 1
     for iclust = 1 : max(clust)
       cnt(iclust) = sum(clust==iclust);
     end
-    if any(cnt>1)
+    if any(cnt>7)
       break
     else
       thresh = thresh+1;
@@ -609,37 +557,10 @@ axis([1 41 1 31])
 tp_editplots; colormap(redblue); colorbar
 print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_fits_indiv_task_sum.pdf'))
 
-load(sprintf('~/pmod/proc/pmod_final_fitting_indivfits_v%d.mat',v_sim))
-
 clear par
 
 indiv_idx.rest = idx;
 indiv_idx.task = idx_task;
 
 save(sprintf('~/pmod/proc/pmod_final_fitting_indivfits_taskandrest_v%d.mat',v_sim),'indiv_idx')
-
-%% SPATIAL MAPS
-addpath /home/gnolte/meg_toolbox/meg/
-
-load /home/gnolte/meth/templates/sa_template
-load /home/gnolte/meth/templates/mri.mat
-sa_template.grid_cortex400 = select_chans(sa_template.grid_cortex3000,400);
-
-grid  = sa_template.grid_cortex400;
-g1    = sa_template.grid_cortex400;
-g2    = sa_template.cortex10K.vc;
-vc    = sa_template.vc;
-dd    = .75;
-
-d = mean(outp.fc_sim_all(:,:,idx(1),idx(2),1,3));
-
-par_interp = spatfiltergauss(d,g1,dd,g2);
-
-para =[];
-para.colorlimits = [0 0.03];
-
- 
-% PLOT RESULTS
-para.filename = sprintf('~/pmod/plots/all_src_tsk_v%d.png',v_sim);
-tp_showsource(par_interp,cmap,sa_template,para);
 

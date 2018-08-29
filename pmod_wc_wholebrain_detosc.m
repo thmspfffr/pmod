@@ -324,3 +324,24 @@ else
   load(sprintf('~/pmod/proc/pmod_wc_wholebrain_detosc_all_v%d.mat',vv))
 
 end
+
+%%
+
+
+for iies = 1: length(Ies)
+  iies
+  for iiis = 1: length(Iis)
+    for iG = 1 : length(Gg)
+      for igain = 1 : length(Gains)
+%             
+        try 
+        load(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d.mat'],iies,iiis,iG,igain,vv))
+          catch me
+          delete(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt'],iies,iiis,iG,igain,vv))
+          warning('!')
+        end
+        
+      end
+    end
+  end
+end

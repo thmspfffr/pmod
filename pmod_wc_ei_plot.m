@@ -3,11 +3,11 @@
 %-------------------------------------------------------------------------
 % VERSION 1: After meeting with tobi, 15-08-2018
 %-------------------------------------------------------------------------
-v           = 1;
+v           = 2;
 Ies         = -4:0.1:-1;
 Iis         = -5:0.1:-1;
 EIs         = 0.7:0.05:1.3;
-out.Gain = 0;
+Gains = [-0.2:0.1:0.2];
 %-------------------------------------------------------------------------
 
 v_sim = v;
@@ -48,9 +48,9 @@ load ~/pupmod/proc/conn/pupmod_all_kuramoto_v1.mat
 
 mask = logical(tril(ones(90,90),-1));
 
-fc_rest     =  squeeze(nanmean(cleandat(:,:,:,1,1,6),3));
-fc_task     =  squeeze(nanmean(cleandat(:,:,:,1,2,6),3));
-fc_rest_var =  std(nanmean(squeeze(nanmean(cleandat(:,:,:,1,1,6),3)))./max(nanmean(squeeze(nanmean(cleandat(:,:,:,1,1,6),3)))));
+% fc_rest     =  squeeze(nanmean(cleandat(:,:,:,1,1,6),3));
+% fc_task     =  squeeze(nanmean(cleandat(:,:,:,1,2,6),3));
+% fc_rest_var =  std(nanmean(squeeze(nanmean(cleandat(:,:,:,1,1,6),3)))./max(nanmean(squeeze(nanmean(cleandat(:,:,:,1,1,6),3)))));
 
 if ~exist(sprintf('~/pmod/proc/pmod_wc_ei_all_v%d.mat',v_sim))
 
@@ -58,14 +58,11 @@ for iies = 1: length(Ies)
   iies
   for iiis = 1: length(Iis)
     for ei = 1 : length(EIs)
-%       for igain = 1:length(Gains)
+      for igain = 1:length(Gains)
         %         igain
-        load(sprintf('~/pmod/proc/ei/pmod_wc_ei_Ie%d_Ii%d_ei%d_v%d.mat',iies,iiis,ei,v))
-
-        if round(Ies(iies)*100)/100 == -2.8 && round( Iis(iiis)*100)/100 == -3.4
-          disp('save stuff')
-          FFCC = out.FC;
-        end
+        fn = sprintf('pmod_wc_ei_Ie%d_Ii%d_ei%d_gain%d_v%d',iies,iiis,ei,igain,v);
+        load(['~/pmod/proc/ei/' fn '.mat'])
+        
         
         % Time scales
         outp.lambda(:,iies,iiis,ei,igain)      = mean(out.lambda,2);
@@ -116,7 +113,7 @@ for iies = 1: length(Ies)
       end
     end
 end
-
+end
   save(sprintf('~/pmod/proc/pmod_wc_ei_all_v%d.mat',v_sim),'outp')
 % % % 
 else
@@ -128,12 +125,17 @@ error('!')
 %% PLOT GAIN VS NO GAIN
 % increase in gain vs. baseline
 clear par
-load(sprintf('~/pmod/proc/pmod_final_fitting_fits_v%d.mat',4))
+% load(sprintf('~/pmod/proc/pmod_final_fitting_fits_v%d.mat',4))
+load(sprintf('~/pmod/proc/pmod_final_fitting_indivfits_taskandrest_v%d.mat',4))
 
-idx = [find(Ies==par.rest(1)) find(Iis==par.rest(2))];
-idx2 = [find(Ies==par.task(1)) find(Iis==par.task(2))];
-[i,idx3(:,1)]=find(Ies==par.task_alt(:,1));
-[i,idx3(:,2)]=find(Iis==par.task_alt(:,2));
+indiv_idx.task =indiv_idx.task(~isnan(indiv_idx.rest(:,1)),:);
+indiv_idx.rest =indiv_idx.rest(~isnan(indiv_idx.rest(:,1)),:);
+
+oscthres = 0
+idx = [indiv_idx.rest(:,1) indiv_idx.rest(:,2)];
+idx2 = [indiv_idx.task(:,1) indiv_idx.task(:,2)];
+% [i,idx3(:,1)]=find(Ies==par.task_alt(:,1));
+% [i,idx3(:,2)]=find(Iis==par.task_alt(:,2));
 
 nancol = [0.95 0.95 0.95]
 iei = 6;
@@ -171,9 +173,8 @@ imagescnan(par,[-30 30],'NanColor',nancol)
 title('Contrast: Lambda_{Env}');
 
 for iax = 1 : length(ax)
- 	scatter(ax{iax},idx(2),idx(1),20,'markerfacecolor','w','markeredgecolor','k')
-  scatter(ax{iax},idx2(2),idx2(1),20,'markerfacecolor','y','markeredgecolor','k')
-  scatter(ax{iax},idx3(:,2),idx3(:,1),20,'markerfacecolor','y','markeredgecolor','k')
+ 	scatter(ax{iax},idx(:,2),idx(:,1),20,'markerfacecolor','w','markeredgecolor','k')
+  scatter(ax{iax},idx2(:,2),idx2(:,1),20,'markerfacecolor','y','markeredgecolor','k')
   c = colorbar(ax{iax}); 
  c.Ticks = [c.Limits];
 %   scatter(ax{iax},idx2(2),idx2(1),20,'markerfacecolor','r','markeredgecolor','k')
@@ -212,21 +213,39 @@ print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_ei_eivsbaseline_ei%d_v%d.pdf',ie
 
 
 % BAR PLOTS
-diag_mask = diag(ones(6,6));
+tmp1 = squeeze(abs(outp.fc_sim_env_mean(idx(:,1),idx(:,2),iei)))-abs(squeeze(outp.fc_sim_env_mean(idx(:,1),idx(:,2),7)));
+tmp2 = squeeze(abs(outp.fc_sim_env_mean(idx2(:,1),idx2(:,2),iei)))-abs(squeeze(outp.fc_sim_env_mean(idx2(:,1),idx2(:,2),7)));
 
+diag_mask = eye(size(tmp1,1),size(tmp1,2));
 
-par1(:,iei) = squeeze(abs(outp.fc_sim_env_mean(idx(1),idx(2),iei)))-abs(squeeze(outp.fc_sim_env_mean(idx(1),idx(2),7)))
-par2(:,iei) = squeeze(abs(outp.fc_sim_env_mean(idx2(1),idx2(2),iei)))-abs(squeeze(outp.fc_sim_env_mean(idx2(1),idx2(2),7)))
-par3 = squeeze(abs(outp.fc_sim_env_mean(idx3(:,1),idx3(:,2),iei)))-abs(squeeze(outp.fc_sim_env_mean(idx3(:,1),idx3(:,2),7)))
-all_par3(:,iei) = diag(par3);
+par1(:,iei) = tmp1(logical(diag_mask));
+par2(:,iei) = tmp2(logical(diag_mask));
+
 
 figure;set(gcf,'color','w')
-subplot(2,2,1)
-bar([1 2 3 4 5 6 7 8],[par1(:,iei); par2(:,iei); all_par3(:,iei)])
+subplot(2,2,1); hold on
+m = [mean(par1(:,iei)) mean(par2(:,iei))];
+s = [std(par1(:,iei))/sqrt(length(par1)) std(par2(:,iei))/sqrt(length(par1))];
+bar([1:2],[m])
+line([1 1],[m(1)-s(1) m(1)+s(1)])
+line([2 2],[m(2)-s(2) m(2)+s(2)])
+
 tp_editplots; axis square
-axis([0 9 -0.03 0.03])
+axis([0 3 -0.03 0.01])
 
 print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_ei_eivsbaseline_bar_ei%d_v%d.pdf',iei,v_sim))
+
+
+figure;set(gcf,'color','w')
+subplot(2,2,1); hold on
+scatter(ones(size(par1,1),1)-(0.5-rand(22,1))/2,par1(:,iei),30,'markeredgecolor','k','markerfacecolor','w')
+scatter(2*ones(size(par2,1),1)-(0.5-rand(22,1))/2,par2(:,iei),30,'markeredgecolor','k','markerfacecolor','y')
+
+
+tp_editplots; axis square
+axis([0 3 -0.02 0.02])
+
+print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_ei_eivsbaseline_scatter_ei%d_v%d.pdf',iei,v_sim))
 
 %% 
 
