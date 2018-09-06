@@ -37,8 +37,6 @@ dfa_emp_task = nanmean(outp.dfa_all(:,:,1,1,2),2);
 lambda_emp_rest = nanmean(outp.lambda_all(:,:,1,1,1),2);
 lambda_emp_task = nanmean(outp.lambda_all(:,:,1,1,2),2);
 
-clear outp
-
 load(sprintf('~/pupmod/proc/conn/pupmod_src_powcorr_cleaned_v%d.mat',v_conn));
 load /home/tpfeffer/pupmod/proc/pow/pupmod_src_peakfreq_v3.mat
 peakfreq_rest = m_res(1);
@@ -47,10 +45,6 @@ peakfreq_task = m_tsk(1);
 load ~/pupmod/proc/conn/pupmod_all_kuramoto_v1.mat
 
 mask = logical(tril(ones(90,90),-1));
-
-% fc_rest     =  squeeze(nanmean(cleandat(:,:,:,1,1,6),3));
-% fc_task     =  squeeze(nanmean(cleandat(:,:,:,1,2,6),3));
-% fc_rest_var =  std(nanmean(squeeze(nanmean(cleandat(:,:,:,1,1,6),3)))./max(nanmean(squeeze(nanmean(cleandat(:,:,:,1,1,6),3)))));
 
 if ~exist(sprintf('~/pmod/proc/pmod_wc_ei_all_v%d.mat',v_sim))
 
@@ -82,9 +76,6 @@ for iies = 1: length(Ies)
         [outp.r_env_rest_corr(iies,iiis,ei,igain), outp.p_env_rest_corr(iies,iiis,ei,igain)]=corr(outp.fc_sim_env_tmp(mask),fc_rest(mask));
         [outp.r_env_task_corr(iies,iiis,ei,igain), outp.p_env_task_corr(iies,iiis,ei,igain)]=corr(outp.fc_sim_env_tmp(mask),fc_task(mask));
 
-%         [outp.r_rest_corr_avg(iies,iiis,iG,igain), outp.p_rest_corr_avg(iies,iiis,iG,igain)]=corr(nanmean(outp.fc_sim_tmp)',nanmean(fc_rest)'); 
-%         outp.r_rest_corr_unc(iies,iiis,iG,igain) = dot(outp.fc_sim_tmp(mask),fc_rest(mask)) / sqrt(dot(outp.fc_sim_tmp(mask),outp.fc_sim_tmp(mask)) * dot(fc_rest(mask),fc_rest(mask)));
-   
         pars.dim = 1;
         
         [outp.dfa_r_rest(iies,iiis,ei,igain), outp.dfa_p_rest(iies,iiis,ei,igain)] = corr(dfa_emp_rest(:),tp_match_aal(pars,repmat(outp.dfa_sim(:,iies,iiis,ei,igain),[1 90]),pars));

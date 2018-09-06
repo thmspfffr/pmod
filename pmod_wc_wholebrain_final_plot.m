@@ -1,15 +1,26 @@
 %% FITTING
 % pmod_wc_wholebrain_final_plot.m
 %-------------------------------------------------------------------------
+% VERSION 2: After meeting with tobi, 24-08-2018: even more fine gained
+% %-------------------------------------------------------------------------
+v           = 2;
+Ies         = -4:0.025:-1;
+Iis         = -5:0.025:-2;
+Gg          = 0.6;
+Gains       = 0;
+nTrials     = 1;
+tmax        = 6500; % in units of tauE
+wins = [2 20]; 
+%-------------------------------------------------------------------------
 % VERSION 1: After meeting with tobi, 15-08-2018
 %-------------------------------------------------------------------------
-v           = 4;
-Ies         = -4:0.1:-1;
-Iis         = -5:0.1:-1;
-Gg          = 0:0.2:1;
-Gains       = 0:0.05:0.2;
-nTrials     = 3;
-tmax        = 6500; % in units of tauE
+% v           = 4;
+% Ies         = -4:0.1:-1;
+% Iis         = -5:0.1:-1;
+% Gg          = 0:0.2:1;
+% Gains       = 0:0.05:0.2;
+% nTrials     = 3;
+% tmax        = 6500; % in units of tauE
 %-------------------------------------------------------------------------
 % v           = 3;
 % Ies         = -4:0.01:-1;
@@ -86,8 +97,8 @@ for iies = 1 : length(Ies)
         load(sprintf('~/pmod/proc/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,v_sim))
 
         % Time scales
-        outp.lambda(:,iies,iiis,iG,igain)      = mean(out.lambda,2);
-        outp.lambda_env(:,iies,iiis,iG,igain)  = mean(out.lambda_env,2);
+%         outp.lambda(:,iies,iiis,iG,igain)      = mean(out.lambda,2);
+%         outp.lambda_env(:,iies,iiis,iG,igain)  = mean(out.lambda_env,2);
         % DFA
 %         outp.dfa_sim(:,iies,iiis,iG,igain)     = squeeze(mean(out.dfa,1));
 %         outp.dfa_env_sim(:,iies,iiis,iG,igain) = squeeze(mean(out.dfa_env,1));

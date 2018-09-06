@@ -358,7 +358,6 @@ for iies = 1: length(Ies)
             break
           catch me
             save(sprintf('~/pmod/proc/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,v),'out')
-            continue
           end
         end
         
@@ -368,7 +367,7 @@ for iies = 1: length(Ies)
 end
 error('!')
 %%
-
+v = 2
 for iies = 1: length(Ies)
   iies
   for iiis = 1: length(Iis)

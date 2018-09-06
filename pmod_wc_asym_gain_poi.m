@@ -1,4 +1,4 @@
-%% pmod_wc_ei_poi
+%% pmod_wc_asym_poi
 % Stochastic simulation of 2*N WC nodes during "rest"
 %-------------------------------------------------------------------------
 % Parametrically vary E/I ratio as well as response gain, just as in
@@ -10,102 +10,19 @@
 clear
 
 %-------------------------------------------------------------------------
-% VERSION 1: After meeting with tobi, 15-08-2018
-%-------------------------------------------------------------------------
-% load(sprintf('~/pmod/proc/pmod_final_fitting_fits_v%d.mat',4))
-% v           = 1;
-% Ies         = [par.rest(1); par.task(1); par.task_alt(:,1)];
-% Iis         = [par.rest(2); par.task(2); par.task_alt(:,2)];
-% EIs         = 0.8:0.01:1.2;
-% Gains       = [-0.2:0.01:0.2];
-% nTrials     = 1;
-% tmax        = 6500; % in units of tauE
-% Gg          = 0.60;
-% wins        = [2 20];
-%-------------------------------------------------------------------------
-% VERSION 2: After meeting with tobi, 24-08-2018
-% This is based on the fine grained simulations and indivudual fits
-% obtained in pmod_wc_highres_fitting.m
-%-------------------------------------------------------------------------
-% load(sprintf('~/pmod/proc/pmod_wc_highres_indivfits_taskandrest_v%d.mat',3))
-% v           = 2;
-% Ies         = indiv_idx.ie;
-% Iis         = indiv_idx.ii;
-% EIs         = 0.8:0.02:1.2;
-% Gains       = -0.2:0.02:0.2;
-% nTrials     = 1;
-% tmax        = 6500; % in units of tauE
-% Gg          = 0.60;
-% wins        = [2 20];
-%-------------------------------------------------------------------------
-% VERSION 3: more subtle changes
-%-------------------------------------------------------------------------
-% load(sprintf('~/pmod/proc/pmod_wc_highres_indivfits_taskandrest_v%d.mat',3))
-% v           = 3;
-% Ies         = indiv_idx.ie;
-% Iis         = indiv_idx.ii;
-% EIs         = 0.95:0.005:1.05;
-% Gains       = -0.1:0.01:0.1;
-% nTrials     = 1;
-% tmax        = 6500; % in units of tauE
-% Gg          = 0.60;
-% wins        = [2 20];
-%-------------------------------------------------------------------------
-% VERSION 4: CHANGES IN E/I separately
-%-------------------------------------------------------------------------
-% load(sprintf('~/pmod/proc/pmod_wc_highres_indivfits_taskandrest_v%d.mat',3))
-% v           = 4;
-% Ies         = [round(mean(indiv_idx.ie(1:28)*10))/10 round(mean(indiv_idx.ie(29:56)*10))/10];
-% Iis         = [round(mean(indiv_idx.ii(1:28)*10))/10 round(mean(indiv_idx.ii(29:56)*10))/10];
-% wEE_mod     = 0.8:0.01:1.2;
-% wIE_mod     = 0.8:0.01:1.2;
-% Gains       = 0;
-% nTrials     = 1;
-% tmax        = 6500; % in units of tauE
-% Gg          = 0.60;
-% wins        = [2 20];
-%-------------------------------------------------------------------------
-% VERSION 5: CHANGES IN E/I separately
-%-------------------------------------------------------------------------
-% load(sprintf('~/pmod/proc/pmod_wc_highres_indivfits_taskandrest_v%d.mat',3))
-% v           = 5;
-% Ies         = [indiv_idx.ie(1:28) indiv_idx.ie(29:56)];
-% Iis         = [indiv_idx.ii(1:28) indiv_idx.ii(29:56)];
-% wEE_mod     = 0.8:0.02:1.2;
-% wIE_mod     = 0.8:0.02:1.2;
-% Gains       = 0;
-% nTrials     = 1;
-% tmax        = 6500; % in units of tauE
-% Gg          = 0.60;
-% wins        = [2 20];
-%-------------------------------------------------------------------------
-% VERSION 6: CHANGES IN E/I separately, more subtle changes in parameters
-%-------------------------------------------------------------------------
-load(sprintf('~/pmod/proc/pmod_wc_highres_indivfits_taskandrest_v%d.mat',3))
-v           = 6;
-Ies         = [indiv_idx.ie(1:28) indiv_idx.ie(29:56)];
-Iis         = [indiv_idx.ii(1:28) indiv_idx.ii(29:56)];
-wEE_mod     = 0.95:0.005:1.05;
-wIE_mod     = 0.95:0.005:1.05;
-Gains       = 0;
-nTrials     = 1;
-tmax        = 6500; % in units of tauE
-Gg          = 0.60;
-wins        = [2 20];
-%-------------------------------------------------------------------------
-% VERSION 7: CHANGES IN E/I separately, *EVEN MORE* subtle changes in parameters
+% VERSION 1: After skyoe with gus/adrian, 03-09-2018
 %-------------------------------------------------------------------------
 load(sprintf('~/pmod/proc/pmod_wc_highres_indivfits_taskandrest_v%d.mat',3))
 v           = 7;
 Ies         = [indiv_idx.ie(1:28) indiv_idx.ie(29:56)];
 Iis         = [indiv_idx.ii(1:28) indiv_idx.ii(29:56)];
-wEE_mod     = 0.99:0.001:1.01;
-wIE_mod     = 0.99:0.001:1.01;
-Gains       = 0;
+gainE_mod   = 0.8:0.01:1.2;
+gainI_mod   = 0.8:0.01:1.2;
 nTrials     = 1;
 tmax        = 6500; % in units of tauE
 Gg          = 0.60;
 wins        = [2 20];
+Gains = 0;
 %-------------------------------------------------------------------------
 
 % load connectome
@@ -150,11 +67,11 @@ sigma = 0.0005;
 isub = find( triu(ones(N)) - eye(N) );
 %%
 for iies = 1: length(Ies)
-  for EE = 1 : length(wEE_mod)
-    for IE = 1 : length(wIE_mod)
+  for igainE = 1 : length(gainE_mod)
+    for igainI = 1 : length(gainI_mod)
       for igain = 1 : length(Gains)
         
-        fn = sprintf('pmod_wc_ei_poi_Ie%d_EE%d_IE%d_gain%d_v%d',iies,EE,IE,igain,v);
+        fn = sprintf('pmod_wc_asym_gain_poi_Ie%d_igainE%d_igainI%d_gain%d_v%d',iies,igainE,igainI,igain,v);
         if tp_parallel(fn,'~/pmod/proc/ei/',1)
           continue
         end
@@ -162,7 +79,7 @@ for iies = 1: length(Ies)
         tic
         g = Gg;
         %       W = [(EIs(ei))*(wEE*eye(N)+g*C) -wEI*eye(N); (2-EIs(ei))*wIE*eye(N) -wII*eye(N)];
-        W = [wEE_mod(EE)*(wEE*eye(N)+g*C) -wEI*eye(N); wIE_mod(IE)*wIE*eye(N) -wII*eye(N)];
+        W = [wEE*eye(N)+g*C -wEI*eye(N); wIE*eye(N) -wII*eye(N)];
         
         out.FC = zeros(N,N,1);
         out.Cee = zeros(1,1);
@@ -185,8 +102,8 @@ for iies = 1: length(Ies)
         Io(N+1:2*N) = out.Ii;
         
         % transfer function:
-        gE = 1 + Gains(igain);
-        gI = 1 + Gains(igain);
+        gE = 1 + gainE_mod(igainE);
+        gI = 1 + gainI_mod(igainI);
         aE  = 1/gE;
         aI  = 1/gI;
         Fe  = @(x) 1./(1 + exp(-x/aE) );
@@ -204,7 +121,7 @@ for iies = 1: length(Ies)
         % ---------------------
         
         for tr=1:nTrials
-          fprintf('Ie%d, EE%d IE%d, igain%d, ...\n',iies,EE,IE,igain);
+          fprintf('Ie%d, gainE%d gainI%d, igain%d, ...\n',iies,igainE,igainI,igain);
           r   = 0.001*rand(2*N,1);
           R   = zeros(Tds,N);
           Ri  = zeros(Tds,N);
@@ -409,6 +326,17 @@ for iies = 1: length(Ies)
         %       out.lags = single(mean(out.lags,2));
         %
         save(sprintf('~/pmod/proc/ei/%s.mat',fn),'out')
+        
+        % make sure file is saved
+        while 1
+          try 
+            load(sprintf('~/pmod/proc/ei/%s.mat',fn))
+            break
+          catch me
+            save(sprintf('~/pmod/proc/ei/%s.mat',fn),'out')
+          end
+        end
+        
         tp_parallel(fn,'~/pmod/proc/ei/',0)
         
       end

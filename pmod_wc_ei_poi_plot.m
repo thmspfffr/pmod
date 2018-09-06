@@ -5,30 +5,30 @@
 % This is based on the fine grained simulations and indivudual fits
 % obtained in pmod_wc_highres_fitting.m
 %-------------------------------------------------------------------------
-load(sprintf('~/pmod/proc/pmod_wc_highres_indivfits_taskandrest_v%d.mat',3))
-% parameters are also saved in home folder
-v           = 2;
-Ies         = indiv_idx.ie;
-Iis         = indiv_idx.ii;
-EIs         = 0.8:0.02:1.2;
-Gains       = -0.2:0.02:0.2;
-nTrials     = 1;
-tmax        = 6500; % in units of tauE
-Gg          = 0.60;
-wins        = [2 20];
+% load(sprintf('~/pmod/proc/pmod_wc_highres_indivfits_taskandrest_v%d.mat',3))
+% % parameters are also saved in home folder
+% v           = 2;
+% Ies         = indiv_idx.ie;
+% Iis         = indiv_idx.ii;
+% EIs         = 0.8:0.02:1.2;
+% Gains       = -0.2:0.02:0.2;
+% nTrials     = 1;
+% tmax        = 6500; % in units of tauE
+% Gg          = 0.60;
+% wins        = [2 20];
 %-------------------------------------------------------------------------
 % VERSION 3: more subtle changes
 %-------------------------------------------------------------------------
-load(sprintf('~/pmod/proc/pmod_wc_highres_indivfits_taskandrest_v%d.mat',3))
-v           = 3;
-Ies         = indiv_idx.ie;
-Iis         = indiv_idx.ii;
-EIs         = 0.95:0.005:1.05;
-Gains       = -0.1:0.01:0.1;
-nTrials     = 1;
-tmax        = 6500; % in units of tauE
-Gg          = 0.60;
-wins        = [2 20];
+% load(sprintf('~/pmod/proc/pmod_wc_highres_indivfits_taskandrest_v%d.mat',3))
+% v           = 3;
+% Ies         = indiv_idx.ie;
+% Iis         = indiv_idx.ii;
+% EIs         = 0.95:0.005:1.05;
+% Gains       = -0.1:0.01:0.1;
+% nTrials     = 1;
+% tmax        = 6500; % in units of tauE
+% Gg          = 0.60;
+% wins        = [2 20];
 %-------------------------------------------------------------------------
 % VERSION 4: CHANGES IN E/I separately
 %-------------------------------------------------------------------------
@@ -43,6 +43,48 @@ tmax        = 6500; % in units of tauE
 Gg          = 0.60;
 wins        = [2 20];
 Gains       = 0;
+%-------------------------------------------------------------------------
+% VERSION 5: CHANGES IN E/I separately
+%-------------------------------------------------------------------------
+% load(sprintf('~/pmod/proc/pmod_wc_highres_indivfits_taskandrest_v%d.mat',3))
+% v           = 5;
+% Ies         = [indiv_idx.ie(1:28) indiv_idx.ie(29:56)];
+% Iis         = [indiv_idx.ii(1:28) indiv_idx.ii(29:56)];
+% wEE_mod     = 0.8:0.02:1.2;
+% wIE_mod     = 0.8:0.02:1.2;
+% Gains       = 0;
+% nTrials     = 1;
+% tmax        = 6500; % in units of tauE
+% Gg          = 0.60;
+% wins        = [2 20];
+%-------------------------------------------------------------------------
+% VERSION 6: CHANGES IN E/I separately, more subtle changes in parameters
+%-------------------------------------------------------------------------
+% load(sprintf('~/pmod/proc/pmod_wc_highres_indivfits_taskandrest_v%d.mat',3))
+% v           = 6;
+% Ies         = [indiv_idx.ie(1:28) indiv_idx.ie(29:56)];
+% Iis         = [indiv_idx.ii(1:28) indiv_idx.ii(29:56)];
+% wEE_mod     = 0.95:0.005:1.05;
+% wIE_mod     = 0.95:0.005:1.05;
+% Gains       = 0;
+% nTrials     = 1;
+% tmax        = 6500; % in units of tauE
+% Gg          = 0.60;
+% wins        = [2 20];
+%-------------------------------------------------------------------------
+% VERSION 7: CHANGES IN E/I separately, *EVEN MORE* subtle changes in parameters
+%-------------------------------------------------------------------------
+load(sprintf('~/pmod/proc/pmod_wc_highres_indivfits_taskandrest_v%d.mat',3))
+v           = 7;
+Ies         = [indiv_idx.ie(1:28) indiv_idx.ie(29:56)];
+Iis         = [indiv_idx.ii(1:28) indiv_idx.ii(29:56)];
+wEE_mod     = 0.99:0.001:1.01;
+wIE_mod     = 0.99:0.001:1.01;
+Gains       = 0;
+nTrials     = 1;
+tmax        = 6500; % in units of tauE
+Gg          = 0.60;
+wins        = [2 20];
 %-------------------------------------------------------------------------
 
 v_sim = v;
@@ -62,7 +104,7 @@ load(sprintf(['~/pupmod/proc/conn/' 'pupmod_src_dfa_v%d.mat'],v_dfa));
 % MATCH DFA WITH AAL ORDER USED FOR SIMULATIONS
 % ---------
 pars = [];
-pars.grid = 'medium';-0.1:0.01:0.1
+pars.grid = 'medium';
 pars.N = 90;
 % ---------
 
@@ -92,7 +134,7 @@ fc_rest     =  tp_match_aal(pars,squeeze(nanmean(cleandat(:,:,:,1,1,6),3)));
 fc_task     =  tp_match_aal(pars,squeeze(nanmean(cleandat(:,:,:,1,2,6),3)));
 
 
-% if ~exist(sprintf('~/pmod/proc/pmod_wc_ei_poi_all_v%d.mat',v_sim))
+if ~exist(sprintf('~/pmod/proc/ei/pmod_wc_ei_poi_all_v%d.mat',v_sim))
 for iies = 1: length(Ies)
   iies
   for EE = 1 : length(wEE_mod)
@@ -131,64 +173,168 @@ for iies = 1: length(Ies)
 end
   save(sprintf('~/pmod/proc/ei/pmod_wc_ei_poi_all_v%d.mat',v_sim),'outp')
   % % %
-% else
-%   load(sprintf('~/pmod/proc/pmod_wc_ei_poi_all_v%d.mat',v_sim))
-% end
+else
+  load(sprintf('~/pmod/proc/ei/pmod_wc_ei_poi_all_v%d.mat',v_sim))
+end
 
 error('!')
 %%
+avg = 1;
+isubj = 1:28;
 figure; set(gcf,'color','w');  hold on
-ac{1}=subplot(1,2,1);hold on
 
-imagesc(squeeze(outp.EIratio(1,:,:,11)),[0.75 1.25])
+if avg
+  par = squeeze(mean(outp.EIratio(isubj,:,:)));
+else
+  par = squeeze(outp.EIratio(isubj,:,:));
+end
+ac{1}=subplot(2,2,1);hold on
+imagesc(par,[0.7 1.3])
 xlabel(gca,'wIE'); ylabel(gca,'wEE');
-set(ac{1},'YTick',1:10:41,'YTickLabels',num2cell(wEE_mod(1:10:41)))
-set(ac{1},'XTick',1:10:41,'XTickLabels',num2cell(wIE_mod(1:10:41)))
+set(ac{1},'YTick',1:10:length(wEE_mod),'YTickLabels',num2cell(wEE_mod(1:10:length(wEE_mod))))
+set(ac{1},'XTick',1:10:length(wEE_mod),'XTickLabels',num2cell(wIE_mod(1:10:length(wEE_mod))))
 tp_editplots
-scatter(21,21,50,'markerfacecolor','w','markeredgecolor','w')
-axis([1 41 1 41]); axis square
+scatter(median(1:length(wEE_mod)),median(1:length(wEE_mod)),50,'markerfacecolor','w','markeredgecolor','k')
+axis([1 length(wEE_mod) 1 length(wEE_mod)]); axis square
 colorbar
 
-ac{2}=subplot(1,2,2);hold on
-imagesc(squeeze(outp.EIratio(1,:,:,11))-squeeze(outp.EIratio(1,21,21,11)),[-0.2 0.2])
+if avg
+  par = squeeze(mean(outp.EIratio(isubj,:,:)))-squeeze(mean(outp.EIratio(isubj,median(1:length(wEE_mod)),median(1:length(wEE_mod)))));
+else
+  par = squeeze(outp.EIratio(isubj,:,:))-squeeze(outp.EIratio(isubj,median(1:length(wEE_mod)),median(1:length(wEE_mod))));
+end
+ac{2}=subplot(2,2,2);hold on
+imagesc(par,[-0.05 0.05])
 xlabel(gca,'wIE'); ylabel(gca,'wEE');
-set(ac{2},'YTick',1:10:41,'YTickLabels',num2cell(wEE_mod(1:10:41)))
-set(ac{2},'XTick',1:10:41,'XTickLabels',num2cell(wIE_mod(1:10:41)))
+set(ac{2},'YTick',1:10:length(wEE_mod),'YTickLabels',num2cell(wEE_mod(1:10:length(wEE_mod))))
+set(ac{2},'XTick',1:10:length(wEE_mod),'XTickLabels',num2cell(wIE_mod(1:10:length(wEE_mod))))
 tp_editplots
-scatter(21,21,50,'markerfacecolor','w','markeredgecolor','w')
-axis([1 41 1 41]); axis square
+scatter(median(1:length(wEE_mod)),median(1:length(wEE_mod)),50,'markerfacecolor','w','markeredgecolor','k')
+axis([1 length(wEE_mod) 1 length(wEE_mod)]); axis square
 colorbar
 
 colormap(ac{1},plasma)
 colormap(ac{2},redblue)
 
+if avg
+  par = squeeze(mean(outp.EIratio(isubj+28,:,:)));
+else
+  par = squeeze(outp.EIratio(isubj+28,:,:));
+end
+ac{3}=subplot(2,2,3);hold on
+imagesc(par,[0.7 1.3])
+xlabel(gca,'wIE'); ylabel(gca,'wEE');
+set(ac{3},'YTick',1:10:length(wEE_mod),'YTickLabels',num2cell(wEE_mod(1:10:length(wEE_mod))))
+set(ac{3},'XTick',1:10:length(wEE_mod),'XTickLabels',num2cell(wIE_mod(1:10:length(wEE_mod))))
+tp_editplots
+scatter(median(1:length(wEE_mod)),median(1:length(wEE_mod)),50,'markerfacecolor','y','markeredgecolor','k')
+axis([1 length(wEE_mod) 1 length(wEE_mod)]); axis square
+colorbar
+
+if avg
+  par = squeeze(mean(outp.EIratio(isubj+28,:,:)))-squeeze(mean(outp.EIratio(isubj+28,median(1:length(wEE_mod)),median(1:length(wEE_mod)))));
+else
+  par = squeeze(outp.EIratio(isubj+28,:,:))-squeeze(outp.EIratio(isubj+28,median(1:length(wEE_mod)),median(1:length(wEE_mod))));
+end
+
+ac{4}=subplot(2,2,4);hold on
+imagesc(par,[-0.05 0.05])
+xlabel(gca,'wIE'); ylabel(gca,'wEE');
+set(ac{4},'YTick',1:10:length(wEE_mod),'YTickLabels',num2cell(wEE_mod(1:10:length(wEE_mod))))
+set(ac{4},'XTick',1:10:length(wEE_mod),'XTickLabels',num2cell(wIE_mod(1:10:length(wEE_mod))))
+tp_editplots
+scatter(median(1:length(wEE_mod)),median(1:length(wEE_mod)),50,'markerfacecolor','y','markeredgecolor','k')
+axis([1 length(wEE_mod) 1 length(wEE_mod)]); axis square
+colorbar
+
+colormap(ac{3},plasma)
+colormap(ac{4},redblue)
+
+if avg 
+  print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_ei_poi_eiratio_means_v%d.pdf',v))
+else
+  print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_ei_poi_eiratio_s%d_v%d.pdf',isubj,v))
+end
 %%
+close all
+
+isubj = 1:28
+
+avg = 1;
+
 figure; set(gcf,'color','w');  hold on
-ac{1}=subplot(1,2,1);hold on
+ac{1}=subplot(2,2,1);hold on
 
-imagesc(squeeze(outp.fc_sim_env_mean(1,:,:,11)),[0 1])
+if avg
+  par = squeeze(mean(outp.fc_sim_env_mean(isubj,:,:)));
+else
+  par = squeeze(outp.fc_sim_env_mean(isubj,:,:));
+end
+imagesc(par,[0 0.5])
 xlabel(gca,'wIE'); ylabel(gca,'wEE');
-set(ac{1},'YTick',1:10:41,'YTickLabels',num2cell(wEE_mod(1:10:41)))
-set(ac{1},'XTick',1:10:41,'XTickLabels',num2cell(wIE_mod(1:10:41)))
+set(ac{1},'YTick',1:10:length(wEE_mod),'YTickLabels',num2cell(wEE_mod(1:10:length(wEE_mod))))
+set(ac{1},'XTick',1:10:length(wEE_mod),'XTickLabels',num2cell(wIE_mod(1:10:length(wEE_mod))))
 tp_editplots
-scatter(21,21,50,'markerfacecolor','w','markeredgecolor','w')
-axis([1 41 1 41]); axis square
+scatter(median(1:length(wEE_mod)),median(1:length(wEE_mod)),50,'markerfacecolor','w','markeredgecolor','k')
+axis([1 length(wEE_mod) 1 length(wEE_mod)]); axis square
 colorbar
 
-ac{2}=subplot(1,2,2);hold on
-imagesc(squeeze(outp.fc_sim_env_mean(1,:,:,11))-squeeze(outp.fc_sim_env_mean(1,21,21,11)),[-0.5 0.5])
+ac{2}=subplot(2,2,2);hold on
+if avg
+  par = squeeze(mean(outp.fc_sim_env_mean(isubj,:,:)))-squeeze(mean(outp.fc_sim_env_mean(isubj,median(1:length(wEE_mod)),median(1:length(wEE_mod)))));
+else
+  par = squeeze(outp.fc_sim_env_mean(isubj,:,:))-squeeze(outp.fc_sim_env_mean(isubj,median(1:length(wEE_mod)),median(1:length(wIE_mod))));
+end
+imagesc(par,[-0.5 0.5])
 xlabel(gca,'wIE'); ylabel(gca,'wEE');
-set(ac{2},'YTick',1:10:41,'YTickLabels',num2cell(wEE_mod(1:10:41)))
-set(ac{2},'XTick',1:10:41,'XTickLabels',num2cell(wIE_mod(1:10:41)))
+set(ac{2},'YTick',1:10:length(wEE_mod),'YTickLabels',num2cell(wEE_mod(1:10:length(wEE_mod))))
+set(ac{2},'XTick',1:10:length(wEE_mod),'XTickLabels',num2cell(wIE_mod(1:10:length(wEE_mod))))
 tp_editplots
-scatter(21,21,50,'markerfacecolor','w','markeredgecolor','w')
-axis([1 41 1 41]); axis square
+scatter(median(1:length(wEE_mod)),median(1:length(wEE_mod)),50,'markerfacecolor','w','markeredgecolor','k')
+axis([1 length(wEE_mod) 1 length(wEE_mod)]); axis square
 colorbar
+
+ac{3}=subplot(2,2,3);hold on
+if avg
+  par = squeeze(mean(outp.fc_sim_env_mean(isubj+28,:,:)));
+else
+  par = squeeze(outp.fc_sim_env_mean(isubj+28,:,:));
+end
+imagesc(par,[0 0.5])
+xlabel(gca,'wIE'); ylabel(gca,'wEE');
+set(ac{3},'YTick',1:10:length(wEE_mod),'YTickLabels',num2cell(wEE_mod(1:10:length(wEE_mod))))
+set(ac{3},'XTick',1:10:length(wEE_mod),'XTickLabels',num2cell(wIE_mod(1:10:length(wEE_mod))))
+tp_editplots
+scatter(median(1:length(wEE_mod)),median(1:length(wEE_mod)),50,'markerfacecolor','y','markeredgecolor','k')
+axis([1 length(wEE_mod) 1 length(wEE_mod)]); axis square
+colorbar
+
+ac{4}=subplot(2,2,4);hold on
+if avg
+  par = squeeze(mean(outp.fc_sim_env_mean(isubj+28,:,:)))-squeeze(mean(outp.fc_sim_env_mean(isubj+28,median(1:length(wEE_mod)),median(1:length(wEE_mod)))));
+else
+  par = squeeze(outp.fc_sim_env_mean(isubj+28,:,:))-squeeze(outp.fc_sim_env_mean(isubj+28,median(1:length(wEE_mod)),median(1:length(wIE_mod))));
+end
+imagesc(par,[-0.5 0.5])
+xlabel(gca,'wIE'); ylabel(gca,'wEE');
+set(ac{4},'YTick',1:10:length(wEE_mod),'YTickLabels',num2cell(wEE_mod(1:10:length(wEE_mod))))
+set(ac{4},'XTick',1:10:length(wEE_mod),'XTickLabels',num2cell(wIE_mod(1:10:length(wEE_mod))))
+tp_editplots
+scatter(median(1:length(wEE_mod)),median(1:length(wEE_mod)),50,'markerfacecolor','y','markeredgecolor','k')
+axis([1 length(wEE_mod) 1 length(wEE_mod)]); axis square
+colorbar
+
 
 colormap(ac{1},plasma)
 colormap(ac{2},redblue)
+colormap(ac{3},plasma)
+colormap(ac{4},redblue)
 
-
+if avg 
+  print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_ei_poi_means_v%d.pdf',v))
+else
+  print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_ei_poi_s%d_v%d.pdf',isubj,v))
+end
 %% PLOT GAIN VS NO GAIN
 % increase in gain vs. baseline
 clear par

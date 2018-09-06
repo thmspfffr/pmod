@@ -1,15 +1,27 @@
 %% FITTING
 % pmod_wc_wholebrain_final_plot.m
+
+% %-------------------------------------------------------------------------
+% VERSION 2: After meeting with tobi, 24-08-2018: even more fine gained
+% %-------------------------------------------------------------------------
+v           = 2;
+Ies         = -4:0.025:-1;
+Iis         = -5:0.025:-2;
+Gg          = 0.6;
+Gains       = 0;
+nTrials     = 1;
+tmax        = 6500; % in units of tauE
+wins = [2 20]; 
 %-------------------------------------------------------------------------
 % VERSION 1: After meeting with tobi, 15-08-2018
 %-------------------------------------------------------------------------
-v           = 4;
-Ies         = -4:0.1:-1;
-Iis         = -5:0.1:-1;
-Gg          = 0:0.2:1;
-Gains       = 0:0.05:0.2;
-nTrials     = 3;
-tmax        = 6500; % in units of tauE
+% v           = 4;
+% Ies         = -4:0.1:-1;
+% Iis         = -5:0.1:-1;
+% Gg          = 0:0.2:1;
+% Gains       = 0:0.05:0.2;
+% nTrials     = 3;
+% tmax        = 6500; % in units of tauE
 %-------------------------------------------------------------------------
 
 v_sim = v;
@@ -184,9 +196,17 @@ else
 end
 
 error('!')
-% osc = osc1(:,:,4,1);
 
 %% DETERMINE GLOBAL COUPLING PARAMETER FIRST
+
+% try
+%   osc = osc1(:,:,4,1);
+% catch me
+%   osc = zeros(size(outp.fc_sim_env_mean));
+% end
+
+osc = osc1;
+
 
 figure; set (gcf,'color','w');
 subplot(2,2,1)
@@ -227,10 +247,10 @@ print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_wholebrain_final_fitG_v%d.pdf',v
 
 
 %%
-  load(sprintf('~/pmod/proc/pmod_wc_wholebrain_detosc_all_v%d.mat',v_sim))
+%   load(sprintf('~/pmod/proc/pmod_wc_wholebrain_detosc_all_v%d.mat',4))
 
-osc = osc1(:,:,4);
-oscthres = 0;
+% osc = osc1(:,:,4);
+oscthres = 0.1;
 nancol = [0.97 0.97 0.97];
 
 cmap = cbrewer('div', 'RdBu', 100,'pchip');
@@ -241,7 +261,7 @@ figure; set(gcf,'color','w')
 % clear 
 
 igain = 1;
-iG = 4;
+iG = 1;
 % plot peak freq model
 ax{1} = subplot(2,2,1); hold on
 par = squeeze(outp.peakfreq(:,:,iG,igain));
@@ -267,7 +287,7 @@ imagescnan(par,[0 3],'NanColor',nancol)
 title('r(FC_{sim},FC_{MEG})');
 
 % plot peak freq model
-fdr_p = fdr1(reshape(squeeze(outp.p_env_rest_corr(:,:,iG,igain)),[31*41 1]),0.05);
+fdr_p = fdr1(reshape(squeeze(outp.p_env_rest_corr(:,:,iG,igain)),[size(osc,1)*size(osc,2) 1]),0.05);
 ax{4} = subplot(2,2,4); hold on
 par = -log10(squeeze(outp.p_env_rest_corr(:,:,iG,igain)));
 par(par<-log(fdr_p))=0; par(par>=-log(fdr_p))=1;
@@ -365,9 +385,10 @@ save(sprintf('~/pmod/proc/pmod_final_fitting_fits_v%d.mat',v_sim),'par')
 
 
 %% INDIV SUBJ
+iG = 1;
 
 % osc=zeros(301,401)
-oscthresh = .5
+oscthresh = 0
 h=figure; set(gcf,'color','w')
 
 width = 4;
@@ -398,8 +419,8 @@ tp_editplots
 for isubj = 1 : 28
   % plot lambda
   ax{1} = subplot(6,5,isubj+1); hold on
-  p_corr = fdr1(reshape(squeeze(outp.p_env_rest_indiv_corr(isubj,:,:,4,1)),[31*41 1]),0.05);
-  par = squeeze(outp.p_env_rest_indiv_corr(isubj,:,:,4,1))<p_corr; par=double(par);
+  p_corr = fdr1(reshape(squeeze(outp.p_env_rest_indiv_corr(isubj,:,:,iG,1)),[size(osc,1)*size(osc,2) 1]),0.05);
+  par = squeeze(outp.p_env_rest_indiv_corr(isubj,:,:,iG,1))<p_corr; par=double(par);
 
   par(osc>0)=0;
   par(~bif_mask)=0;
