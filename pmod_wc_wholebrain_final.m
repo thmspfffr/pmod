@@ -9,16 +9,16 @@ clear
 % fixed for the drug simulations. Vary excitability and gain for the drug
 % recordings.
 %-------------------------------------------------------------------------
-% VERSION 2: After meeting with tobi, 24-08-2018: even more fine gained
+% VERSION 1: After meeting with tobi, 24-08-2018: even more fine gained
 % %-------------------------------------------------------------------------
-v           = 2;
+v           = 1;
 Ies         = -4:0.025:-1;
 Iis         = -5:0.025:-2;
 Gg          = 0.6;
 Gains       = 0;
 nTrials     = 1;
 tmax        = 6500; % in units of tauE
-wins = [2 20]; 
+wins        = [2 20]; 
 %-------------------------------------------------------------------------
 % VERSION 3: After meeting with tobi, 24-08-2018
 %-------------------------------------------------------------------------
@@ -98,20 +98,21 @@ for iies = 1: length(Ies)
     for iG = 1 : length(Gg)
       for igain = 1 : length(Gains)
 %         
-        if ~exist(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt'],iies,iiis,iG,igain,v))
-          system(['touch ' '~/pmod/proc/' sprintf('pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt',iies,iiis,iG,igain,v)]);
-        else
+        fn = sprintf('pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d',iies,iiis,iG,igain,v);
+        if tp_parallel(fn,'~/pmod/proc/',1)
           continue
         end
+
         tic
         g = Gg(iG);
         W = [wEE*eye(N)+g*C -wEI*eye(N); wIE*eye(N) -wII*eye(N)];
         
-        out.FC = zeros(N,N,1);
-        out.Cee = zeros(1,1);
-        out.CeeSD = zeros(2,1);
-        out.FC_env = zeros(N,N,1);
-        out.Cee_env = zeros(1,1);
+        out.FC        = zeros(N,N,1);
+        out.FC_BOLD   = zeros(N,N,1);
+        out.Cee       = zeros(1,1);
+        out.CeeSD     = zeros(2,1);
+        out.FC_env    = zeros(N,N,1);
+        out.Cee_env   = zeros(1,1);
         out.CeeSD_env = zeros(2,1);
         
         out.KOPsd   = zeros(nTrials,1);
@@ -175,13 +176,20 @@ for iies = 1: length(Ies)
           rE = R;
           rI = Ri;  
          	z  = rE + 1i*rI;
+          
+          % BOLD signal
+          for ireg = 1 : size(rE,2)
+            fMRI(:,ireg) = BOLD(T,rE(:,ireg),dt*ds);
+          end
+          
+          out.FC_BOLD = out.FC_BOLD + single(corrcoef(fMRI)/nTrials);
 
           clear R Ri rI 
  
           % KURAMOTO PARAMETERS
           % ---------------------
           ku                = sum(z,2)/N;   
-          KOP           = abs(ku);
+          KOP               = abs(ku);
           out.KOPsd(tr,1)   = std(KOP);
           out.KOPmean(tr,1) = mean(KOP);
           
@@ -351,15 +359,19 @@ for iies = 1: length(Ies)
 %        	out.lags = single(mean(out.lags,2));
 
         
-        save(sprintf('~/pmod/proc/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,v),'out')
+        save(sprintf('~/pmod/proc/%s.mat',fn),'out')
+        
+        % make sure file is saved
         while 1
           try 
-            load(sprintf('~/pmod/proc/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,v))
+            load(sprintf('~/pmod/proc/%s.mat',fn))
             break
           catch me
-            save(sprintf('~/pmod/proc/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,v),'out')
+            save(sprintf('~/pmod/proc/%s.mat',fn),'out')
           end
         end
+        
+        tp_parallel(fn,'~/pmod/proc/',0)
         
       end
     end
