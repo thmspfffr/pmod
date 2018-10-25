@@ -9,53 +9,38 @@ clear
 % fixed for the drug simulations. Vary excitability and gain for the drug
 % recordings.
 %-------------------------------------------------------------------------
-% VERSION 1: After meeting with tobi, 24-08-2018: even more fine gained
+% VERSION 1: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
 % %-------------------------------------------------------------------------
-v           = 1;
+% v           = 1;
+% Ies         = -4:0.2:-1;
+% Iis         = -5:0.2:-2;
+% Gg          = 0:0.01:1.2;
+% Gains       = 0; % 0:0.05:0.2, 3 trials, 
+% nTrials     = 1;
+% tmax        = 6500; % in units of tauE
+%-------------------------------------------------------------------------
+% VERSION 2: 22-10-2018 - includes several levels of gain
+%-------------------------------------------------------------------------
+v           = 2;
 Ies         = -4:0.025:-1;
 Iis         = -5:0.025:-2;
-Gg          = 0.6;
-Gains       = 0;
+Gg          = 0.87; % this is where correlation peaks 
+Gains       = [0 0.025:0.025:0.4 -0.025:-0.025:-0.4]; 
 nTrials     = 1;
 tmax        = 6500; % in units of tauE
-wins        = [2 20]; 
 %-------------------------------------------------------------------------
-% VERSION 3: After meeting with tobi, 24-08-2018
-%-------------------------------------------------------------------------
-% v           = 3;
-% Ies         = -4:0.01:-1;
-% Iis         = -5:0.01:-1;
-% Gg          = 0.6;
-% Gains       = 0;
-% nTrials     = 1;
-% tmax        = 6500; % in units of tauE
-% wins = [2 20]; 
-%-------------------------------------------------------------------------
-% VERSION 4: After meeting with tobi, 15-08-2018
-%-------------------------------------------------------------------------
-% v           = 4;
-% Ies         = -4:0.1:-1;
-% Iis         = -5:0.1:-1;
-% Gg          = 0:0.2:1;
-% Gains       = 0:0.05:0.2;
-% nTrials     = 3;
-% tmax        = 6500; % in units of tauE
-%-------------------------------------------------------------------------
-% VERSION 5: After meeting with tobi, 15-08-2018
-%-------------------------------------------------------------------------
-% v           = 5;
-% Ies         = -4:0.1:-1;
-% Iis         = -5:0.1:-1;
-% Gg          = 0:0.2:1;
-% Gains       = 0:0.05:0.2;
-% nTrials     = 1;
-% tmax        = 65000; % in units of tauE
-%-------------------------------------------------------------------------
+
+% EXCLUDE CERTAIN REGIONS - BCN ordering
+k = 1 : 90;
+exclude_bcn = [11 15 21 36 37 38 39 52 53 54 55 70 76 80];
+include_bcn = find(~ismember(k,exclude_bcn));
+% ------------------
 
 % load connectome
 load ~/pmod/matlab/EC.mat %Matt_EC
 C = EC;
 C = C/max(C(C>0));
+C = C(include_bcn,include_bcn);
 N = size(C,1);
 
 addpath ~/Documents/MATLAB/Colormaps/'Colormaps (5)'/Colormaps/
@@ -101,7 +86,7 @@ for iies = 1: length(Ies)
         fn = sprintf('pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d',iies,iiis,iG,igain,v);
         if tp_parallel(fn,'~/pmod/proc/',1)
           continue
-        end
+        end 
 
         tic
         g = Gg(iG);
@@ -176,13 +161,6 @@ for iies = 1: length(Ies)
           rE = R;
           rI = Ri;  
          	z  = rE + 1i*rI;
-          
-          % BOLD signal
-          for ireg = 1 : size(rE,2)
-            fMRI(:,ireg) = BOLD(T,rE(:,ireg),dt*ds);
-          end
-          
-          out.FC_BOLD = out.FC_BOLD + single(corrcoef(fMRI)/nTrials);
 
           clear R Ri rI 
  
@@ -195,45 +173,16 @@ for iies = 1: length(Ies)
           
           clear ku KOP z
 
-          % ---------------------
-          % COMPUTE LONG RANGE TEMPORAL CORRELATIONS
-          % On E time course
-          % ---------------------
-%           tmp           = tp_dfa(rE,wins,1/resol,0.5,15);
-%           out.dfa(tr,:) = single(tmp.exp);
- 
           % FC matrix
           % ---------------------
           rc       	= corrcoef(rE);
           out.FC  	= single(out.FC) + single(rc/nTrials);
           fc      	= rc(isub);
-%           out.Cee  	= out.Cee + mean(fc)/nTrials;
-%           out.CeeSD	= out.CeeSD + var(fc)/nTrials;
                 
           for i=1:N
-%             fprintf('Autocorr reg %d ...\n',i)
-% %             out.osc(tr,:,i) = tp_detect_osc(rE(:,i));
-%             %autocorr
-%             lags = 1:round(2*(1/resol));
-%             if license('checkout','econometrics_toolbox')
-%               acorr = autocorr(rE(:,i),'NumLags',round(2*(1/resol)));
-%             else
-%               acorr = acf(rE(:,i),round(2*(1/resol)));
-%             end
-            
-%             % get exp decay 
-%             out.lambda(i,tr) = tp_fitexpdecay(acorr(1:size(lags,2)),lags,0.01);
-%             
-%             ii = find(acorr<.2,1,'first');
-%             
-%             if isempty(ii)
-%               out.lags(i,tr) = nan;
-%             else
-%               out.lags(i,tr) = lags(ii);           
-%             end    
-%   
-%             % COMPUTE POWER SPECTRUM
-%             % ---------------------------
+
+%           % COMPUTE POWER SPECTRUM
+%           % ---------------------------
             f = rE(:,i) - mean(rE(:,i));
             xdft = fft(f);
             xdft = xdft(1:floor(Tds/2)+1);
@@ -244,15 +193,7 @@ for iies = 1: length(Ies)
             psd  = psd(1:10:end);
             PSD(:,i,tr) = psd';
             f = fnew;
-            
-%              % POWER SPECTRUM FIT
-%             idx= find(log10(out.f)>1.5,1,'first');
-%             X = [ones(1,length(out.f(idx:end)))' log10(out.f(idx:end))'];
-%             Y = log10(PSD(idx:end,i,tr));
-%             tmp = X\Y;   
-%             out.psslope(i,tr)= tmp(2);
-%         
-% 
+
           end
           
           % EXTRACT PEAK FREQ
@@ -292,8 +233,6 @@ for iies = 1: length(Ies)
           fc_env              = rc(isub);
           out.Cee_env         = out.Cee_env + mean(fc)/nTrials;
           out.CeeSD_env       = out.CeeSD_env + var(fc)/nTrials;
-%           tmp                 = tp_dfa(env,wins,1/resol,0.5,15);
-%           out.dfa_env         = tmp.exp;
           % ---------------------------
           clear rc fc_env
           % ---------------------------
@@ -305,60 +244,11 @@ for iies = 1: length(Ies)
           out.Cee_env_beta    = out.Cee_env + mean(fc)/nTrials;
           out.CeeSD_env_beta  = out.CeeSD_env + var(fc)/nTrials;
           % ---------------------------
-%           
-%           for i = 1 : N
-%             fprintf('Autocorr reg %d ...\n',i)
-%             if license('checkout','econometrics_toolbox')
-%               acorr_env = autocorr(env(:,i),'NumLags',round(2*(1/resol)));
-%             else
-%               acorr_env = acf(env(:,i),round(2*(1/resol)));
-%             end
-%             
-%             jj = find(acorr_env<.2,1,'first');
-% 
-%             if isempty(jj) || jj > length(lags)
-%               out.lags_env(i,tr) = nan;
-%             else
-%               out.lags_env(i,tr) = lags(jj);
-%             end
-%             
-%             %fit exp decay
-%            	out.lambda_env(i,tr) = tp_fitexpdecay(acorr_env(1:size(lags,2)),lags,0.01);
-            
-            % COMPUTE POWER SPECTRUM
-            % ---------------------------
-%             f = env(:,i) - mean(env(:,i));
-%             xdft = fft(f);
-%             xdft = xdft(1:floor(Tds/2)+1);
-%             pw = (1/(Tds/2)) * abs(xdft).^2;
-%             psd = pw(freqs<100 & freqs>1);
-%             f = freqs(freqs<100 & freqs>1);
-%             fnew = f(1:10:end);
-%             psd  = psd(1:10:end);
-%             PSD_env(:,i,tr) = psd';
-%             out.f_env = fnew;
-%             
-%              % POWER SPECTRUM FIT
-%             idx= find(log10(out.f_env)>0.5,1,'first');
-%             X = [ones(1,length(out.f_env(idx:end)))' log10(out.f_env(idx:end))'];
-%             Y = log10(PSD_env(idx:end,i,tr));
-%             tmp = X\Y;   
-%             out.psslope_env(i,tr)= tmp(2);
-            
-%           end
-          
-          
 
           clear rE rI env
           toc
         end
-        
-%         out.lambda_env = single(mean(out.lambda_env,2));
-%        	out.lags_env = single(mean(out.lags_env,2));
-%         out.lambda = single(mean(out.lambda,2));
-%        	out.lags = single(mean(out.lags,2));
 
-        
         save(sprintf('~/pmod/proc/%s.mat',fn),'out')
         
         % make sure file is saved
@@ -379,7 +269,7 @@ for iies = 1: length(Ies)
 end
 error('!')
 %%
-v = 2
+v = 1
 for iies = 1: length(Ies)
   iies
   for iiis = 1: length(Iis)

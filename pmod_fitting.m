@@ -181,37 +181,37 @@ clear par
 idx = [find(round(Ies*100)/100==-2.8) find(round(Iis*100)/100==-3.5000)];
 idx2 = [find(round(Ies*100)/100==-1.8) find(round(Iis*100)/100==-2.4000)];
 
-igain = 5;
+igain = 1;
 G = 1;
 
 figure; set(gcf,'color','w')
 
 % plot FC
 ax{1} = subplot(2,2,1); hold on
-par = squeeze(outp.fc_sim_mean(:,:,G,igain));
+par = squeeze(outp.fc_sim_env_mean);
 par(osc1>0.5)=nan;
-imagescnan(par,[0 0.01])
+imagescnan(par,[0 0.03])
 title('FC_{FR}');
 
 % plot FC env
 ax{2} = subplot(2,2,2); hold on
-par = squeeze(outp.fc_sim_env_mean(:,:,G,igain));
+par = squeeze(outp.r_env_rest_corr);
 par(osc1>0.5)=nan;
-imagescnan(par,[0 0.01])
+imagescnan(par,[0 0.3])
 title('FC_{Env}');
 
 % plot correlation FC sim w exp
 ax{3} = subplot(2,2,3); hold on
-par = squeeze(outp.r_rest_corr(:,:,G,igain));
+par = squeeze(-log10(outp.p_env_rest_corr));
 par(osc1>0.5)=nan;
-imagescnan(par,[0 0.3])
+imagescnan(par,[0 3])
 title('r(FC_{FR})');
 
 % plot peak freq model
 ax{4} = subplot(2,2,4); hold on
-par = squeeze(outp.r_env_rest_corr(:,:,G,igain));
+par = squeeze(outp.peakfreq);
 par(osc1>0.5)=nan;
-imagescnan(par,[0 0.3])
+imagescnan(par,[5 20])
 title('r(FC_{Env})');
 
 for iax = 1 : length(ax)
@@ -236,7 +236,7 @@ for iax = 1 : length(ax)
   end
   tp_editplots(ax{iax})
   colormap(plasma)
-  c = colorbar(ax{iax}); axis(ax{iax},'tight')
+  c = colorbar(ax{iax}); axis(ax{iax},'tight'); axis(ax{iax},'square'); 
   c.Ticks = [min(c.Ticks) max(c.Ticks)];
  
 end
