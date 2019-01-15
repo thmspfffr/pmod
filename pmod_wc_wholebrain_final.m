@@ -12,22 +12,35 @@ clear
 % VERSION 1: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
 % %-------------------------------------------------------------------------
 % v           = 1;
-% Ies         = -4:0.2:-1;
-% Iis         = -5:0.2:-2;
-% Gg          = 0:0.01:1.2;
-% Gains       = 0; % 0:0.05:0.2, 3 trials, 
+% Ies         = -4:0.025:-1;
+% Iis         = -5:0.025:-2;
+% Gg          = 0:0.05:1;
+% Gains       = 0; 
 % nTrials     = 1;
 % tmax        = 6500; % in units of tauE
+% EC = 1;
+%-------------------------------------------------------------------------
+% VERSION 11: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
+% %-------------------------------------------------------------------------
+% v           = 11;
+% Ies         = -4:0.025:-1;
+% Iis         = -5:0.025:-2;
+% Gg          = 0:0.05:1;
+% Gains       = 0; 
+% nTrials     = 1;
+% tmax        = 6500; % in units of tauE
+% EC = 0;
 %-------------------------------------------------------------------------
 % VERSION 2: 22-10-2018 - includes several levels of gain
 %-------------------------------------------------------------------------
-v           = 2;
+v           = 22;
 Ies         = -4:0.025:-1;
 Iis         = -5:0.025:-2;
-Gg          = 0.87; % this is where correlation peaks 
+Gg          = 0.85; % this is where correlation peaks 
 Gains       = [0 0.025:0.025:0.4 -0.025:-0.025:-0.4]; 
 nTrials     = 1;
 tmax        = 6500; % in units of tauE
+EC = 0;
 %-------------------------------------------------------------------------
 
 % EXCLUDE CERTAIN REGIONS - BCN ordering
@@ -37,8 +50,14 @@ include_bcn = find(~ismember(k,exclude_bcn));
 % ------------------
 
 % load connectome
-load ~/pmod/matlab/EC.mat %Matt_EC
-C = EC;
+if EC
+  load ~/pmod/matlab/EC.mat %Matt_EC
+  C = EC;
+else
+  load ~/sc90.mat %Bea SC
+  C = SC;
+end
+  
 C = C/max(C(C>0));
 C = C(include_bcn,include_bcn);
 N = size(C,1);
@@ -79,12 +98,13 @@ sigma = 0.0005;
 isub = find( triu(ones(N)) - eye(N) );
 %%
 for iies = 1: length(Ies)
+  iies
   for iiis = 1: length(Iis)
     for iG = 1 : length(Gg)
       for igain = 1 : length(Gains)
-%         
+        
         fn = sprintf('pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d',iies,iiis,iG,igain,v);
-        if tp_parallel(fn,'~/pmod/proc/',1)
+        if tp_parallel(fn,'~/pmod/proc/',1,0)
           continue
         end 
 
@@ -92,8 +112,8 @@ for iies = 1: length(Ies)
         g = Gg(iG);
         W = [wEE*eye(N)+g*C -wEI*eye(N); wIE*eye(N) -wII*eye(N)];
         
-        out.FC        = zeros(N,N,1);
-        out.FC_BOLD   = zeros(N,N,1);
+%         out.FC        = zeros(N,N,1);
+%         out.FC_BOLD   = zeros(N,N,1);
         out.Cee       = zeros(1,1);
         out.CeeSD     = zeros(2,1);
         out.FC_env    = zeros(N,N,1);
@@ -176,7 +196,7 @@ for iies = 1: length(Ies)
           % FC matrix
           % ---------------------
           rc       	= corrcoef(rE);
-          out.FC  	= single(out.FC) + single(rc/nTrials);
+%           out.FC  	= single(out.FC) + single(rc/nTrials);
           fc      	= rc(isub);
                 
           for i=1:N
@@ -217,10 +237,10 @@ for iies = 1: length(Ies)
           flp = 12;           % lowpass frequency of filter
           fhi = 20;
           
-          delt  = resol;            % sampling interval
+          delt  = resol;              % sampling interval
           k     = 4;                  % 2nd order butterworth filter
-          fnq   = 1/(2*delt);       % Nyquist frequency
-          Wn    = [flp/fnq fhi/fnq]; % butterworth bandpass non-dimensional frequency
+          fnq   = 1/(2*delt);         % Nyquist frequency
+          Wn    = [flp/fnq fhi/fnq];  % butterworth bandpass non-dimensional frequency
           [bfilt,afilt] = butter(k,Wn);
           env_beta = abs(hilbert(filtfilt(bfilt,afilt,rE)));
        
@@ -228,7 +248,7 @@ for iies = 1: length(Ies)
           % ---------------------------
           % Alpha range
           % ---------------------------
-          rc                  = corrcoef(env);         
+          rc                  = corrcoef(env.^2);         
           out.FC_env          = single(out.FC_env) + single(rc/nTrials);
           fc_env              = rc(isub);
           out.Cee_env         = out.Cee_env + mean(fc)/nTrials;
@@ -238,7 +258,7 @@ for iies = 1: length(Ies)
           % ---------------------------
           % Beta filtered
           % ---------------------------
-          rc                  = corrcoef(env_beta);         
+          rc                  = corrcoef(env_beta.^2);         
           out.FC_env_beta     = single(out.FC_env) + single(rc/nTrials);
           fc_env              = rc(isub);
           out.Cee_env_beta    = out.Cee_env + mean(fc)/nTrials;
@@ -269,19 +289,20 @@ for iies = 1: length(Ies)
 end
 error('!')
 %%
-v = 1
+v = 2
+
+ord   = pconn_randomization;
+
 for iies = 1: length(Ies)
   iies
   for iiis = 1: length(Iis)
     for iG = 1 : length(Gg)
       for igain = 1 : length(Gains)
 %             
-        try 
-        load(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat'],iies,iiis,iG,igain,v))
-          catch me
-          delete(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt'],iies,iiis,iG,igain,v))
-          warning('!')
-        end
+
+        delete(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt'],iies,iiis,iG,igain,v))
+        delete(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat'],iies,iiis,iG,igain,v))
+
         
       end
     end

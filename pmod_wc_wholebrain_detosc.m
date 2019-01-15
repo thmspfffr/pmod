@@ -13,33 +13,63 @@ clear
 % VERSION 1: 20-10-2018
 % %-------------------------------------------------------------------------
 % v           = 1;
-% Ies         = -4:0.2:-1;
-% Iis         = -5:0.2:-2;
-% Gg          = 0:0.01:1.2;
-% Gains       = 0; % 0:0.05:0.2, 3 trials, 
+% Ies         = -4:0.025:-1;
+% Iis         = -5:0.025:-2;
+% Gg          = 0:0.05:1;
+% Gains       = 0; 
 % nTrials     = 1;
-% tmax        = 5000; % in units of tauE
+% tmax        = 1000;  % in units of tauE
+% EC = 1;
+% %-------------------------------------------------------------------------
+% VERSION 11: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
+% %-------------------------------------------------------------------------
+% v           = 11;
+% Ies         = -4:0.025:-1;
+% Iis         = -5:0.025:-2;
+% Gg          = 0:0.05:1;
+% Gains       = 0; 
+% nTrials     = 1;
+% tmax        = 1000; % in units of tauE
+% EC = 0;
 %-------------------------------------------------------------------------
 % VERSION 2: 20-10-2018
 %-------------------------------------------------------------------------
-v           = 2;
+v           = 22;
 Ies         = -4:0.025:-1;
 Iis         = -5:0.025:-2;
-Gg          = 0.87; % this is where correlation peaks 
+Gg          = 0.85; % this is where correlation peaks 
 Gains       = 0; 
 nTrials     = 1;
-tmax        = 6500; % in units of tauE
+tmax        = 1000; % in units of tauE
+EC = 0;
+%-------------------------------------------------------------------------
+% VERSION 2: 20-10-2018
+%-------------------------------------------------------------------------
+% v           = 2;
+% Ies         = -4:0.025:-1;
+% Iis         = -5:0.025:-2;
+% Gg          = 1.0500; % this is where correlation peaks 
+% Gains       = 0; 
+% nTrials     = 1;
+% tmax        = 1000; % in units of tauE
 %-------------------------------------------------------------------------
 
-% load connectome
-load ~/pmod/matlab/EC.mat %Matt_EC
 % EXCLUDE CERTAIN REGIONS - BCN ordering
 k = 1 : 90;
 exclude_bcn = [11 15 21 36 37 38 39 52 53 54 55 70 76 80];
 include_bcn = find(~ismember(k,exclude_bcn));
-C = EC(include_bcn,include_bcn);
-C = C/max(C(C>0));
 
+% load connectome
+if EC
+  load ~/pmod/matlab/EC.mat %Matt_EC
+  C = EC;
+else
+  load ~/sc90.mat %Bea SC
+  C = SC;
+end
+
+C = C/max(C(C>0));
+C = C(include_bcn,include_bcn);
 N = size(C,1);
 
 addpath ~/Documents/MATLAB/Colormaps/'Colormaps (5)'/Colormaps/
@@ -91,9 +121,9 @@ for iies = 1: length(Ies)
   for iiis = 1:length(Iis)
     for iG = 1 : length(Gg)
       for igain = 1 : length(Gains)
-        
+        tic
         fn = sprintf('pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d',iies,iiis,iG,igain,v);
-        if tp_parallel(fn,'~/pmod/proc/',1)
+        if tp_parallel(fn,'~/pmod/proc/',1,0)
           continue
         end
 
@@ -157,7 +187,7 @@ for iies = 1: length(Ies)
           for i=1:N
             [out.osc1(tr,:,i)  ] = tp_detect_osc(R(:,i));    
           end
-          toc
+          
         end
                
         save(sprintf('~/pmod/proc/%s.mat',fn),'out')
@@ -173,7 +203,7 @@ for iies = 1: length(Ies)
         end
   
         tp_parallel(fn,'~/pmod/proc/',0)
-
+toc
       end
     end
   end
@@ -181,7 +211,7 @@ end
 error('!')
 
 %% LOAD / DELETE ALL FILES
-vv = 2;
+vv = 22;
 
 if ~exist(sprintf('~/pmod/proc/pmod_wc_wholebrain_detosc_all_v%d.mat',vv))
   if vv ==4
@@ -193,11 +223,10 @@ if ~exist(sprintf('~/pmod/proc/pmod_wc_wholebrain_detosc_all_v%d.mat',vv))
     iies
     for iiis = 1 : length(Iis)
       for iG = 1:length(Gg)
-        for igain = 1:length(Gains)
+        for igain = 1:1%length(Gains)
           
           %       load(sprintf('~/pmod/proc/pmod_WC_wholebrain_rest_Ie%d_Ii%d_v%d.mat',iies,iiis,vv))
           load(sprintf('~/pmod/proc/pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,vv))
-          
           osc1(iies,iiis,iG,igain) = mean(squeeze(mean(squeeze(out.osc1),1)));
           
         end
@@ -224,23 +253,23 @@ else
   load(sprintf('~/pmod/proc/pmod_wc_wholebrain_detosc_all_v%d.mat',vv))
 end
 
-%%
-
-vv = 6
-for iies = 1: length(Ies)
-  iies
-  for iiis = 1: length(Iis)
-    for iG = 1 : length(Gg)
-      for igain = 1 : length(Gains)
-%             
-        try 
-        load(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d.mat'],iies,iiis,iG,igain,vv))
-          catch me
-          delete(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt'],iies,iiis,iG,igain,vv))
-          warning('!')
-        end
-        
-      end
-    end
-  end
-end
+%% WHATS THIS CODE?
+% 
+% vv = 1
+% for iies = 1: length(Ies)
+%   iies
+%   for iiis = 1: length(Iis)
+%     for iG = 1 : length(Gg)
+%       for igain = 1 : length(Gains)
+% %             
+%         try 
+%         load(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d.mat'],iies,iiis,iG,igain,vv))
+%           catch me
+%           delete(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt'],iies,iiis,iG,igain,vv))
+%           warning('!')
+%         end
+%         
+%       end
+%     end
+%   end
+% end

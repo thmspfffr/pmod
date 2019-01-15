@@ -52,13 +52,25 @@ load ~/pupmod/proc/conn/pupmod_all_kuramoto_v1.mat
 mask = logical(tril(ones(90,90),-1));
 mask = find(triu(ones(90))-eye(90));
 
-fc_rest     =  squeeze(nanmean(cleandat(:,:,:,1,1,6),3));
-fc_task     =  squeeze(nanmean(cleandat(:,:,:,1,2,6),3));
-fc_rest_var =  std(nanmean(squeeze(nanmean(cleandat(:,:,:,1,1,6),3)))./max(nanmean(squeeze(nanmean(cleandat(:,:,:,1,1,6),3)))));
-fc_rest_indiv = reshape(squeeze(cleandat(:,:,:,1,1,6)),[90*90 28]);
+% transform avg fc matrices to AAL BCN 
+fc_rest     =  tp_match_aal(pars,squeeze(nanmean(cleandat(:,:,:,1,1,6),3)));
+fc_task     =  tp_match_aal(pars,squeeze(nanmean(cleandat(:,:,:,1,2,6),3)));
+
+% transform indiv. subj. matrices to AAL BCN 
+for isubj = 1 : 28
+  fc_rest_indiv(:,isubj) = reshape(tp_match_aal(pars,squeeze(cleandat(:,:,isubj,1,1,6))),[90*90 1]);
+  fc_task_indiv(:,isubj) = reshape(tp_match_aal(pars,squeeze(cleandat(:,:,isubj,1,2,6))),[90*90 1]);
+end
+% vectorize
 fc_rest_indiv = fc_rest_indiv(mask,:);
-fc_task_indiv = reshape(squeeze(cleandat(:,:,:,1,2,6)),[90*90 28]);
 fc_task_indiv = fc_task_indiv(mask,:);
+
+% transform BOLD FC to BCN
+for isubj = 1 : 24
+  fc_BOLD_emp(:,isubj) = reshape(tp_match_aal(pars,corrcoef(squeeze(M(isubj,3,:,:)))),[90*90 1]);
+end
+fc_BOLD_emp_indiv = fc_BOLD_emp(mask,:);
+
 if ~exist(sprintf('~/pmod/proc/pmod_wc_wholebrain_final_all_v%d.mat',v_sim))
 
 for iies = 1 : length(Ies)

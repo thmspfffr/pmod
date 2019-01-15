@@ -9,7 +9,7 @@ for iies = 1 : length(Ies)
         for igain = 1:length(Gains)
           %         igain
 %           fn = 
-          load(sprintf('~/pmod/proc/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,para_v))
+          load(sprintf('~/pmod/proc/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,para_vq))
 
           outp.peakfreq(iies,iiis,iG,igain) = out.peakfreq;
 

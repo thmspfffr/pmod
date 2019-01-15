@@ -5,10 +5,14 @@ clear
 
 % fixed params:
 v = 1;
+% Ies = -4:0.025:-1;
+Ies = -1.4;
 
-
+Iis = -5:0.025:-2;
+% Ies         = -4:0.025:-1;
+% Iis         = -5:0.025:-2;
 N = 2;
-
+% Connectivity:
 wII=4;
 wIE=16;
 wEI=12;
@@ -16,16 +20,18 @@ wEE=12;
 
 tauE = 1;
 tauI = 2;
-tau = [tauE;tauI];
+% tau = zeros(2*N,1);
+tau(1) = tauE;
+tau(2) = tauI;
+tau = tau';
 
-Ies = -5:0.1:0;
-Iis = -5:0.1:0
 Io=zeros(N,1);
 
+tmax	= 1000; % in units of tauE
 dt=0.01;
-tmax = 1000;
 tspan=0:dt:tmax;
 L = length(tspan);
+clear tspan
 
 ds = 10;
 Tds = length(0:ds*dt:tmax)-1;
@@ -49,7 +55,7 @@ Re  = zeros(numIes,2);
 Tr  = zeros(numIes,1);
 De  = zeros(numIes,1);
 Eig = zeros(numIes,N);
-
+%%
 for k = 1:numIes
   for j = 1 : length(Iis)
     
@@ -101,8 +107,8 @@ for k = 1:numIes
     end
     
     RstatE = R(end-500:end,1);
-    out.Re(k,1) = max(RstatE);
-    out.Re(k,2) = min(RstatE);
+    out.Re(k,j,1) = max(RstatE);
+    out.Re(k,j,2) = min(RstatE);
     
     %         figure
     %         plot(R)
@@ -111,7 +117,7 @@ for k = 1:numIes
     %         title(sprintf('Ii = %2.2f, v1 = %2.3f + i*%2.3f',Ii,real(d1),imag(d1)))
     %         text(Tds/2,.3,sprintf('TrA = %2.3f, D = %2.3f',trA,trA^2-4*detA))
     
-    if Io(1) == -1
+    if (Io(1) == -1.4 && Io(2) == -4) | (Io(1) == -1.4 && Io(2) == -4.8)
       
       % null-clines (lines for which dr/dt=0)
       % 0 = -re/tauE + Fe( wEE*re - wEI*ri + Ie );
@@ -125,19 +131,20 @@ for k = 1:numIes
       
       trayectory(:,1) = R(1:10000,1) + 1i*R(1:10000,2);
       figure; set(gcf,'color','w'); plot(R(1:1000,1)); tp_editplots
-      print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_bifurcation_timeseries_damped.pdf'))
-    elseif Io(1) == 3
-      
-      rE = 0:0.001:1;
-      rI = 0:0.001:1;
-      nullE(:,2) = ( wEE*rE + Io(1) - feval( FinvE, rE/tauE ) )/wEI; % = rI
-      nullI(:,2) = ( wII*rI - Io(2) + feval( FinvI, rI/tauI ) )/wIE; % = rE
-      
-      trayectory(:,2) = R(1:10000,1) + 1i*R(1:10000,2);
-      
-      figure; set(gcf,'color','w'); plot(R(1:1000,1)); tp_editplots
-      print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_bifurcation_timeseries_sustained.pdf'))
-      
+      title(sprintf('Ii = %.3f',Io(2)))
+      print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_bifurcation_timeseries_damped_j%d.pdf',j))
+%     elseif Io(1) == -3
+%       
+%       rE = 0:0.001:1;
+%       rI = 0:0.001:1;
+%       nullE(:,2) = ( wEE*rE + Io(1) - feval( FinvE, rE/tauE ) )/wEI; % = rI
+%       nullI(:,2) = ( wII*rI - Io(2) + feval( FinvI, rI/tauI ) )/wIE; % = rE
+%       
+%       trayectory(:,2) = R(1:10000,1) + 1i*R(1:10000,2);
+%       
+%       figure; set(gcf,'color','w'); plot(R(1:1000,1)); tp_editplots
+%       print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_bifurcation_timeseries_sustained.pdf'))
+%       
     end
   end
 end
@@ -146,6 +153,23 @@ save(sprintf('~/pmod/proc/pmod_bifurcation_v%d.mat',v),'out')
 
 error('!')
 
+%%
+
+load(sprintf('~/pmod/proc/pmod_bifurcation_v%d.mat',v))
+
+close
+k = 101;
+figure; set(gcf,'color','white'); hold on
+plot(out.Re(k,:,1),'k','linewidth',2)
+plot(out.Re(k,:,2),'k','linewidth',2)
+set(gca,'XTick',1:10:length(Iis),'XTickLabels',num2cell(Iis(1:10:end)))
+xlabel('Inhibitory input'); ylabel('r_E')
+% title(sprintf('Ies = %.3f',Ies(k)))
+axis([1 121 0 0.4]); tp_editplots
+line([find(Iis==-4) find(Iis==-4)],[0 0.4],'linestyle',':','color','k')
+line([find(Iis==-4.8) find(Iis==-4.8)],[0 0.4],'linestyle',':','color','k')
+
+print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_bifdiagram.pdf'));
 %%
 
 load(sprintf('~/pmod/proc/pmod_bifurcation_v%d.mat',1))
@@ -192,9 +216,9 @@ set(gcf,'PaperPosition',[xLeft yTop xSize ySize])
 set(gcf,'Position',[50 50 xSize*50 ySize*50],'Color','w')
 
 axes('position',[.1 .2 .22 .69])
-plot(Ies,Re,'k')
+plot(Ies,out.Re(:,1),'k')
 hold on
-Ibif = Ies(find(abs(Re(:,1)-Re(:,2))>0.0001,1,'first')); %bifurcations
+Ibif = Ies(find(abs(t(:,1)-out.Re(:,2))>0.0001,1,'first')); %bifurcations
 plot(Ibif(1)*[1 1],[0 1],'k')
 plot(Ibif(end)*[1 1],[0 1],'k:')
 xlabel('Control param. \itI_{E}','fontname','times')
