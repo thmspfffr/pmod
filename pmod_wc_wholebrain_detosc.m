@@ -3,6 +3,7 @@
 %-------------------------------------------------------------------------
 
 clear
+outdir = '~/pmod/proc/';
 
 % 29-05-2018: fit E and I through resting state recordings. Then obtain
 % changes in E and I due to task from recordings and keep those parameters
@@ -15,44 +16,34 @@ clear
 % v           = 1;
 % Ies         = -4:0.025:-1;
 % Iis         = -5:0.025:-2;
-% Gg          = 0:0.05:1;
+% Gg          = 0:0.1:3;
 % Gains       = 0; 
 % nTrials     = 1;
-% tmax        = 1000;  % in units of tauE
-% EC = 1;
-% %-------------------------------------------------------------------------
-% VERSION 11: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
-% %-------------------------------------------------------------------------
-% v           = 11;
-% Ies         = -4:0.025:-1;
-% Iis         = -5:0.025:-2;
-% Gg          = 0:0.05:1;
-% Gains       = 0; 
-% nTrials     = 1;
-% tmax        = 1000; % in units of tauE
-% EC = 0;
+% tmax        = 3750;  % in units of tauE
+% EC          = 0;
 %-------------------------------------------------------------------------
-% VERSION 2: 20-10-2018
-%-------------------------------------------------------------------------
-v           = 22;
+% VERSION 2: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
+% %------------------------------------------------------------------------
+v           = 2;
 Ies         = -4:0.025:-1;
 Iis         = -5:0.025:-2;
-Gg          = 0.85; % this is where correlation peaks 
-Gains       = 0; 
+Gg          = 1.7;
+Gains       = [0 0.025:0.025:0.4 -0.025:-0.025:-0.4]; 
 nTrials     = 1;
-tmax        = 1000; % in units of tauE
-EC = 0;
-%-------------------------------------------------------------------------
-% VERSION 2: 20-10-2018
-%-------------------------------------------------------------------------
-% v           = 2;
+tmax        = 3750;  % in units of tauE
+EC          = 0;
+%--------------------------------------------------------------------------
+% VERSION 3: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
+% %------------------------------------------------------------------------
+% v           = 3;
 % Ies         = -4:0.025:-1;
 % Iis         = -5:0.025:-2;
-% Gg          = 1.0500; % this is where correlation peaks 
-% Gains       = 0; 
+% Gg          = 1.7;
+% Gains       = [0 0.025:0.025:0.4 -0.025:-0.025:-0.4]; 
 % nTrials     = 1;
-% tmax        = 1000; % in units of tauE
-%-------------------------------------------------------------------------
+% tmax        = 3750;  % in units of tauE
+% EC          = 0;
+%--------------------------------------------------------------------------
 
 % EXCLUDE CERTAIN REGIONS - BCN ordering
 k = 1 : 90;
@@ -114,20 +105,19 @@ k=4;                  % 2nd order butterworth filter
 fnq=1/(2*delt);       % Nyquist frequency
 Wn=[flp/fnq fhi/fnq]; % butterworth bandpass non-dimensional frequency
 [bfilt,afilt]=butter(k,Wn);
-
 isub = find( triu(ones(N)) - eye(N) );
 %%
-for iies = 1: length(Ies)
-  for iiis = 1:length(Iis)
+for iies = 1 : length(Ies)
+  for iiis = 1 : length(Iis)
     for iG = 1 : length(Gg)
       for igain = 1 : length(Gains)
         tic
+        
         fn = sprintf('pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d',iies,iiis,iG,igain,v);
-        if tp_parallel(fn,'~/pmod/proc/',1,0)
+        if tp_parallel(fn,outdir,1,0)
           continue
         end
 
-        tic
         g = Gg(iG);
         W = [wEE*eye(N)+g*C -wEI*eye(N); wIE*eye(N) -wII*eye(N)];
 
@@ -166,7 +156,7 @@ for iies = 1: length(Ies)
           Ri  = zeros(Tds,N);
           tt  = 0;
           %         transient:
-          for t = 1:500
+          for t = 1:3000
             u = W*r + Io;
             K = feval(F,u);
             r = r + dt*(-r + K)./tau; %+ sqrt(dt);
@@ -183,93 +173,93 @@ for iies = 1: length(Ies)
               Ri(tt,:)  = r(N+1:end);
             end
           end
-
+          
+          
           for i=1:N
             [out.osc1(tr,:,i)  ] = tp_detect_osc(R(:,i));    
           end
           
         end
                
-        save(sprintf('~/pmod/proc/%s.mat',fn),'out')
+        save(sprintf([outdir '%s.mat'],fn),'out')
         
         while 1
           try
-            load(sprintf('~/pmod/proc/%s.mat',fn))
+            load(sprintf([outdir '%s.mat'],fn))
           catch me
-            save(sprintf('~/pmod/proc/%s.mat',fn),'out')
+            save(sprintf([outdir '%s.mat'],fn),'out')
             continue
           end
           break
         end
   
-        tp_parallel(fn,'~/pmod/proc/',0)
-toc
+        tp_parallel(fn,outdir,0)
+
       end
     end
   end
 end
-error('!')
 
 %% LOAD / DELETE ALL FILES
-vv = 22;
 
-if ~exist(sprintf('~/pmod/proc/pmod_wc_wholebrain_detosc_all_v%d.mat',vv))
-  if vv ==4
-    osc1 = zeros(length(Ies),length(Iis),length(Gg),1);
-  else
-    osc1 = zeros(length(Ies),length(Iis),length(Gg),length(Gains));
-  end
-  for iies = 1 : length(Ies)
-    iies
-    for iiis = 1 : length(Iis)
-      for iG = 1:length(Gg)
-        for igain = 1:1%length(Gains)
-          
-          %       load(sprintf('~/pmod/proc/pmod_WC_wholebrain_rest_Ie%d_Ii%d_v%d.mat',iies,iiis,vv))
-          load(sprintf('~/pmod/proc/pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,vv))
-          osc1(iies,iiis,iG,igain) = mean(squeeze(mean(squeeze(out.osc1),1)));
-          
-        end
+
+%-------------------------------------------------------------------------
+% VERSION 1: 20-10-2018
+% %-------------------------------------------------------------------------
+% v           = 1;
+% Ies         = -4:0.025:-1;
+% Iis         = -5:0.025:-2;
+% Gg          = 0:0.1:3;
+% Gains       = 0; 
+% nTrials     = 1;
+% tmax        = 3750;  % in units of tauE
+% EC          = 0;
+%-------------------------------------------------------------------------
+% VERSION 2: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
+% %------------------------------------------------------------------------
+v           = 2;
+Ies         = -4:0.025:-1;
+Iis         = -5:0.025:-2;
+Gg          = 1.7;
+Gains       = [0 0.025:0.025:0.4 -0.025:-0.025:-0.4]; 
+nTrials     = 1;
+tmax        = 3750;  % in units of tauE
+EC          = 0;
+%--------------------------------------------------------------------------
+
+outdir = '~/pmod/proc/';
+
+vv = v;
+
+for iies = 1 : length(Ies)
+  iies
+  for iiis = 1 : length(Iis)
+    for iG = 1:length(Gg)
+      for igain = 1:length(Gains)
+        
+        load(sprintf([outdir 'pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d.mat'],iies,iiis,iG,igain,vv))
+        osc1(iies,iiis,iG,igain) = mean(squeeze(mean(squeeze(out.osc1),1)));
+        
       end
     end
   end
+end
   
-  save(sprintf('~/pmod/proc/pmod_wc_wholebrain_detosc_all_v%d.mat',vv),'osc1')
+save(sprintf([outdir 'pmod_wc_wholebrain_detosc_all_v%d.mat'],vv),'osc1')
   
-  for iies = 1 : length(Ies)
-    iies
-    for iiis = 1 : length(Iis)
-      for iG = 1:length(Gg)
-        for igain = 1:length(Gains)
-          
-          warning('Deleting...')
-          delete(sprintf('~/pmod/proc/pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,vv))
-          delete(sprintf('~/pmod/proc/pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt',iies,iiis,iG,igain,vv))
-        end
+% DELETE OLD FILES
+for iies = 1 : length(Ies)
+  iies
+  for iiis = 1 : length(Iis)
+    for iG = 1:length(Gg)
+      for igain = 1:length(Gains)
+        
+        warning('Deleting...')
+        delete(sprintf([outdir 'pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d.mat'],iies,iiis,iG,igain,vv))
+        delete(sprintf([outdir 'pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt'],iies,iiis,iG,igain,vv))
       end
     end
   end
-else
-  load(sprintf('~/pmod/proc/pmod_wc_wholebrain_detosc_all_v%d.mat',vv))
 end
 
-%% WHATS THIS CODE?
-% 
-% vv = 1
-% for iies = 1: length(Ies)
-%   iies
-%   for iiis = 1: length(Iis)
-%     for iG = 1 : length(Gg)
-%       for igain = 1 : length(Gains)
-% %             
-%         try 
-%         load(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d.mat'],iies,iiis,iG,igain,vv))
-%           catch me
-%           delete(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt'],iies,iiis,iG,igain,vv))
-%           warning('!')
-%         end
-%         
-%       end
-%     end
-%   end
-% end
+

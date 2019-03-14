@@ -4,10 +4,12 @@ clear
 
 % ----------------------------
 % VERSION 1
-Ies = -10:.1:5; %-4:.1:-1;
-Iis = -10:.1:5; %-4:.1:-1;
-tmax = 20; %5000;
-Gains = 0:0.05:0.5;
+% ----------------------------
+Ies   = -8:0.2:-2; 
+Iis   = -8:0.2:-2; 
+tmax  = 20; 
+Gains = 0:0.1:1;
+v     = 1;
 % ----------------------------
 
 N = 4;
@@ -40,22 +42,25 @@ W = [W11 W12; W21 W22];
 
 %%
 for iies = 1:length(Ies)
+  iies
   for iiis = 1:length(Iis)
     for igain = 1 : length(Gains)
       
-      if ~exist(sprintf(['~/pmod/proc/' 'pmod_wc_twonodes_analytical_Ie%d_Ii%d_igain%d_v%d_processing.txt'],iies,iiis,igain,v))
-        system(['touch ' '~/pmod/proc/' sprintf('pmod_wc_twonodes_analytical_Ie%d_Ii%d_igain%d_v%d.mat',iies,iiis,igain,v)]);
-      else
-        continue
-      end
-      
-      Ii = Iis(iies);
+%       
+%       if ~exist(sprintf(['~/pmod/proc/' 'pmod_wc_twonodes_analytical_Ie%d_Ii%d_igain%d_v%d_processing.txt'],iies,iiis,igain,v))
+%         system(['touch ' '~/pmod/proc/' sprintf('pmod_wc_twonodes_analytical_Ie%d_Ii%d_igain%d_v%d.mat',iies,iiis,igain,v)]);
+%       else
+%         continue
+%       end
+%       igain
+      Ii    = Iis(iies);
       Io(2) = Ii;
       Io(4) = Ii;
       
-      Ie = Ies(iiis);
+      Ie    = Ies(iiis);
       Io(1) = Ie;
       Io(3) = Ie;
+      
       % transfer functions:
       % gains are given by 1/aE and 1/aI
       
@@ -71,7 +76,7 @@ for iies = 1:length(Ies)
       tt = 0;
       
       % get fixed points:
-      for t = 1:300000
+      for t = 1:3000
         u = W*r + Io;
         K = feval(F,u);
         r = r + dt*(-r + K)./tau;
@@ -91,8 +96,7 @@ for iies = 1:length(Ies)
       maxR = max(RstatE);
       minR = min(RstatE);
       
-      
-      if maxR-minR<10e-10
+      if (maxR-minR)<10e-10
         Cov = zeros(N);
         for t = 1:10000
           u = W*r + Io;
@@ -103,6 +107,7 @@ for iies = 1:length(Ies)
           ri = r(2);
           rE = r(3);
           rI = r(4);
+          
           % Jacobian:
           Aee = -1 + wEE*1/aE*re*(1-re);
           Aei = -wEI*1/aE*re*(1-re);
@@ -123,7 +128,6 @@ for iies = 1:length(Ies)
           AEI = -wEI*1/aE*rE*(1-rE);
           AIE = wIE*1/aI*rI*(1-rI)*(tauE/tauI);
           AII = -1*(tauE/tauI) - wII*1/aI*rI*(1-rI)*(tauE/tauI);
-          
           
           Jmat = [Aee Aei AeE AeI; ...
             Aie Aii AiE AiI; ...
@@ -146,19 +150,30 @@ for iies = 1:length(Ies)
           end
         end
         
-        CeE(k,l,Q) = Corr(1,3);
-        
+        out.CeE = Corr(1,3);
+
       else
-        CeE(k,l,Q) = NaN;
+        out.CeE = NaN;
       end
       
+     save(sprintf(['~/pmod/proc/pmod_wc_twonodes_analytical_Ie%d_Ii%d_igain%d_v%d'],iies,iiis,igain,v),'out')
+
     end
   end
 end
 
-save(sprintf(['~/pmod/proc/pmod_wc_twonodes_analytical_Ie%d_Ii%d_igain%d_v%d'],iies,iiis,igain,v),'out')
 
 %%
+for iies = 1:length(Ies)
+  iies
+  for iiis = 1:length(Iis)
+    for igain = 1 : length(Gains)
+      
+     load(sprintf(['~/pmod/proc/pmod_wc_twonodes_analytical_Ie%d_Ii%d_igain%d_v%d'],iies,iiis,igain,v))
 
 
-
+     r(iies,iiis,igain) = out.CeE;
+     
+    end
+  end
+end

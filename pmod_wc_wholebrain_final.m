@@ -1,47 +1,60 @@
 %% pmod_wc_wholebrain_final
 % Stochastic simulation of 2*N WC nodes during "rest"
-%-------------------------------------------------------------------------
+%--------------------------------------------------------------------------
 
 clear
+
+outdir = '~/pmod/proc/';
 
 % 29-05-2018: fit E and I through resting state recordings. Then obtain
 % changes in E and I due to task from recordings and keep those parameters
 % fixed for the drug simulations. Vary excitability and gain for the drug
 % recordings.
-%-------------------------------------------------------------------------
+%--------------------------------------------------------------------------
 % VERSION 1: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
-% %-------------------------------------------------------------------------
+% %------------------------------------------------------------------------
 % v           = 1;
 % Ies         = -4:0.025:-1;
 % Iis         = -5:0.025:-2;
-% Gg          = 0:0.05:1;
-% Gains       = 0; 
+% Gg          = 0:0.1:3;
+% Gains       = 0;
 % nTrials     = 1;
-% tmax        = 6500; % in units of tauE
-% EC = 1;
-%-------------------------------------------------------------------------
-% VERSION 11: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
-% %-------------------------------------------------------------------------
-% v           = 11;
+% tmax        = 6500;  % in units of tauE
+% EC          = 0;
+%--------------------------------------------------------------------------
+% VERSION 2: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
+% %------------------------------------------------------------------------
+% v           = 2;
+% Ies         = -4:0.025:0;
+% Iis         = -5:0.025:-1;
+% Gg          = 1.7;
+% Gains       = [0 0.025:0.025:0.4 -0.025:-0.025:-0.4 0.425:0.025:0.6 0.625:0.025:0.7];
+% nTrials     = 1;
+% tmax        = 6500;  % in units of tauE
+% EC          = 0;
+% %------------------------------------------------------------------------
+% VERSION 3: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
+% %------------------------------------------------------------------------
+v           = 3;
+Ies         = -4:0.025:0;
+Iis         = -5:0.025:-1;
+Gg          = 2;
+Gains       = [0 0.025:0.025:0.4 -0.025:-0.025:-0.4 0.425:0.025:0.6 0.625:0.025:0.7];
+nTrials     = 1;
+tmax        = 13000;  % in units of tauE
+EC          = 0;
+%--------------------------------------------------------------------------
+% VERSION 22: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
+% %------------------------------------------------------------------------
+% v           = 22;
 % Ies         = -4:0.025:-1;
 % Iis         = -5:0.025:-2;
-% Gg          = 0:0.05:1;
-% Gains       = 0; 
+% Gg          = 0.85;
+% Gains       = [0 0.025:0.025:0.4 -0.025:-0.025:-0.4];
 % nTrials     = 1;
-% tmax        = 6500; % in units of tauE
-% EC = 0;
-%-------------------------------------------------------------------------
-% VERSION 2: 22-10-2018 - includes several levels of gain
-%-------------------------------------------------------------------------
-v           = 22;
-Ies         = -4:0.025:-1;
-Iis         = -5:0.025:-2;
-Gg          = 0.85; % this is where correlation peaks 
-Gains       = [0 0.025:0.025:0.4 -0.025:-0.025:-0.4]; 
-nTrials     = 1;
-tmax        = 6500; % in units of tauE
-EC = 0;
-%-------------------------------------------------------------------------
+% tmax        = 6500;  % in units of tauE
+% EC          = 0;
+%--------------------------------------------------------------------------
 
 % EXCLUDE CERTAIN REGIONS - BCN ordering
 k = 1 : 90;
@@ -57,7 +70,7 @@ else
   load ~/sc90.mat %Bea SC
   C = SC;
 end
-  
+
 C = C/max(C(C>0));
 C = C(include_bcn,include_bcn);
 N = size(C,1);
@@ -97,42 +110,43 @@ sigma = 0.0005;
 
 isub = find( triu(ones(N)) - eye(N) );
 %%
-for iies = 1: length(Ies)
-  iies
-  for iiis = 1: length(Iis)
-    for iG = 1 : length(Gg)
-      for igain = 1 : length(Gains)
+for igain = 1 : length(Gains)
+  for iG = 1 : length(Gg)
+    for iies = 1: length(Ies)
+      iies
+      
+      fn = sprintf('pmod_wc_wholebrain_final_Ie%d_G%d_gain%d_v%d',iies,iG,igain,v);
+      if tp_parallel(fn,'~/pmod/proc/',1,0)
+        continue
+      end
+      
+      for iiis = 1: length(Iis)
         
-        fn = sprintf('pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d',iies,iiis,iG,igain,v);
-        if tp_parallel(fn,'~/pmod/proc/',1,0)
-          continue
-        end 
+        fprintf('Gain%d, Coupling%d, Ie%d, Ii%d...\n',igain,iG,iies,iiis)
 
         tic
         g = Gg(iG);
         W = [wEE*eye(N)+g*C -wEI*eye(N); wIE*eye(N) -wII*eye(N)];
         
-%         out.FC        = zeros(N,N,1);
-%         out.FC_BOLD   = zeros(N,N,1);
-        out.Cee       = zeros(1,1);
-        out.CeeSD     = zeros(2,1);
-        out.FC_env    = zeros(N,N,1);
-        out.Cee_env   = zeros(1,1);
-        out.CeeSD_env = zeros(2,1);
+        out(iiis).Cee       = zeros(1,1);
+        out(iiis).CeeSD     = zeros(2,1);
+        out(iiis).FC_env    = zeros(N,N,1);
+        out(iiis).Cee_env   = zeros(1,1);
+        out(iiis).CeeSD_env = zeros(2,1);
         
-        out.KOPsd   = zeros(nTrials,1);
-        out.KOPmean = zeros(nTrials,1);
+        out(iiis).KOPsd   = zeros(nTrials,1);
+        out(iiis).KOPmean = zeros(nTrials,1);
         
         % Control params.
         %--------------------
-        out.Ie = Ies(iies);
-        out.Ii = Iis(iiis);
-        out.Gain = Gains(igain);
+        out(iiis).Ie = Ies(iies);
+        out(iiis).Ii = Iis(iiis);
+        out(iiis).Gain = Gains(igain);
         
         % Working point:
         Io=zeros(2*N,1);
-        Io(1:N) = out.Ie;
-        Io(N+1:2*N) = out.Ii;
+        Io(1:N) = out(iiis).Ie;
+        Io(N+1:2*N) = out(iiis).Ii;
         
         % transfer function:
         gE = 1 + Gains(igain);
@@ -147,14 +161,13 @@ for iies = 1: length(Ies)
         freqs       = (0:Tds/2)/T; %% find the corresponding frequency in Hz
         freq100     = freqs(freqs<100 & freqs>1);
         pp          = 1:10:length(freq100);
-        PSD     = zeros(length(pp),N,nTrials);  
-        out.PSDstruct(1).frequencies = freq100(1:10:end)';
+        PSD     = zeros(length(pp),N,nTrials);
+        frequencies = freq100(1:10:end)';
         
         % RUN SIMULATION
         % ---------------------
-
+        
         for tr=1:nTrials
-          fprintf('Rest, Ie%d, Ii%d, trial%d ...\n',iies,iiis,tr)
           r   = 0.001*rand(2*N,1);
           R   = zeros(Tds,N);
           Ri  = zeros(Tds,N);
@@ -179,30 +192,32 @@ for iies = 1: length(Ies)
           end
           
           rE = R;
-          rI = Ri;  
-         	z  = rE + 1i*rI;
-
-          clear R Ri rI 
- 
+          rI = Ri;
+          z  = rE + 1i*rI;
+          
+          clear R Ri rI
+          
           % KURAMOTO PARAMETERS
           % ---------------------
-          ku                = sum(z,2)/N;   
-          KOP               = abs(ku);
-          out.KOPsd(tr,1)   = std(KOP);
-          out.KOPmean(tr,1) = mean(KOP);
+          %           ku                = sum(z,2)/N;
+          %           KOP               = abs(ku);
+          %           out.KOPsd(tr,1)   = std(KOP);
+          %           out.KOPmean(tr,1) = mean(KOP);
           
           clear ku KOP z
-
+          
           % FC matrix
           % ---------------------
           rc       	= corrcoef(rE);
-%           out.FC  	= single(out.FC) + single(rc/nTrials);
+          %           out.FC  	= single(out.FC) + single(rc/nTrials);
           fc      	= rc(isub);
-                
+          flp = 9;           % lowpass frequency of filter
+          fhi = 13;
+          
           for i=1:N
-
-%           % COMPUTE POWER SPECTRUM
-%           % ---------------------------
+            
+            %           % COMPUTE POWER SPECTRUM
+            %           % ---------------------------
             f = rE(:,i) - mean(rE(:,i));
             xdft = fft(f);
             xdft = xdft(1:floor(Tds/2)+1);
@@ -213,16 +228,16 @@ for iies = 1: length(Ies)
             psd  = psd(1:10:end);
             PSD(:,i,tr) = psd';
             f = fnew;
-
+            
           end
+          
+          out(iiis).alphapow(:,tr) = squeeze(mean(PSD(frequencies>=flp&frequencies<=fhi,:,:),1));
           
           % EXTRACT PEAK FREQ
           % ---------------------------
           [~,peak_idx]=max(smooth(mean(PSD(f>3,:),2),20));
-          out.peakfreq = f(peak_idx+find(f<4,1,'last')); 
-          
-          flp = 9;           % lowpass frequency of filter
-          fhi = 13;
+          out(iiis).peakfreq = f(peak_idx+find(f<4,1,'last'));
+          clear PSD
           
           delt  = resol;            % sampling interval
           k     = 4;                  % 2nd order butterworth filter
@@ -234,77 +249,69 @@ for iies = 1: length(Ies)
           % ---------------------------
           env = abs(hilbert(filtfilt(bfilt,afilt,rE)));
           
-          flp = 12;           % lowpass frequency of filter
-          fhi = 20;
-          
-          delt  = resol;              % sampling interval
-          k     = 4;                  % 2nd order butterworth filter
-          fnq   = 1/(2*delt);         % Nyquist frequency
-          Wn    = [flp/fnq fhi/fnq];  % butterworth bandpass non-dimensional frequency
-          [bfilt,afilt] = butter(k,Wn);
-          env_beta = abs(hilbert(filtfilt(bfilt,afilt,rE)));
-       
           % COMPUTE CORRELATIONS BASED ON ENV
           % ---------------------------
           % Alpha range
           % ---------------------------
-          rc                  = corrcoef(env.^2);         
-          out.FC_env          = single(out.FC_env) + single(rc/nTrials);
+          rc                  = corrcoef(env.^2);
+          out(iiis).FC_env          = single(out(iiis).FC_env) + single(rc/nTrials);
           fc_env              = rc(isub);
-          out.Cee_env         = out.Cee_env + mean(fc)/nTrials;
-          out.CeeSD_env       = out.CeeSD_env + var(fc)/nTrials;
+          out(iiis).Cee_env         = out(iiis).Cee_env + mean(fc)/nTrials;
+          out(iiis).CeeSD_env       = out(iiis).CeeSD_env + var(fc)/nTrials;
           % ---------------------------
           clear rc fc_env
           % ---------------------------
           % Beta filtered
           % ---------------------------
-          rc                  = corrcoef(env_beta.^2);         
-          out.FC_env_beta     = single(out.FC_env) + single(rc/nTrials);
-          fc_env              = rc(isub);
-          out.Cee_env_beta    = out.Cee_env + mean(fc)/nTrials;
-          out.CeeSD_env_beta  = out.CeeSD_env + var(fc)/nTrials;
+          %           rc                  = corrcoef(env_beta.^2);
+          %           out.FC_env_beta     = single(out.FC_env) + single(rc/nTrials);
+          %           fc_env              = rc(isub);
+          %           out.Cee_env_beta    = out.Cee_env + mean(fc)/nTrials;
+          %           out.CeeSD_env_beta  = out.CeeSD_env + var(fc)/nTrials;
           % ---------------------------
-
+          
           clear rE rI env
           toc
         end
-
-        save(sprintf('~/pmod/proc/%s.mat',fn),'out')
-        
-        % make sure file is saved
-        while 1
-          try 
-            load(sprintf('~/pmod/proc/%s.mat',fn))
-            break
-          catch me
-            save(sprintf('~/pmod/proc/%s.mat',fn),'out')
-          end
-        end
-        
-        tp_parallel(fn,'~/pmod/proc/',0)
-        
       end
+      save(sprintf('~/pmod/proc/%s.mat',fn),'out')
+      
+      % make sure file is saved
+      while 1
+        try
+          load(sprintf('~/pmod/proc/%s.mat',fn))
+          break
+        catch me
+          save(sprintf('~/pmod/proc/%s.mat',fn),'out')
+        end
+      end
+      
+      tp_parallel(fn,'~/pmod/proc/',0)
     end
   end
 end
+
 error('!')
 %%
-v = 2
-
-ord   = pconn_randomization;
-
-for iies = 1: length(Ies)
-  iies
-  for iiis = 1: length(Iis)
-    for iG = 1 : length(Gg)
-      for igain = 1 : length(Gains)
-%             
-
-        delete(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt'],iies,iiis,iG,igain,v))
-        delete(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat'],iies,iiis,iG,igain,v))
-
-        
-      end
-    end
-  end
-end
+%
+% v = 1;
+%
+% ord   = pconn_randomization;
+%
+% for iies = 1: length(Ies)
+%   iies
+%   for iiis = 1: length(Iis)
+%     for iG = 1 : length(Gg)
+%       for igain = 1 : length(Gains)
+% %
+%
+% %         delete(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt'],iies,iiis,iG,igain,v))
+%         if ~exist(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat'],iies,iiis,iG,igain,v))
+%         	delete(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt'],iies,iiis,iG,igain,v))
+%             warning('deleted')
+%         end
+%
+%       end
+%     end
+%   end
+% end
