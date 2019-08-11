@@ -25,4 +25,14 @@ function [c, coh] = tp_powcorr_ortho_weight_test(data,para,sa)
 
 end
 
+%%
+
+load /home/tpfeffer/pupmod/proc/conn/pupmod_task_src_powcorr_test_s5_m2_v12.mat
+
+
+k = nanmean(squeeze(nanmean(nanmean(powcorr),2)));
+
+for iif = 1 :13
+  freq(iif) = mean(k(ff>para.bpfreq(iif,1) & ff< para.bpfreq(iif,2)))
+end
 

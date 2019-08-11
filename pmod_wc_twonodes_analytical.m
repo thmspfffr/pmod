@@ -46,13 +46,17 @@ for iies = 1:length(Ies)
   for iiis = 1:length(Iis)
     for igain = 1 : length(Gains)
       
-%       
-%       if ~exist(sprintf(['~/pmod/proc/' 'pmod_wc_twonodes_analytical_Ie%d_Ii%d_igain%d_v%d_processing.txt'],iies,iiis,igain,v))
-%         system(['touch ' '~/pmod/proc/' sprintf('pmod_wc_twonodes_analytical_Ie%d_Ii%d_igain%d_v%d.mat',iies,iiis,igain,v)]);
-%       else
-%         continue
-%       end
-%       igain
+      if ~exist(sprintf('~/pmod/proc/analytical/v%d/',v))
+        mkdir(sprintf([outdir 'v%d'],v))
+      end
+      
+      outdir = sprintf('~/pmod/proc/analytical/v%d/',v);
+      
+      fn = sprintf('pmod_wc_twonodes_analytical_Ie%d_Ii%d_gain%d_v%d',iies,iiis,igain,v);
+      if tp_parallel(fn,outdir,1,0)
+        continue
+      end
+
       Ii    = Iis(iies);
       Io(2) = Ii;
       Io(4) = Ii;
@@ -156,20 +160,33 @@ for iies = 1:length(Ies)
         out.CeE = NaN;
       end
       
-     save(sprintf(['~/pmod/proc/pmod_wc_twonodes_analytical_Ie%d_Ii%d_igain%d_v%d'],iies,iiis,igain,v),'out')
-
+     save(sprintf([fn '.mat'],'out'))
+     
+      while 1
+        try
+          load(sprintf('~/pmod/proc/analytical/v%d/%s.mat',v,fn))
+          break
+        catch me
+          save(sprintf('~/pmod/proc/analytical/v%d/%s.mat',v,fn),'out')
+        end
+      end
+      
+     tp_parallel(fn,outdir,0,0)
+      
     end
   end
 end
 
 
 %%
+v = 1;
+
 for iies = 1:length(Ies)
   iies
   for iiis = 1:length(Iis)
     for igain = 1 : length(Gains)
       
-     load(sprintf(['~/pmod/proc/pmod_wc_twonodes_analytical_Ie%d_Ii%d_igain%d_v%d'],iies,iiis,igain,v))
+     load(sprintf('~/pmod/proc/analytical/v%d/pmod_wc_twonodes_analytical_Ie%d_Ii%d_igain%d_v%d.mat',v,iies,iiis,igain,v))
 
 
      r(iies,iiis,igain) = out.CeE;

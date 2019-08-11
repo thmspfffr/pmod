@@ -112,8 +112,8 @@ for iies = 1: length(Ies)
       Io(N+1:2*N) = out.Ii;
       
       % transfer function:
-      gE = 1;
-      gI = 1;
+      gE  = 1;
+      gI  = 1;
       aE  = 1/gE;
       aI  = 1/gI;
       Fe  = @(x) 1./(1 + exp(-x/aE) );
@@ -124,13 +124,13 @@ for iies = 1: length(Ies)
       freqs       = (0:Tds/2)/T; %% find the corresponding frequency in Hz
       freq100     = freqs(freqs<100 & freqs>1);
       pp          = 1:10:length(freq100);
-      PSD     = zeros(length(pp),N,nTrials);
+      PSD         = zeros(length(pp),N,nTrials);
       frequencies = freq100(1:10:end)';
       
       % RUN SIMULATION
       % ---------------------
       
-      for tr=1:nTrials
+      for tr = 1:nTrials
         fprintf('Rest, Ie%d, Ii%d, trial%d ...\n',iies,iiis,tr)
         r   = 0.001*rand(2*N,1);
         R   = zeros(Tds,N);
