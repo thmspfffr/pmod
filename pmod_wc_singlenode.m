@@ -106,7 +106,7 @@ for iies = 1:length(Ies)
       T       = Tds*resol; %% define time of interval
       
       for tr=1:nTrials
-        tic
+%         tic
         fprintf('Rest, Ie%d, Ii%d, trial%d ...\n',iies,iiis,tr)
         r   = 0.001*rand(2*N,1);
         R   = zeros(Tds,N);
@@ -180,7 +180,7 @@ for iies = 1:length(Ies)
         out.peakfreq(tr) = out.f(peak_idx+find(f<4,1,'last')); 
         
         clear rE rI
-toc
+% toc
       end
       
       save(sprintf('~/pmod/proc/pmod_wc_singlenode_Ie%d_Ii%d_G%d_v%d.mat',iies,iiis,iG,v),'out')

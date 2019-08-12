@@ -51,11 +51,11 @@ for iies = 1:length(Ies)
       end
       
       outdir = sprintf('~/pmod/proc/analytical/v%d/',v);
-      
+%       
       fn = sprintf('pmod_wc_twonodes_analytical_Ie%d_Ii%d_gain%d_v%d',iies,iiis,igain,v);
-      if tp_parallel(fn,outdir,1,0)
-        continue
-      end
+%       if tp_parallel(fn,outdir,1,0)
+%         continue
+%       end
 
       Ii    = Iis(iies);
       Io(2) = Ii;
@@ -100,7 +100,7 @@ for iies = 1:length(Ies)
       maxR = max(RstatE);
       minR = min(RstatE);
       
-      if (maxR-minR)<10e-10
+%       if (maxR-minR)<10e-10
         Cov = zeros(N);
         for t = 1:10000
           u = W*r + Io;
@@ -156,18 +156,18 @@ for iies = 1:length(Ies)
         
         out.CeE = Corr(1,3);
 
-      else
-        out.CeE = NaN;
-      end
+%       else
+%         out.CeE = NaN;
+%       end
       
-     save(sprintf([fn '.mat'],'out'))
+     save(sprintf([outdir fn '.mat']),'out')
      
       while 1
         try
-          load(sprintf('~/pmod/proc/analytical/v%d/%s.mat',v,fn))
+          load(sprintf([outdir fn '.mat']))
           break
         catch me
-          save(sprintf('~/pmod/proc/analytical/v%d/%s.mat',v,fn),'out')
+          save(sprintf([outdir fn '.mat']),'out')
         end
       end
       
@@ -180,13 +180,14 @@ end
 
 %%
 v = 1;
+r = zeros(length(Ies),length(Iis),length(Gains));
 
 for iies = 1:length(Ies)
   iies
   for iiis = 1:length(Iis)
     for igain = 1 : length(Gains)
       
-     load(sprintf('~/pmod/proc/analytical/v%d/pmod_wc_twonodes_analytical_Ie%d_Ii%d_igain%d_v%d.mat',v,iies,iiis,igain,v))
+     load(sprintf('~/pmod/proc/analytical/v%d/pmod_wc_twonodes_analytical_Ie%d_Ii%d_gain%d_v%d.mat',v,iies,iiis,igain,v))
 
 
      r(iies,iiis,igain) = out.CeE;
