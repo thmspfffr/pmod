@@ -5,11 +5,11 @@ clear
 % ----------------------------
 % VERSION 1
 % ----------------------------
-Ies   = -8:0.2:-2; 
-Iis   = -8:0.2:-2; 
+Ies   = -5:0.05:-1; 
+Iis   = -5:0.05:-1; 
 tmax  = 20; 
 Gains = 0:0.1:1;
-v     = 1;
+v     = 2;
 % ----------------------------
 
 N = 4;
@@ -43,19 +43,19 @@ W = [W11 W12; W21 W22];
 %%
 for iies = 1:length(Ies)
   iies
-  for iiis = 1:length(Iis)
     for igain = 1 : length(Gains)
       
       if ~exist(sprintf('~/pmod/proc/analytical/v%d/',v))
-        mkdir(sprintf([outdir 'v%d'],v))
+        mkdir(sprintf(['~/pmod/proc/analytical/' 'v%d'],v))
       end
       
       outdir = sprintf('~/pmod/proc/analytical/v%d/',v);
 %       
-      fn = sprintf('pmod_wc_twonodes_analytical_Ie%d_Ii%d_gain%d_v%d',iies,iiis,igain,v);
-%       if tp_parallel(fn,outdir,1,0)
-%         continue
-%       end
+      fn = sprintf('pmod_wc_twonodes_analytical_Ie%d_gain%d_v%d',iies,igain,v);
+      if tp_parallel(fn,outdir,1,0)
+        continue
+      end
+    for iiis = 1:length(Iis)
 
       Ii    = Iis(iies);
       Io(2) = Ii;
@@ -100,7 +100,7 @@ for iies = 1:length(Ies)
       maxR = max(RstatE);
       minR = min(RstatE);
       
-%       if (maxR-minR)<10e-10
+      if (maxR-minR)<10e-10
         Cov = zeros(N);
         for t = 1:10000
           u = W*r + Io;
@@ -154,12 +154,12 @@ for iies = 1:length(Ies)
           end
         end
         
-        out.CeE = Corr(1,3);
+        out.CeE(iiis) = Corr(1,3);
 
-%       else
-%         out.CeE = NaN;
-%       end
-      
+      else
+        out.CeE(iiis) = NaN;
+      end
+      end
      save(sprintf([outdir fn '.mat']),'out')
      
       while 1
@@ -173,25 +173,23 @@ for iies = 1:length(Ies)
       
      tp_parallel(fn,outdir,0,0)
       
-    end
+    
   end
 end
 
 
 %%
-v = 1;
+v = 2;
 r = zeros(length(Ies),length(Iis),length(Gains));
 
 for iies = 1:length(Ies)
   iies
-  for iiis = 1:length(Iis)
     for igain = 1 : length(Gains)
       
-     load(sprintf('~/pmod/proc/analytical/v%d/pmod_wc_twonodes_analytical_Ie%d_Ii%d_gain%d_v%d.mat',v,iies,iiis,igain,v))
+     load(sprintf('~/pmod/proc/analytical/v%d/pmod_wc_twonodes_analytical_Ie%d_gain%d_v%d.mat',v,iies,igain,v))
 
 
-     r(iies,iiis,igain) = out.CeE;
+     r(iies,:,igain) = out.CeE;
      
-    end
   end
 end

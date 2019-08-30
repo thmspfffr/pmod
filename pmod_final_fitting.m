@@ -5,25 +5,25 @@ clear
 % %-------------------------------------------------------------------------
 % VERSION 1: 20-10-2018
 % %-------------------------------------------------------------------------
-% v           = 1;
-% Ies         = -4:0.025:-1;
-% Iis         = -5:0.025:-2;
-% Gg          = 0:0.1:3;
-% Gains       = 0;
-% nTrials     = 1;
-% tmax        = 6500;  % in units of tauE
-% EC          = 0;
-% %-------------------------------------------------------------------------
-% VERSION 2: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
-% %------------------------------------------------------------------------
-v           = 2;
-Ies         = -4:0.025:0;
-Iis         = -5:0.025:-1;
-Gg          = 1.7;
-Gains       = [0 0.025:0.025:0.4 -0.025:-0.025:-0.4 0.425:0.025:0.6  0.625:0.025:0.7];
+v           = 1;
+Ies         = -4:0.025:-1;
+Iis         = -5:0.025:-2;
+Gg          = 0:0.1:3;
+Gains       = 0;
 nTrials     = 1;
 tmax        = 6500;  % in units of tauE
 EC          = 0;
+% %-------------------------------------------------------------------------
+% VERSION 2: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
+% %------------------------------------------------------------------------
+% v           = 2;
+% Ies         = -4:0.025:0;
+% Iis         = -5:0.025:-1;
+% Gg          = 1.7;
+% Gains       = [0 0.025:0.025:0.4 -0.025:-0.025:-0.4 0.425:0.025:0.6  0.625:0.025:0.7];
+% nTrials     = 1;
+% tmax        = 6500;  % in units of tauE
+% EC          = 0;
 %--------------------------------------------------------------------------
 % VERSION 22: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
 % %------------------------------------------------------------------------
@@ -61,13 +61,6 @@ SUBJLIST  = [4 5 6 7 8 9 10 11 12 13 15 16 19 20 21 22 23 24 25 26 27 28 29 30 3
 addpath ~/pupmod/matlab
 cleandat = pupmod_loadpowcorr(v_conn,SUBJLIST,1);
 
-% load /home/tpfeffer/pupmod/proc/pow/pupmod_src_peakfreq_v3.mat
-
-% peakfreq_rest = m_res(1);
-% peakfreq_task = m_tsk(1);
-
-load ~/pupmod/proc/conn/pupmod_all_kuramoto_v1.mat
-
 mask = logical(tril(ones(76,76),-1));
 
 % transform avg fc matrices to AAL BCN
@@ -79,27 +72,27 @@ include_bcn = find(~ismember(k,exclude_bcn));
 load ~/sc90.mat
 SC = SC(include_bcn,include_bcn);
 
-ifoi = 1;
-fc_rest = squeeze(nanmean(nanmean(cleandat(1:90,1:90,:,1,1,ifoi),3),6));
-fc_task = squeeze(nanmean(nanmean(cleandat(1:90,1:90,:,1,2,ifoi),3),6));
+% ifoi = 1;
+fc_rest = squeeze(nanmean(nanmean(cleandat(1:90,1:90,:,1,1,:),3),6));
+% fc_task = squeeze(nanmean(nanmean(cleandat(1:90,1:90,:,1,2,:),3),6));
 
 para          = [];
 para.transfer = 'to_bcn';
 para.N        = 90;
 
 fc_rest = tp_match_aal(para,fc_rest);
-fc_task = tp_match_aal(para,fc_task);
+% fc_task = tp_match_aal(para,fc_task);
 
 fc_rest = fc_rest(include_bcn,include_bcn);
-fc_task = fc_task(include_bcn,include_bcn);
+% fc_task = fc_task(include_bcn,include_bcn);
 
 % transform indiv. subj. matrices to AAL BCN
 for isubj = 1 : 28
-  tmp = squeeze(nanmean(cleandat(:,:,isubj,1,1,ifoi),6));
+  tmp = squeeze(nanmean(cleandat(:,:,isubj,1,1,:),6));
   tmp = tp_match_aal(para,tmp); tmp = tmp(include_bcn,include_bcn);
   [corrwithfc_rest(isubj), p_corrwithfc_rest(isubj)]  = corr(tmp(mask),SC(mask));
   fc_rest_indiv(:,isubj) = tmp(mask);
-  tmp = squeeze(nanmean(cleandat(:,:,isubj,1,2,ifoi),6));
+  tmp = squeeze(nanmean(cleandat(:,:,isubj,1,2,:),6));
   tmp = tp_match_aal(para,tmp); tmp = tmp(include_bcn,include_bcn);
   fc_task_indiv(:,isubj) = tmp(mask);
   [corrwithfc_task(isubj), p_corrwithfc_task(isubj)] = corr(tmp(mask),SC(mask));
@@ -107,42 +100,42 @@ end
 
 k = [0 0];
 %%
-if ~exist(sprintf('~/pmod/proc/pmod_wc_wholebrain_final_all_v%d.mat',v_sim))
+if ~exist(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_all_v%d.mat',v_sim,v_sim))
   
   for iies = 1 : length(Ies)
     iies
-    for iiis = 1 : length(Iis)
       for iG = 1:length(Gg)
         for igain = 1:length(Gains)
           
-          load(sprintf('~/pmod/proc/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,v_sim))
+          load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_G%d_gain%d_v%d.mat',v_sim,iies,iG,igain,v_sim))
           
-          outp.fc_sim_env_tmp = out.FC_env;
-          
-          [outp.r_env_rest_corr(iies,iiis,iG,igain), outp.p_env_rest_corr(iies,iiis,iG,igain)]=corr(outp.fc_sim_env_tmp(mask),fc_rest(mask));
-          [outp.r_env_task_corr(iies,iiis,iG,igain), outp.p_env_task_corr(iies,iiis,iG,igain)]=corr(outp.fc_sim_env_tmp(mask),fc_task(mask));
-          
-          [outp.r_env_rest_indiv_corr(:,iies,iiis,iG,igain), outp.p_env_rest_indiv_corr(:,iies,iiis,iG,igain)]=corr(outp.fc_sim_env_tmp(mask),fc_rest_indiv);
-          [outp.r_env_task_indiv_corr(:,iies,iiis,iG,igain), outp.p_env_task_indiv_corr(:,iies,iiis,iG,igain)]=corr(outp.fc_sim_env_tmp(mask),fc_task_indiv);
-          
-          outp.dist_rest(iies,iiis,iG,igain) = 1-(outp.r_env_rest_corr(iies,iiis,iG,igain)-(mean(fc_rest(mask))-mean(outp.fc_sim_env_tmp(mask))).^2);
-          outp.dist_task(iies,iiis,iG,igain) = 1-(outp.r_env_task_corr(iies,iiis,iG,igain)-(mean(fc_task(mask))-mean(outp.fc_sim_env_tmp(mask))).^2);
-          
-          outp.dist_rest_indiv(:,iies,iiis,iG,igain) = 1-(squeeze(outp.r_env_rest_indiv_corr(:,iies,iiis,iG,igain))'-(squeeze(mean(fc_rest_indiv))-mean(outp.fc_sim_env_tmp(mask))).^2);
-          outp.dist_task_indiv(:,iies,iiis,iG,igain) = 1-(squeeze(outp.r_env_task_indiv_corr(:,iies,iiis,iG,igain))'-(squeeze(mean(fc_task_indiv))-mean(outp.fc_sim_env_tmp(mask))).^2);
-          
-          outp.fc_sim_env_mean(iies,iiis,iG,igain) = mean(outp.fc_sim_env_tmp(mask));
-          outp.Ies(iies) = out.Ie;
-          outp.Iis(iiis) = out.Ii;
-          outp.peakfreq(iies,iiis,iG,igain) = out.peakfreq;
-          outp.alphapow(iies,iiis,iG,igain) = mean(out.alphapow);
-          
+          for iiis = 1 : length(Iis)
+            outp.fc_sim_env_tmp = out(iiis).FC_env;
+
+            [outp.r_env_rest_corr(iies,iiis,iG,igain), outp.p_env_rest_corr(iies,iiis,iG,igain)]=corr(outp.fc_sim_env_tmp(mask),fc_rest(mask));
+            [outp.r_env_task_corr(iies,iiis,iG,igain), outp.p_env_task_corr(iies,iiis,iG,igain)]=corr(outp.fc_sim_env_tmp(mask),fc_task(mask));
+
+            [outp.r_env_rest_indiv_corr(:,iies,iiis,iG,igain), outp.p_env_rest_indiv_corr(:,iies,iiis,iG,igain)]=corr(outp.fc_sim_env_tmp(mask),fc_rest_indiv);
+            [outp.r_env_task_indiv_corr(:,iies,iiis,iG,igain), outp.p_env_task_indiv_corr(:,iies,iiis,iG,igain)]=corr(outp.fc_sim_env_tmp(mask),fc_task_indiv);
+
+            outp.dist_rest(iies,iiis,iG,igain) = 1-(outp.r_env_rest_corr(iies,iiis,iG,igain)-(mean(fc_rest(mask))-mean(outp.fc_sim_env_tmp(mask))).^2);
+            outp.dist_task(iies,iiis,iG,igain) = 1-(outp.r_env_task_corr(iies,iiis,iG,igain)-(mean(fc_task(mask))-mean(outp.fc_sim_env_tmp(mask))).^2);
+
+            outp.dist_rest_indiv(:,iies,iiis,iG,igain) = 1-(squeeze(outp.r_env_rest_indiv_corr(:,iies,iiis,iG,igain))'-(squeeze(mean(fc_rest_indiv))-mean(outp.fc_sim_env_tmp(mask))).^2);
+            outp.dist_task_indiv(:,iies,iiis,iG,igain) = 1-(squeeze(outp.r_env_task_indiv_corr(:,iies,iiis,iG,igain))'-(squeeze(mean(fc_task_indiv))-mean(outp.fc_sim_env_tmp(mask))).^2);
+
+            outp.fc_sim_env_mean(iies,iiis,iG,igain) = mean(outp.fc_sim_env_tmp(mask));
+            outp.Ies(iies) = out.Ie;
+            outp.Iis(iiis) = out.Ii;
+            outp.peakfreq(iies,iiis,iG,igain) = out(iiis).peakfreq;
+            outp.alphapow(iies,iiis,iG,igain) = mean(out(iiis).alphapow);
+          end
           fclose all;
           
         end
       end
     end
-  end
+  
   
   save(sprintf('~/pmod/proc/pmod_wc_wholebrain_final_all_v%d.mat',v_sim),'outp')
   %   save(sprintf('~/pmod/proc/pmod_wc_wholebrain_final_all_FC_pos_v%d.mat',v_sim),'all_FC_env_pos')

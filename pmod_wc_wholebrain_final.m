@@ -13,14 +13,14 @@ outdir = '~/pmod/proc/';
 %--------------------------------------------------------------------------
 % VERSION 1: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
 % %------------------------------------------------------------------------
-% v           = 1;
-% Ies         = -4:0.025:-1;
-% Iis         = -5:0.025:-2;
-% Gg          = 0:0.1:3;
-% Gains       = 0;
-% nTrials     = 1;
-% tmax        = 6500;  % in units of tauE
-% EC          = 0;
+v           = 1;
+Ies         = -4:0.025:-1;
+Iis         = -5:0.025:-2;
+Gg          = 0:0.1:3;
+Gains       = 0;
+nTrials     = 1;
+tmax        = 6500;  % in units of tauE
+EC          = 0;
 %--------------------------------------------------------------------------
 % VERSION 2: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
 % %------------------------------------------------------------------------
@@ -35,14 +35,14 @@ outdir = '~/pmod/proc/';
 % %------------------------------------------------------------------------
 % VERSION 3: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
 % %------------------------------------------------------------------------
-v           = 3;
-Ies         = -4:0.025:0;
-Iis         = -5:0.025:-1;
-Gg          = 2;
-Gains       = [0 0.025:0.025:0.4 -0.025:-0.025:-0.4 0.425:0.025:0.6 0.625:0.025:0.7];
-nTrials     = 1;
-tmax        = 13000;  % in units of tauE
-EC          = 0;
+% v           = 3;
+% Ies         = -4:0.025:0;
+% Iis         = -5:0.025:-1;
+% Gg          = 2;
+% Gains       = [0 0.025:0.025:0.4 -0.025:-0.025:-0.4 0.425:0.025:0.6 0.625:0.025:0.7];
+% nTrials     = 1;
+% tmax        = 13000;  % in units of tauE
+% EC          = 0;
 %--------------------------------------------------------------------------
 % VERSION 22: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
 % %------------------------------------------------------------------------
@@ -117,10 +117,14 @@ for igain = 1 : length(Gains)
     for iies = 1: length(Ies)
       iies
       
+      if ~exist(sprintf('~/pmod/proc/numerical/v%d/',v))
+        mkdir(sprintf(['~/pmod/proc/numerical/' 'v%d'],v))
+      end
+      
       fn = sprintf('pmod_wc_wholebrain_final_Ie%d_G%d_gain%d_v%d',iies,iG,igain,v);
-%       if tp_parallel(fn,sprintf('~/pmod/proc/v%d/'),1,0)
-%         continue
-%       end
+      if tp_parallel(fn,sprintf('~/pmod/proc/numerical/v%d/',v),1,0)
+        continue
+      end
       
       for iiis = 1: length(Iis)
         
@@ -206,7 +210,7 @@ for igain = 1 : length(Gains)
           %           out.KOPsd(tr,1)   = std(KOP);
           %           out.KOPmean(tr,1) = mean(KOP);
           
-          clear ku KOP z
+%           clear ku KOP z
           
           % FC matrix
           % ---------------------
@@ -262,33 +266,24 @@ for igain = 1 : length(Gains)
           out(iiis).CeeSD_env   = out(iiis).CeeSD_env + var(fc)/nTrials;
           % ---------------------------
           clear rc fc_env
-          % ---------------------------
-          % Beta filtered
-          % ---------------------------
-          %           rc                  = corrcoef(env_beta.^2);
-          %           out.FC_env_beta     = single(out.FC_env) + single(rc/nTrials);
-          %           fc_env              = rc(isub);
-          %           out.Cee_env_beta    = out.Cee_env + mean(fc)/nTrials;
-          %           out.CeeSD_env_beta  = out.CeeSD_env + var(fc)/nTrials;
-          % ---------------------------
-          
+
           clear rE rI env
           toc
         end
       end
-      save(sprintf('~/pmod/proc/v%d/%s.mat',v,fn),'out')
+      save(sprintf('~/pmod/proc/numerical/v%d/%s.mat',v,fn),'out')
       
       % make sure file is saved
       while 1
         try
-          load(sprintf('~/pmod/proc/v%d/%s.mat',v,fn))
+          load(sprintf('~/pmod/proc/numerical/v%d/%s.mat',v,fn))
           break
         catch me
-          save(sprintf('~/pmod/proc/v%d/%s.mat',v,fn),'out')
+          save(sprintf('~/pmod/proc/numerical/v%d/%s.mat',v,fn),'out')
         end
       end
       
-      tp_parallel(fn,'~/pmod/proc/v%d/',0)
+      tp_parallel(fn,'~/pmod/proc/numerical/v%d/',0)
     end
   end
 end
