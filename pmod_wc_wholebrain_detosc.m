@@ -5,6 +5,8 @@
 clear
 outdir = '~/pmod/proc/';
 
+% restoredefaultpath;matlabrc
+
 % 29-05-2018: fit E and I through resting state recordings. Then obtain
 % changes in E and I due to task from recordings and keep those parameters
 % fixed for the drug simulations. Vary excitability and gain for the drug
@@ -13,37 +15,15 @@ outdir = '~/pmod/proc/';
 %-------------------------------------------------------------------------
 % VERSION 1: 20-10-2018
 % %-------------------------------------------------------------------------
-% v           = 1;
-% Ies         = -4:0.025:-1;
-% Iis         = -5:0.025:-2;
-% Gg          = 0:0.1:3;
-% Gains       = 0; 
-% nTrials     = 1;
-% tmax        = 3750;  % in units of tauE
-% EC          = 0;
-%-------------------------------------------------------------------------
-% VERSION 2: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
-% %------------------------------------------------------------------------
-v           = 2;
-Ies         = -4:0.025:-1;
-Iis         = -5:0.025:-2;
-Gg          = 1.7;
-Gains       = [0 0.025:0.025:0.4 -0.025:-0.025:-0.4]; 
+v           = 1;
+Ies         = -4:0.1:-1;
+Iis         = -5:0.1:-2;
+Gg          = 0:0.15:3;
+Gains       = 0; 
 nTrials     = 1;
-tmax        = 3750;  % in units of tauE
+tmax        = 2500;  % in units of tauE
 EC          = 0;
-%--------------------------------------------------------------------------
-% VERSION 3: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
-% %------------------------------------------------------------------------
-% v           = 3;
-% Ies         = -4:0.025:-1;
-% Iis         = -5:0.025:-2;
-% Gg          = 1.7;
-% Gains       = [0 0.025:0.025:0.4 -0.025:-0.025:-0.4]; 
-% nTrials     = 1;
-% tmax        = 3750;  % in units of tauE
-% EC          = 0;
-%--------------------------------------------------------------------------
+%-------------------------------------------------------------------------
 
 % EXCLUDE CERTAIN REGIONS - BCN ordering
 k = 1 : 90;
@@ -89,29 +69,19 @@ L = length(tspan);
 ds = 10;
 Tds = length(0:ds*dt:tmax)-1;
 tauEsec = 0.009; % in seconds
-resol = ds*dt*tauEsec;
-time = (0:ds*dt:tmax-ds*dt)*tauEsec;
 
-sigma = 0.0005;
-
-% FILTERS
-
-flp = 8;           % lowpass frequency of filter
-fhi = 12;
-
-para.ord = 4;
-delt = 1/(1/resol);            % sampling interval
-k=4;                  % 2nd order butterworth filter
-fnq=1/(2*delt);       % Nyquist frequency
-Wn=[flp/fnq fhi/fnq]; % butterworth bandpass non-dimensional frequency
-[bfilt,afilt]=butter(k,Wn);
-isub = find( triu(ones(N)) - eye(N) );
 %%
 for iies = 1 : length(Ies)
   for iiis = 1 : length(Iis)
     for iG = 1 : length(Gg)
       for igain = 1 : length(Gains)
         tic
+        
+        if ~exist(sprintf('~/pmod/proc/detosc/v%d/',v))
+          mkdir(sprintf(['~/pmod/proc/detosc/' 'v%d'],v))
+        end
+        
+        outdir = sprintf(['~/pmod/proc/detosc/' 'v%d/'],v);
         
         fn = sprintf('pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d',iies,iiis,iG,igain,v);
         if tp_parallel(fn,outdir,1,0)
@@ -129,8 +99,6 @@ for iies = 1 : length(Ies)
         out.Ie = Ie;
         out.Ii = Ii;
         out.Gain = Gains(igain);
-        %       Ie = -3.75;
-        %       Ii = -4.1;
         
         Io=zeros(2*N,1);
         Io(1:N) = Ie;
@@ -176,7 +144,7 @@ for iies = 1 : length(Ies)
           
           
           for i=1:N
-            [out.osc1(tr,:,i)  ] = tp_detect_osc(R(:,i));    
+            [out.osc1(tr,:,i) ] = tp_detect_osc(R(:,i));    
           end
           
         end
@@ -193,12 +161,14 @@ for iies = 1 : length(Ies)
           break
         end
   
-        tp_parallel(fn,outdir,0)
+        tp_parallel(fn,outdir,0,0)
 
       end
     end
   end
 end
+
+error('!')
 
 %% LOAD / DELETE ALL FILES
 
@@ -217,19 +187,41 @@ end
 %-------------------------------------------------------------------------
 % VERSION 2: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
 % %------------------------------------------------------------------------
-v           = 2;
-Ies         = -4:0.025:-1;
-Iis         = -5:0.025:-2;
-Gg          = 1.7;
-Gains       = [0 0.025:0.025:0.4 -0.025:-0.025:-0.4]; 
-nTrials     = 1;
-tmax        = 3750;  % in units of tauE
-EC          = 0;
+% v           = 2;
+% Ies         = -4:0.025:0;
+% Iis         = -5:0.025:-1;
+% Gg          = 2.1;
+% Gains       = [0 0.025:0.025:0.4 -0.025:-0.025:-0.4 0.425:0.025:0.6 0.625:0.025:0.7];
+% nTrials     = 1;
+% tmax        = 2000;  % in units of tauE
+% EC          = 0;
 %--------------------------------------------------------------------------
+% VERSION 2: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
+% %------------------------------------------------------------------------
+% v           = 11;
+% Ies         = -4:0.025:-1;
+% Iis         = -5:0.025:-2;
+% Gg          = 0:0.1:3;
+% Gains       = 0; 
+% nTrials     = 1;
+% tmax        = 3750;  % in units of tauE
+% EC          = 0;
+%--------------------------------------------------------------------------
+%  VERSION 22: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
+% %------------------------------------------------------------------------
+% v           = 22;
+% Ies         = -4:0.025:-1;
+% Iis         = -5:0.025:-2;
+% Gg          = 1.7;
+% Gains       = [0 0.05:0.05:0.4 -0.05:-0.05:-0.4 0.45:0.05:0.6 0.65:0.05:0.7 0.75:0.05:1];
+% nTrials     = 1;
+% tmax        = 3750;  % in units of tauE
+% EC          = 0;
+% %------------------------------------------------------------------------
 
-outdir = '~/pmod/proc/';
 
 vv = v;
+outdir = sprintf('~/pmod/proc/detosc/v%d/',vv);
 
 for iies = 1 : length(Ies)
   iies
@@ -256,7 +248,7 @@ for iies = 1 : length(Ies)
         
         warning('Deleting...')
         delete(sprintf([outdir 'pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d.mat'],iies,iiis,iG,igain,vv))
-        delete(sprintf([outdir 'pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt'],iies,iiis,iG,igain,vv))
+%         delete(sprintf([outdir 'pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt'],iies,iiis,iG,igain,vv))
       end
     end
   end

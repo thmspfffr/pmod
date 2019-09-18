@@ -3,6 +3,7 @@
 %--------------------------------------------------------------------------
 
 clear
+restoredefaultpath;matlabrc
 
 outdir = '~/pmod/proc/';
 
@@ -13,48 +14,27 @@ outdir = '~/pmod/proc/';
 %--------------------------------------------------------------------------
 % VERSION 1: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
 % %------------------------------------------------------------------------
-v           = 1;
-Ies         = -4:0.025:-1;
-Iis         = -5:0.025:-2;
-Gg          = 0:0.1:3;
-Gains       = 0;
-nTrials     = 1;
-tmax        = 6500;  % in units of tauE
-EC          = 0;
+% v           = 1;
+% Ies         = -4:0.1:-1;
+% Iis         = -5:0.1:-2;
+% Gg          = 0:0.15:3;
+% Gains       = 0;
+% nTrials     = 1;
+% tmax        = 6500;  % in units of tauE
+% EC          = 0;
 %--------------------------------------------------------------------------
 % VERSION 2: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
 % %------------------------------------------------------------------------
 % v           = 2;
-% Ies         = -4:0.025:0;
-% Iis         = -5:0.025:-1;
-% Gg          = 1.7;
-% Gains       = [0 0.025:0.025:0.4 -0.025:-0.025:-0.4 0.425:0.025:0.6 0.625:0.025:0.7];
-% nTrials     = 1;
-% tmax        = 6500;  % in units of tauE
-% EC          = 0;
-% %------------------------------------------------------------------------
-% VERSION 3: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
-% %------------------------------------------------------------------------
-% v           = 3;
-% Ies         = -4:0.025:0;
-% Iis         = -5:0.025:-1;
-% Gg          = 2;
-% Gains       = [0 0.025:0.025:0.4 -0.025:-0.025:-0.4 0.425:0.025:0.6 0.625:0.025:0.7];
-% nTrials     = 1;
-% tmax        = 13000;  % in units of tauE
-% EC          = 0;
-%--------------------------------------------------------------------------
-% VERSION 22: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
-% %------------------------------------------------------------------------
-% v           = 22;
 % Ies         = -4:0.025:-1;
 % Iis         = -5:0.025:-2;
-% Gg          = 0.85;
-% Gains       = [0 0.025:0.025:0.4 -0.025:-0.025:-0.4];
+% Gg          = 1.65;
+% Gains       = [0 0.025:0.025:0.4 -0.025:-0.025:-0.4 0.425:0.025:0.6 0.625:0.025:0.7];
 % nTrials     = 1;
 % tmax        = 6500;  % in units of tauE
-% EC          = 0;
 %--------------------------------------------------------------------------
+% VERSION 2: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
+% %------------------------------------------------------------------------
 
 % EXCLUDE CERTAIN REGIONS - BCN ordering
 k = 1 : 90;
@@ -62,39 +42,29 @@ exclude_bcn = [11 15 21 36 37 38 39 52 53 54 55 70 76 80];
 include_bcn = find(~ismember(k,exclude_bcn));
 % ------------------
 
-% load connectome
-if EC
-  load ~/pmod/matlab/EC.mat %Matt_EC
-  C = EC;
-else
-  load ~/sc90.mat %Bea SC
-  C = SC;
-end
-
-C = C/max(C(C>0));
+load ~/sc90.mat %Bea SC
+C = SC/max(SC(SC>0));
 C = C(include_bcn,include_bcn);
 N = size(C,1);
 
-addpath ~/Documents/MATLAB/Colormaps/'Colormaps (5)'/Colormaps/
-addpath ~/pconn/matlab
-addpath ~/Documents/MATLAB/cbrewer/cbrewer/
 %--------------------------------------------------------------------------
 % PARAMETER DEFINITIONS
 %--------------------------------------------------------------------------
-
 % Connectivity:
 wII=4;
 wIE=16;
 wEI=12;
 wEE=12;
+% noise level
+sigma = 0.0005;
 
 tauE = 1;
 tauI = 2;
 tau = zeros(2*N,1);
 tau(1:N) = tauE;
 tau(N+1:2*N) = tauI;
+dt=0.01;
 
-dt=0.025;
 tspan=0:dt:tmax;
 L = length(tspan);
 clear tspan
@@ -104,13 +74,9 @@ Tds = length(0:ds*dt:tmax)-1;
 tauEsec = 0.009; % in seconds
 resol = ds*dt*tauEsec;
 
-sigma = 0.0005;
-%Qn = (sigma*dt)^2*eye(2*N);
-
 isub = find( triu(ones(N)) - eye(N) );
-%%
 
-mkdir('~/pmod/proc/',sprintf('v%d',v))
+%%
 
 for igain = 1 : length(Gains)
   for iG = 1 : length(Gg)
@@ -121,9 +87,16 @@ for igain = 1 : length(Gains)
         mkdir(sprintf(['~/pmod/proc/numerical/' 'v%d'],v))
       end
       
+      outdir = sprintf(['~/pmod/proc/numerical/v%d/'],v);
+
       fn = sprintf('pmod_wc_wholebrain_final_Ie%d_G%d_gain%d_v%d',iies,iG,igain,v);
-      if tp_parallel(fn,sprintf('~/pmod/proc/numerical/v%d/',v),1,0)
+      if tp_parallel(fn,outdir,1,0)
         continue
+      end
+      
+      % save configuration, with all above parameters
+      if ~exist(sprintf([outdir 'pmod_wc_wholebrain_final_parameters_v%d.mat'],v))
+        save(sprintf([outdir 'pmod_wc_wholebrain_final_parameters_v%d.mat'],v))
       end
       
       for iiis = 1: length(Iis)
@@ -179,7 +152,7 @@ for igain = 1 : length(Gains)
           Ri  = zeros(Tds,N);
           tt  = 0;
           % transient:
-          for t = 1:25000
+          for t = 1:50000
             u = W*r + Io;
             K = feval(F,u);
             r = r + dt*(-r + K)./tau + sqrt(dt)*sigma*randn(2*N,1);
@@ -271,25 +244,27 @@ for igain = 1 : length(Gains)
           toc
         end
       end
-      save(sprintf('~/pmod/proc/numerical/v%d/%s.mat',v,fn),'out')
+      save(sprintf([outdir '/%s.mat'],fn),'out')
       
       % make sure file is saved
       while 1
         try
-          load(sprintf('~/pmod/proc/numerical/v%d/%s.mat',v,fn))
+          load(sprintf([outdir '%s.mat'],fn))
           break
         catch me
-          save(sprintf('~/pmod/proc/numerical/v%d/%s.mat',v,fn),'out')
+          save(sprintf([outdir '%s.mat'],fn),'out')
         end
       end
       
-      tp_parallel(fn,'~/pmod/proc/numerical/v%d/',0)
+      tp_parallel(fn,outdir,0,0)
     end
   end
 end
 
-error('!')
+% error('!')
 %%
+
+% fprintf('WAAAAAT')
 %
 % v = 1;
 %
@@ -314,20 +289,20 @@ error('!')
 % end
 %  /home/tpfeffer/pmod/proc/pmod_wc_wholebrain_final_Ie14_Ii56_G1_gain43_v2.mat
 %% DELET EFILES
-for v = [1 2 3 22]
-  for igain = 1 : length(Gains)
-    igain
-    for iG = 1 : length(Gg)
-      for iies = 1: length(Ies)
-%         pmod_wc_wholebrain_final_Ie14_Ii56_G1_gain36_v
-        iies
-        delete( sprintf('/home/tpfeffer/pmod/proc/pmod_wc_wholebrain_detosc_Ie%d_Ii*_G%d_gain%d_v%d.mat',iies,iG,igain,v))
-
-%         for iiis = 1: length(Iis)
-%           fn = sprintf('/home/tpfeffer/pmod/proc/pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,v);
-%           delete(fn)
-%         end
-      end
-    end
-  end
-end
+% for v = [1 2 3 22]
+%   for igain = 1 : length(Gains)
+%     igain
+%     for iG = 1 : length(Gg)
+%       for iies = 1: length(Ies)
+% %         pmod_wc_wholebrain_final_Ie14_Ii56_G1_gain36_v
+%         iies
+%         delete( sprintf('/home/tpfeffer/pmod/proc/pmod_wc_wholebrain_detosc_Ie%d_Ii*_G%d_gain%d_v%d.mat',iies,iG,igain,v))
+% 
+% %         for iiis = 1: length(Iis)
+% %           fn = sprintf('/home/tpfeffer/pmod/proc/pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,v);
+% %           delete(fn)
+% %         end
+%       end
+%     end
+%   end
+% end

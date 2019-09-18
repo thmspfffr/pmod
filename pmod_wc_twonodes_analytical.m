@@ -9,7 +9,7 @@ Ies   = -5:0.05:-1;
 Iis   = -5:0.05:-1; 
 tmax  = 20; 
 Gains = 0:0.1:1;
-v     = 2;
+v     = 3;
 % ----------------------------
 
 N = 4;
@@ -20,12 +20,12 @@ tauE  = 1;
 tauI  = 2; %1
 tau   = [tauE;tauI;tauE;tauI];
 Io    = zeros(N,1);
-dt    = 0.01;
+dt    = 0.001;
 tspan = 0:dt:tmax;
 L     = length(tspan);
-ds    = 10;
+ds    = 5;
 Tds   = length(0:ds*dt:tmax)-1;
-sigma = 0.0005;
+sigma = 0.002;
 Qn    = (sigma*dt)^2*eye(N);
 
 % Connectivity:
