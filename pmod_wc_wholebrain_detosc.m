@@ -15,14 +15,27 @@ outdir = '~/pmod/proc/';
 %-------------------------------------------------------------------------
 % VERSION 1: 20-10-2018
 % %-------------------------------------------------------------------------
-v           = 1;
-Ies         = -4:0.1:-1;
-Iis         = -5:0.1:-2;
-Gg          = 0:0.15:3;
-Gains       = 0; 
+% v           = 1;
+% Ies         = -4:0.05:-0;
+% Iis         = -5:0.05:-1;
+% Gg          = 0:0.15:3;
+% Gains       = 0; 
+% nTrials     = 1;
+% tmax        = 6500;  % in units of tauE
+% EC          = 0;
+% dt          = 0.01;
+% %-------------------------------------------------------------------------
+% VERSION 1: 20-10-2018
+% %-------------------------------------------------------------------------
+v           = 2;
+Ies         = -4:0.025:-0;
+Iis         = -5:0.025:-1;
+Gg          = 1.5;
+Gains       = [0 0.05:0.05:0.6 -0.05:-0.05:-0.2]; 
 nTrials     = 1;
-tmax        = 2500;  % in units of tauE
+tmax        = 3750;  % in units of tauE
 EC          = 0;
+dt          = 0.01;
 %-------------------------------------------------------------------------
 
 % EXCLUDE CERTAIN REGIONS - BCN ordering
@@ -62,7 +75,6 @@ tau = zeros(2*N,1);
 tau(1:N) = tauE;
 tau(N+1:2*N) = tauI;
 
-dt=0.01;
 tspan=0:dt:tmax;
 L = length(tspan);
 
@@ -71,10 +83,12 @@ Tds = length(0:ds*dt:tmax)-1;
 tauEsec = 0.009; % in seconds
 
 %%
-for iies = 1 : length(Ies)
-  for iiis = 1 : length(Iis)
-    for iG = 1 : length(Gg)
-      for igain = 1 : length(Gains)
+
+
+for igain = 1 : length(Gains)
+  for iG = 1 : length(Gg)
+    for iies = 1: length(Ies)
+      for iiis = 1: length(Iis)
         tic
         
         if ~exist(sprintf('~/pmod/proc/detosc/v%d/',v))
@@ -124,7 +138,7 @@ for iies = 1 : length(Ies)
           Ri  = zeros(Tds,N);
           tt  = 0;
           %         transient:
-          for t = 1:3000
+          for t = 1:1000
             u = W*r + Io;
             K = feval(F,u);
             r = r + dt*(-r + K)./tau; %+ sqrt(dt);
@@ -171,87 +185,45 @@ end
 error('!')
 
 %% LOAD / DELETE ALL FILES
+% 
+% outdir = sprintf(['~/pmod/proc/detosc/' 'v%d/'],v);
+% 
+% d=dir([outdir '*.mat']);
+% 
+%   if numel(d)==length(Ies)*length(Iis)*length(Gg)*length(Gains)
 
+  vv = v;
+  outdir = sprintf('~/pmod/proc/detosc/v%d/',vv);
 
-%-------------------------------------------------------------------------
-% VERSION 1: 20-10-2018
-% %-------------------------------------------------------------------------
-% v           = 1;
-% Ies         = -4:0.025:-1;
-% Iis         = -5:0.025:-2;
-% Gg          = 0:0.1:3;
-% Gains       = 0; 
-% nTrials     = 1;
-% tmax        = 3750;  % in units of tauE
-% EC          = 0;
-%-------------------------------------------------------------------------
-% VERSION 2: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
-% %------------------------------------------------------------------------
-% v           = 2;
-% Ies         = -4:0.025:0;
-% Iis         = -5:0.025:-1;
-% Gg          = 2.1;
-% Gains       = [0 0.025:0.025:0.4 -0.025:-0.025:-0.4 0.425:0.025:0.6 0.625:0.025:0.7];
-% nTrials     = 1;
-% tmax        = 2000;  % in units of tauE
-% EC          = 0;
-%--------------------------------------------------------------------------
-% VERSION 2: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
-% %------------------------------------------------------------------------
-% v           = 11;
-% Ies         = -4:0.025:-1;
-% Iis         = -5:0.025:-2;
-% Gg          = 0:0.1:3;
-% Gains       = 0; 
-% nTrials     = 1;
-% tmax        = 3750;  % in units of tauE
-% EC          = 0;
-%--------------------------------------------------------------------------
-%  VERSION 22: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
-% %------------------------------------------------------------------------
-% v           = 22;
-% Ies         = -4:0.025:-1;
-% Iis         = -5:0.025:-2;
-% Gg          = 1.7;
-% Gains       = [0 0.05:0.05:0.4 -0.05:-0.05:-0.4 0.45:0.05:0.6 0.65:0.05:0.7 0.75:0.05:1];
-% nTrials     = 1;
-% tmax        = 3750;  % in units of tauE
-% EC          = 0;
-% %------------------------------------------------------------------------
+  for iies = 1 : length(Ies)
+    iies
+    for iiis = 1 : length(Iis)
+      for iG = 1:length(Gg)
+        for igain = 1:length(Gains)
 
+          load(sprintf([outdir 'pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d.mat'],iies,iiis,iG,igain,vv))
+          osc1(iies,iiis,iG,igain) = mean(squeeze(mean(squeeze(out.osc1),1)));
 
-vv = v;
-outdir = sprintf('~/pmod/proc/detosc/v%d/',vv);
-
-for iies = 1 : length(Ies)
-  iies
-  for iiis = 1 : length(Iis)
-    for iG = 1:length(Gg)
-      for igain = 1:length(Gains)
-        
-        load(sprintf([outdir 'pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d.mat'],iies,iiis,iG,igain,vv))
-        osc1(iies,iiis,iG,igain) = mean(squeeze(mean(squeeze(out.osc1),1)));
-        
+        end
       end
     end
   end
-end
-  
-save(sprintf([outdir 'pmod_wc_wholebrain_detosc_all_v%d.mat'],vv),'osc1')
-  
-% DELETE OLD FILES
-for iies = 1 : length(Ies)
-  iies
-  for iiis = 1 : length(Iis)
-    for iG = 1:length(Gg)
-      for igain = 1:length(Gains)
-        
-        warning('Deleting...')
-        delete(sprintf([outdir 'pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d.mat'],iies,iiis,iG,igain,vv))
-%         delete(sprintf([outdir 'pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt'],iies,iiis,iG,igain,vv))
+
+  save(sprintf([outdir 'pmod_wc_wholebrain_detosc_all_v%d.mat'],vv),'osc1')
+
+  % DELETE OLD FILES
+  for iies = 1 : length(Ies)
+    iies
+    for iiis = 1 : length(Iis)
+      for iG = 1:length(Gg)
+        for igain = 1:length(Gains)
+
+          warning('Deleting...')
+          delete(sprintf([outdir 'pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d.mat'],iies,iiis,iG,igain,vv))
+  %         delete(sprintf([outdir 'pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt'],iies,iiis,iG,igain,vv))
+        end
       end
     end
   end
-end
-
-
+% % 
+% end

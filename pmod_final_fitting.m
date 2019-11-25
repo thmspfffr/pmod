@@ -3,39 +3,22 @@
 
 clear
 % %-------------------------------------------------------------------------
-% VERSION 1: 20-10-2018
-%-------------------------------------------------------------------------
-v           = 1;
-Ies         = -4:0.1:-1;
-Iis         = -5:0.1:-2;
-Gg          = 0:0.15:3;
-Gains       = 0;
-nTrials     = 1;
-tmax        = 6500;  % in units of tauE
-EC          = 0;
-% -------------------------------------------------------------------------
-
-% -------------------------------------------------------------------------
-v           = 2;
+% VERSION 1: 
+% %-------------------------------------------------------------------------
+v           = 11;
 Ies         = -4:0.025:-1;
 Iis         = -5:0.025:-2;
-Gg          = 1.65;
-Gains       = [0 0.025:0.025:0.4 -0.025:-0.025:-0.4 0.425:0.025:0.6 0.625:0.025:0.7];
+Gg          = 0.15:0.15:2;
+Gains       = [0]; 
 nTrials     = 1;
 tmax        = 6500;  % in units of tauE
 EC          = 0;
+dt          = 0.01;
 % %-------------------------------------------------------------------------
-% VERSION 2: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
-% %------------------------------------------------------------------------
-v           = 3;
-Ies         = -4:0.1:-1;
-Iis         = -5:0.1:-2;
-Gg          = 1.65;
-Gains       = [0];
-nTrials     = 1;
-tmax        = 13000;  % in units of tauE
-%--------------------------------------------------------------------------
 
+load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_parameters_v%d.mat',v,v))
+
+% Gains = [0 0.025:0.025:0.4 -0.025:-0.025:-0.3 ]
 v_sim = v;
 % connectivity, AAL
 v_conn =  25;
@@ -70,8 +53,8 @@ load ~/sc90.mat
 SC = SC(include_bcn,include_bcn);
 
 % ifoi = 1;
-fc_rest = squeeze(nanmean(nanmean(cleandat(1:90,1:90,:,1,1,:),3),6));
-fc_task = squeeze(nanmean(nanmean(cleandat(1:90,1:90,:,1,2,:),3),6));
+fc_rest = squeeze(nanmean(nanmean(cleandat(1:90,1:90,:,1,1,2),3),6));
+fc_task = squeeze(nanmean(nanmean(cleandat(1:90,1:90,:,1,2,2),3),6));
 
 para          = [];
 para.transfer = 'to_bcn';
@@ -124,16 +107,20 @@ if ~exist(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_all_v%d.ma
     iies
       for iG = 1:length(Gg)
         for igain = 1:length(Gains)
-          
-          load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_G%d_gain%d_v%d.mat',v_sim,iies,iG,igain,v_sim))
-          
-          
           for iiis = 1 : length(Iis)
-            outp.fc_sim_env_tmp = out(iiis).FC_env;
+
+          load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,iies,iiis,iG,igain,v_sim))
+          
+          
+            outp.fc_sim_env_tmp = out.FC_env;
+%             outp.fc_sim_env_ad = out(iiis).FC_env_ad;
 
             [outp.r_env_rest_corr(iies,iiis,iG,igain), outp.p_env_rest_corr(iies,iiis,iG,igain)]=corr(outp.fc_sim_env_tmp(mask),fc_rest(mask));
             [outp.r_env_task_corr(iies,iiis,iG,igain), outp.p_env_task_corr(iies,iiis,iG,igain)]=corr(outp.fc_sim_env_tmp(mask),fc_task(mask));
 
+%             [outp.r_env_rest_corr_ad(iies,iiis,iG,igain), outp.p_env_rest_corr_ad(iies,iiis,iG,igain)]=corr(outp.fc_sim_env_ad(mask),fc_rest(mask));
+
+            
             [outp.r_env_rest_indiv_corr(:,iies,iiis,iG,igain), outp.p_env_rest_indiv_corr(:,iies,iiis,iG,igain)]=corr(outp.fc_sim_env_tmp(mask),fc_rest_indiv);
             [outp.r_env_task_indiv_corr(:,iies,iiis,iG,igain), outp.p_env_task_indiv_corr(:,iies,iiis,iG,igain)]=corr(outp.fc_sim_env_tmp(mask),fc_task_indiv);
 
@@ -144,19 +131,20 @@ if ~exist(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_all_v%d.ma
             outp.dist_task_indiv(:,iies,iiis,iG,igain) = 1-(squeeze(outp.r_env_task_indiv_corr(:,iies,iiis,iG,igain))'-(squeeze(mean(fc_task_indiv))-mean(outp.fc_sim_env_tmp(mask))).^2);
 
             outp.fc_sim_env_mean(iies,iiis,iG,igain) = mean(outp.fc_sim_env_tmp(mask));
+%             outp.fc_sim_env_mean_ad(iies,iiis,iG,igain) = mean( outp.fc_sim_env_ad(mask));
+            
             outp.Ies(iies) = out.Ie;
             outp.Iis(iiis) = out.Ii;
-            outp.peakfreq(iies,iiis,iG,igain) = out(iiis).peakfreq;
-            outp.alphapow(iies,iiis,iG,igain) = mean(out(iiis).alphapow);
+            outp.peakfreq(iies,iiis,iG,igain) = out.peakfreq;
+            outp.alphapow(iies,iiis,iG,igain) = mean(out.alphapow);
           end
           fclose all;
           
         end
       end
-    end
+  end
   
-  
-%   save(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_all_v%d.mat',v_sim,v_sim),'outp')
+  save(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_all_v%d.mat',v_sim,v_sim),'outp')
 %     save(sprintf('~/pmod/proc/pmod_wc_wholebrain_final_all_FC_pos_v%d.mat',v_sim),'all_FC_env_pos')
   %   save(sprintf('~/pmod/proc/pmod_wc_wholebrain_final_all_FC_neg_v%d.mat',v_sim),'all_FC_env_neg')
   
@@ -207,10 +195,85 @@ y =  1./(1 + exp(-x/aE) );
 plot(x,y,'r');
 
 print(gcf,'-depsc2',sprintf('~/pmod/plots/pmod_gainfun_v%d.eps',v_sim))
+%%
 
+idxE = find(Ies == -1);
+idxI = find(Iis == -2);
+
+osc = osc1(1:idxE,1:idxI,:);
+% osc = osc1;
+
+for isubj = 1 : 28
+  for igg = 1 : 21
+    
+    par = 1-(squeeze(outp.r_env_rest_indiv_corr(isubj,1:idxE,1:idxI,igg))'-(squeeze(mean(fc_rest_indiv(:,isubj)))-mean(outp.fc_sim_env_tmp(mask))).^2);
+    par(osc(:,:,igg)>0)=nan; 
+    d(isubj,igg) = nanmean(par(:));
+    
+    tmp = squeeze(outp.r_env_rest_indiv_corr(isubj,:,:,igg));
+    m(isubj,igg)=mean(tmp(osc(:,:,igg)>0));
+    
+    mmaaxx(isubj,igg)=max(tmp(osc(:,:,igg)>0));
+  end
+end
+    
+figure; set(gcf,'color','w');
+subplot(3,2,1);
+imagesc(m,[0 0.3]); axis square; tp_editplots
+set(gca,'XTick',1:10:length(Gg),'XTickLabel',num2cell(Gg(1:10:end)))
+xlabel('Global coupling')
+% set(gca,'YTick',1:28,'YTickLabel',num2cell(1:28));
+ylabel('Subjects');
+colorbar; colormap(plasma)
+subplot(3,2,2);
+plot(mean(m)); axis square; tp_editplots
+set(gca,'XTick',1:10:length(Gg),'XTickLabel',num2cell(Gg(1:10:end)))
+xlabel('Global coupling')
+axis([0 22 -0.05 0.25])
+set(gca,'YTick',-0.05:0.05:0.25,'YTickLabel',num2cell(-0.05:0.05:0.25));
+ylabel('Mean correlation')
+
+subplot(3,2,3);
+imagesc(d,[0.3 1.1]); axis square; tp_editplots
+set(gca,'XTick',1:10:length(Gg),'XTickLabel',num2cell(Gg(1:10:end)))
+xlabel('Global coupling')
+% set(gca,'YTick',1:28,'YTickLabel',num2cell(1:28));
+ylabel('Subjects');
+colorbar; colormap(plasma)
+subplot(3,2,4);
+plot(mean(d)); axis square; tp_editplots
+set(gca,'XTick',1:10:length(Gg),'XTickLabel',num2cell(Gg(1:10:end)))
+xlabel('Global coupling')
+axis([0 22 0.8 1.1])
+set(gca,'YTick',0.8:0.1:1.1,'YTickLabel',num2cell(0.8:0.1:1.1));
+ylabel('Mean correlation')
+
+subplot(3,2,5);
+imagesc(mmaaxx,[0 0.7]); axis square; tp_editplots
+set(gca,'XTick',1:10:length(Gg),'XTickLabel',num2cell(Gg(1:10:end)))
+xlabel('Global coupling')
+% set(gca,'YTick',1:28,'YTickLabel',num2cell(1:28));
+ylabel('Subjects');
+colorbar; colormap(plasma)
+subplot(3,2,6);
+plot(mean(mmaaxx)); axis square; tp_editplots
+set(gca,'XTick',1:10:length(Gg),'XTickLabel',num2cell(Gg(1:10:end)))
+xlabel('Global coupling')
+axis([0 22 0 0.8])
+set(gca,'YTick',0:0.2:0.8,'YTickLabel',num2cell(0:0.2:0.8));
+ylabel('Mean correlation')
+
+
+
+
+print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_globalcoupling_indivsubj_v%d.pdf',v_sim))
 %% DETERMINE GLOBAL COUPLING PARAMETER FIRST
 
-osc = osc1;
+idxE = find(Ies == -1);
+idxI = find(Iis == -2);
+
+osc = osc1(1:idxE,1:idxI,:);
+
 oscthresh = 0;
 
 figure; set (gcf,'color','w');
@@ -226,7 +289,7 @@ box on
 set(gca,'XTick',1:10:length(Gg),'XTickLabel',num2cell(Gg(1:10:end)))
 set(gca,'YTick',0.8:0.1:1.2,'YTickLabel',0.8:0.1:1.2);
 xlabel('Global coupling'); ylabel('Distance')
-axis([1 31 0.8 1.2])
+axis([1 22 0.8 1.2])
 axis(gca,'square')
 tp_editplots
 
@@ -241,7 +304,7 @@ box on
 set(gca,'XTick',1:10:length(Gg),'XTickLabel',num2cell(Gg(1:10:end)))
 set(gca,'YTick',-0.05:0.05:0.25,'YTickLabel',-0.05:0.05:0.25);
 xlabel('Global coupling'); ylabel('Mean correlation')
-axis([1 31 -0.05 0.25])
+axis([1 22 -0.05 0.2])
 axis(gca,'square')
 tp_editplots
 
@@ -256,7 +319,7 @@ line([1 31],[0 0],'linestyle','-','color',[0 0 0])
 set(gca,'XTick',1:10:length(Gg),'XTickLabel',num2cell(Gg(1:10:end)))
 set(gca,'YTick',-500:500:3000,'YTickLabel',-500:500:3000);
 xlabel('Global coupling'); ylabel('Summed correlation')
-axis([1 31 -500 3000])
+axis([1 22 -500 1500])
 axis(gca,'square')
 tp_editplots
 
@@ -271,7 +334,7 @@ line([1 31],[0 0],'linestyle','-','color',[0 0 0])
 set(gca,'XTick',1:10:length(Gg),'XTickLabel',num2cell(Gg(1:10:end)))
 set(gca,'YTick',0:0.2:1,'YTickLabel',0:.2:1);
 xlabel('Global coupling'); ylabel('Max correlation')
-axis([1 31 0 1])
+axis([0 22 0 1])
 axis(gca,'square')
 tp_editplots
 % -------------------
@@ -279,17 +342,18 @@ tp_editplots
 % -------------------
 
 subplot(2,4,5)
+
 par = outp.dist_rest;
-par(osc1>oscthresh) = nan;
-par1 = squeeze(nanmean(nanmean(par)))
+par(osc>0)=nan;
+par1 = squeeze(nanmean(nanmean(par)));
 [~,idx]=min(par1);
 plot(par1,'linewidth',2);
 line([idx idx],[0.975 1.025],'linestyle',':','color',[0.3 0.3 0.3])
 line([1 31],[1 1],'linestyle','-','color',[0 0 0])
 set(gca,'XTick',1:10:length(Gg),'XTickLabel',num2cell(Gg(1:10:end)))
-set(gca,'YTick',0.975:0.0125:1.025,'YTickLabel',0.975:0.0125:1.025);
+set(gca,'YTick',0.7:0.1:1.3,'YTickLabel',0.7:0.1:1.3);
 xlabel('Global coupling'); ylabel('Distance)')
-axis([1 31 0.975 1.025])
+axis([0 22 0.8 1.3])
 axis(gca,'square')
 tp_editplots
 
@@ -302,9 +366,9 @@ plot(par1,'linewidth',2);
 line([idx idx],[-0.05 0.5],'linestyle',':','color',[0.3 0.3 0.3])
 line([1 31],[0 0],'linestyle','-','color',[0 0 0])
 set(gca,'XTick',1:10:length(Gg),'XTickLabel',num2cell(Gg(1:10:end)))
-set(gca,'YTick',-0.01:0.01:0.04,'YTickLabel',-0.01:0.01:0.04);
+set(gca,'YTick',-0.01:0.01:0.06,'YTickLabel',-0.01:0.01:0.06);
 xlabel('Global coupling'); ylabel('Mean Correlation')
-axis([1 31 -0.01 0.04])
+axis([0 22 -0.01 0.06])
 axis(gca,'square')
 tp_editplots
 
@@ -319,7 +383,7 @@ line([1 31],[0 0],'linestyle','-','color',[0 0 0])
 set(gca,'XTick',1:10:length(Gg),'XTickLabel',num2cell(Gg(1:10:end)))
 set(gca,'YTick',-50:50:250,'YTickLabel',-50:50:250);
 xlabel('Global coupling'); ylabel('Summed correlation')
-axis([1 31 -50 250])
+axis([0 22 -50 250])
 axis(gca,'square')
 tp_editplots
 
@@ -334,16 +398,16 @@ line([1 31],[0 0],'linestyle','-','color',[0 0 0])
 set(gca,'XTick',1:10:length(Gg),'XTickLabel',num2cell(Gg(1:10:end)))
 set(gca,'YTick',0:0.2:1,'YTickLabel',0:.2:1);
 xlabel('Global coupling'); ylabel('Max correlation')
-axis([1 31 0 1])
+axis([0 22 0 1])
 axis(gca,'square')
 tp_editplots
 
 print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_wholebrain_final_fitG_v%d.pdf',v_sim))
 
 %%
-lim = 31;
+lim = 121;
 
-oscthres = 0;
+oscthres = 0.99;
 nancol = [0.97 0.97 0.97];
 
 
@@ -351,7 +415,7 @@ clear par ax
 figure; set(gcf,'color','w')
 
 igain = 1;
-iG = 15;
+iG = 1;
 osc = osc1(1:lim,1:lim,iG);
 
 % plot peak freq model
@@ -395,7 +459,9 @@ title('r(FC_{sim},FC_{MEG})');
 % find significant correlations
 fdr_p = fdr1(reshape(squeeze(outp.p_env_rest_corr(1:lim,1:lim,iG,igain)),[lim*lim 1]),0.05);
 % find highest correlations (95%)
-% prc = prctile(reshape(outp.r_env_task_corr(:,:,1),[121*121 1]),95);
+par = outp.r_env_rest_corr(:,:,iG,igain);
+par(osc>oscthres)=nan;
+prc = prctile(reshape(outp.r_env_rest_corr(:,:,iG,igain),[121*121 1 1]),95);
 
 ax{4} = subplot(2,2,4); hold on
 par = -log10(squeeze(outp.p_env_rest_corr(1:lim,1:lim,iG,igain)));
@@ -615,7 +681,7 @@ ax{1} = subplot(2,2,1); hold on
 imagesc(zeros(lim,lim))
 set(gca,'ydir','normal')
 scatter(gca,idx_rest.inh,idx_rest.exc,25,'markerfacecolor','r','markeredgecolor','k');
-axis(ax{1},[1 161 1 161])
+axis(ax{1},[1 lim 1 lim])
 set(ax{1},'YTick',1:40:length(Ies ),'YTickLabels',num2cell(Ies(1:40:end)))
 set(ax{1},'XTick',1:40:length(Iis),'XTickLabels',num2cell(Iis(1:40:end)))
 xlabel(ax{1},'Inhibitory input'); ylabel(ax{1},'Excitatory input');
@@ -708,14 +774,14 @@ for igain = 1:length(idx_gain(1:2:end))
   gain = idx_gain1(igain)
   
   for isubj = 1:length(SUBJLIST)
-    load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_G%d_gain%d_v%d.mat',v_sim,indiv_idx.rest.exc(SUBJLIST(isubj)),1,1,v_sim))
-    FC_simrest(:,:,isubj,1) = out(indiv_idx.rest.inh(SUBJLIST(isubj))).FC_env; clear out
-    load(sprintf('~/pmod/proc/numerical/v%d//pmod_wc_wholebrain_final_Ie%d_G%d_gain%d_v%d.mat',v_sim,indiv_idx.rest.exc(SUBJLIST(isubj)),1,gain,v_sim))
-    FC_simrest(:,:,isubj,2) = out(indiv_idx.rest.inh(SUBJLIST(isubj))).FC_env; clear out
-    load(sprintf('~/pmod/proc/numerical/v%d//pmod_wc_wholebrain_final_Ie%d_G%d_gain%d_v%d.mat',v_sim,indiv_idx.task.exc(SUBJLIST(isubj)),1,1,v_sim))
-    FC_simtask(:,:,isubj,1) = out(indiv_idx.task.inh(SUBJLIST(isubj))).FC_env; clear out
-    load(sprintf('~/pmod/proc/numerical/v%d//pmod_wc_wholebrain_final_Ie%d_G%d_gain%d_v%d.mat',v_sim,indiv_idx.task.exc(SUBJLIST(isubj)),1,gain,v_sim))
-    FC_simtask(:,:,isubj,2) = out(indiv_idx.task.inh(SUBJLIST(isubj))).FC_env; clear out
+    load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,indiv_idx.rest.exc(SUBJLIST(isubj)),indiv_idx.rest.inh(SUBJLIST(isubj)),1,1,v_sim))
+    FC_simrest(:,:,isubj,1) = out.FC_env; clear out
+    load(sprintf('~/pmod/proc/numerical/v%d//pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,indiv_idx.rest.exc(SUBJLIST(isubj)),indiv_idx.rest.inh(SUBJLIST(isubj)),1,gain,v_sim))
+    FC_simrest(:,:,isubj,2) = out.FC_env; clear out
+    load(sprintf('~/pmod/proc/numerical/v%d//pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,indiv_idx.task.exc(SUBJLIST(isubj)),indiv_idx.rest.inh(SUBJLIST(isubj)),1,1,v_sim))
+    FC_simtask(:,:,isubj,1) = out.FC_env; clear out
+    load(sprintf('~/pmod/proc/numerical/v%d//pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,indiv_idx.task.exc(SUBJLIST(isubj)),indiv_idx.rest.inh(SUBJLIST(isubj)),1,gain,v_sim))
+    FC_simtask(:,:,isubj,2) = out.FC_env; clear out
   end
   
   fc_sim_rest(igain,:) = mean(squeeze(mean(mean(FC_simrest),2)));
@@ -806,8 +872,8 @@ SUBJLIST = find(idx_rest.inh>15);
 % gain = 18;
 mask = logical(tril(ones(76,76),-1));
 
-es = -10:1:8;
-is = -10:1:2;
+es = -4:0.025:-1;
+is = -5:0.025:-2;
 
 
 p_pos_atx_sim = nan(length(es),length(is),length(idx_gain1),2);
@@ -831,13 +897,13 @@ for ie = 1:length(es)
       inh = is(ii);
       
       for isubj = SUBJLIST
-        load(sprintf('~/pmod/proc/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',indiv_idx.rest.exc(isubj),indiv_idx.rest.inh(isubj),1,1,v_sim))
+        load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,indiv_idx.rest.exc(isubj),indiv_idx.rest.inh(isubj),1,1,v_sim))
         FC_simrest(:,:,isubj,1) = out.FC_env; clear out
-        load(sprintf('~/pmod/proc/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',indiv_idx.rest.exc(isubj)+exc,indiv_idx.rest.inh(isubj)+inh,1,gain,v_sim))
+        load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,indiv_idx.rest.exc(isubj)+exc,indiv_idx.rest.inh(isubj)+inh,1,gain,v_sim))
         FC_simrest(:,:,isubj,2) = out.FC_env; clear out
-        load(sprintf('~/pmod/proc/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',indiv_idx.task.exc(isubj),indiv_idx.task.inh(isubj),1,1,v_sim))
+        load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,indiv_idx.task.exc(isubj),indiv_idx.task.inh(isubj),1,1,v_sim))
         FC_simtask(:,:,isubj,1) = out.FC_env; clear out
-        load(sprintf('~/pmod/proc/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',indiv_idx.task.exc(isubj)+exc,indiv_idx.task.inh(isubj)+inh,1,gain,v_sim))
+        load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,indiv_idx.task.exc(isubj)+exc,indiv_idx.task.inh(isubj)+inh,1,gain,v_sim))
         FC_simtask(:,:,isubj,2) = out.FC_env; clear out
       end
       
@@ -854,8 +920,8 @@ for ie = 1:length(es)
       %       p_neg_tvr_sim(ie,ii,igain) = sum(s.tstat(mask)<0 & h(mask)) / sum(mask(:));
       %
       %       diff_tvr(ie,ii,igain) = sum(sum(triu(nanmean(FC_simtask(:,:,:,2),3)-nanmean(FC_simrest(:,:,:,2),3),1)))./sum(mask(:));
-      fc_sim_rest(ie,ii,igain,:) = mean(squeeze(mean(mean(FC_simrest),2)));
-      fc_sim_task(ie,ii,igain,:) = mean(squeeze(mean(mean(FC_simtask),2)));
+%       fc_sim_rest(ie,ii,igain,:) = mean(squeeze(mean(mean(FC_simrest),2)));
+%       fc_sim_task(ie,ii,igain,:) = mean(squeeze(mean(mean(FC_simtask),2)));
       
     end
   end
@@ -985,19 +1051,19 @@ SUBJLIST
 SUBJLIST = find(indiv_idx.rest.inh>15);
 
 mask = logical(tril(ones(76,76),-1));
-gain = 45;
+gain = 13;
 %
 if isperm
   load(sprintf('~/pmod/proc/pmod_final_fitting_indivfits_taskandrest_v%d.mat',v_sim))
   
   for isubj = 1:length(SUBJLIST)
-    load(sprintf('~/pmod/proc/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',indiv_idx.rest.exc(SUBJLIST(isubj)),indiv_idx.rest.inh(SUBJLIST(isubj)),1,1,v_sim))
+    load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,indiv_idx.rest.exc(SUBJLIST(isubj)),indiv_idx.rest.inh(SUBJLIST(isubj)),1,1,v_sim))
     FC_simrest(:,:,isubj,1) = out.FC_env; clear out
-    load(sprintf('~/pmod/proc/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',indiv_idx.rest.exc(SUBJLIST(isubj)),indiv_idx.rest.inh(SUBJLIST(isubj)),1,gain,v_sim))
+    load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,indiv_idx.rest.exc(SUBJLIST(isubj)),indiv_idx.rest.inh(SUBJLIST(isubj)),1,gain,v_sim))
     FC_simrest(:,:,isubj,2) = out.FC_env; clear out
-    load(sprintf('~/pmod/proc/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',indiv_idx.task.exc(SUBJLIST(isubj)),indiv_idx.task.inh(SUBJLIST(isubj)),1,1,v_sim))
+    load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,indiv_idx.task.exc(SUBJLIST(isubj)),indiv_idx.task.inh(SUBJLIST(isubj)),1,1,v_sim))
     FC_simtask(:,:,isubj,1) = out.FC_env; clear out
-    load(sprintf('~/pmod/proc/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',indiv_idx.task.exc(SUBJLIST(isubj)),indiv_idx.task.inh(SUBJLIST(isubj)),1,gain,v_sim))
+    load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,indiv_idx.task.exc(SUBJLIST(isubj)),indiv_idx.task.inh(SUBJLIST(isubj)),1,gain,v_sim))
     FC_simtask(:,:,isubj,2) = out.FC_env; clear out
   end
   
@@ -1013,7 +1079,7 @@ if isperm
   % PERMUTATION TEST: Test sign. altered correlations
   % ----------------------------
   
-  nperm = 1000;
+  nperm = 500;
   all_idx1 = randi(2,[size(SUBJLIST,2),nperm]);
   
   for iperm = 1  : nperm
@@ -1053,7 +1119,7 @@ ax{1}= subplot(2,2,1); hold on
 imagesc(zeros(size(osc,1),size(osc,2)))
 par = outp.fc_sim_env_mean(:,:,:,gain)-outp.fc_sim_env_mean(:,:,:,1);
 par(osc>oscthresh)=0;
-imagesc(par,[-0.02 0.02])
+imagesc(par,[-0.01 0.01])
 set(ax{1},'YTick',1:40:length(Ies),'YTickLabels',num2cell(Ies(1:40:end)))
 set(ax{1},'XTick',1:40:length(Iis),'XTickLabels',num2cell(Iis(1:40:end)))
 xlabel(ax{1},'External input (to I)'); ylabel(ax{1},'External input (to E)');
