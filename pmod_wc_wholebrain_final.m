@@ -14,37 +14,25 @@ outdir = '~/pmod/proc/';
 %--------------------------------------------------------------------------
 
 %-------------------------------------------------------------------------
-% VERSION 1: 
+% VERSION 1: 20-10-2018
 % %-------------------------------------------------------------------------
 % v           = 1;
-% Ies         = -4:0.05:-0;
-% Iis         = -5:0.05:-1;
-% Gg          = 0:0.15:3;
-% Gains       = 0; 
+% Ies         = -4:0.05:-1;
+% Iis         = -5:0.05:-2;
+% Gg          = 0:0.05:2;
+% Gains       = [0 0.45]; 
 % nTrials     = 1;
 % tmax        = 6500;  % in units of tauE
 % EC          = 0;
 % dt          = 0.01;
 %-------------------------------------------------------------------------
-% VERSION 2:
+% VERSION 1: 20-10-2018
 % %-------------------------------------------------------------------------
-% v           = 2;
-% Ies         = -4:0.025:-1;
-% Iis         = -5:0.025:-2;
-% Gg          = 1.5;
-% Gains       = [0 0.05:0.05:0.6 -0.05:-0.05:-0.2]; 
-% nTrials     = 1;
-% tmax        = 6500;  % in units of tauE
-% EC          = 0;
-% dt          = 0.01;
-%-------------------------------------------------------------------------
-% VERSION 11: simulate a range of coupling parameters
-% %-------------------------------------------------------------------------
-v           = 11;
+v           = 2;
 Ies         = -4:0.025:-1;
 Iis         = -5:0.025:-2;
-Gg          = 0.15:0.15:2;
-Gains       = [0]; 
+Gg          = 1.4;
+Gains       = [0:0.05:0.6 -0.2:0.05:-0.05 0.65:0.05:1]; 
 nTrials     = 1;
 tmax        = 6500;  % in units of tauE
 EC          = 0;
@@ -91,22 +79,36 @@ resol = ds*dt*tauEsec;
 
 isub = find( triu(ones(N)) - eye(N) );
 
-flp = 9;
+% ----------------
+% WAVELETS
+% ----------------
+[wavelet,f]=tp_mkwavelet(11.3137,0.5,(1/resol));
+delta_time = 6/pi./(f(2)-f(1));
+delta_time = round(delta_time*1000)/1000;
+t_shift    = delta_time;
+n_win      = round(delta_time*(1/resol));
+n_shift    = round(t_shift*(1/resol));
+nseg=floor((L/10-n_win)/n_shift+1);
+% ----------------
+% BAND PASS FILTER
+% ----------------
+flp = 9;           % lowpass frequency of filter
 fhi = 13;
-
-k=2;                  % 2nd order butterworth filter
-fnq=1/(2*resol);       % Nyquist frequency
-Wn=[flp/fnq fhi/fnq]; % butterworth bandpass non-dimensional frequency
-[b,a]=butter(k,Wn);   % construct the filter
+k     = 4;                  % 2nd order butterworth filter
+fnq   = 1/(2*resol);       % Nyquist frequency
+Wn    = [flp/fnq fhi/fnq]; % butterworth bandpass non-dimensional frequency
+[bfilt,afilt] = butter(k,Wn);
+% ----------------
 
 %%
 
 for igain = 1 : length(Gains)
   for iG = 1 : length(Gg)
-    for iies = 1: length(Ies)
+    for iies = 1 : length(Ies)
       for iiis = 1: length(Iis)
         
         out.FC_env    = zeros(N,N,1);
+        out.COV_env    = zeros(N,N,1);
         
         if ~exist(sprintf('~/pmod/proc/numerical/v%d/',v))
           mkdir(sprintf(['~/pmod/proc/numerical/' 'v%d'],v))
@@ -132,13 +134,13 @@ for igain = 1 : length(Gains)
         
         % Control parameters
         %--------------------
-        out.Ie = Ies(iies);
-        out.Ii = Iis(iiis);
+        out.Ie   = Ies(iies);
+        out.Ii   = Iis(iiis);
         out.Gain = Gains(igain);
         
         % transfer function:
-        gE = 1; %1 + Gains(igain);
-        gI = 1; %1 + Gains(igain);
+        gE = 1 + Gains(igain);
+        gI = 1 + Gains(igain);
         aE  = 1/gE;
         aI  = 1/gI;
         Fe  = @(x) 1./(1 + exp(-x/aE) );
@@ -149,14 +151,12 @@ for igain = 1 : length(Gains)
         Io          = zeros(2*N,1);
         Io(1:N)     = Ies(iies);
         Io(N+1:2*N) = Iis(iiis);
-        %         Io(1:N)     = Ies(iies);
-        %         Io(N+1:2*N) = Iis(iiis);
         
         T           = Tds*resol; %% define time of interval
         freqs       = (0:Tds/2)/T; %% find the corresponding frequency in Hz
         freq100     = freqs(freqs<100 & freqs>1);
         pp          = 1:10:length(freq100);
-        PSD     = zeros(length(pp),N,nTrials);
+        PSD         = zeros(length(pp),N,nTrials);
         frequencies = freq100(1:10:end)';
         
         % RUN SIMULATION
@@ -168,7 +168,7 @@ for igain = 1 : length(Gains)
           Ri  = zeros(Tds,N);
           tt  = 0;
           %         transient:
-          for t = 1:3000
+          for t = 1:20000
             u = W*r + Io;
             K = feval(F,u);
             r = r + dt*(-r + K)./tau + sqrt(dt)*sigma*randn(2*N,1);
@@ -187,9 +187,7 @@ for igain = 1 : length(Gains)
           end
           
           rE = R;
-          rI = Ri;
-          %           z  = rE + 1i*rI;
-          
+          rI = Ri;          
           clear R Ri rI
           
           % FC matrix
@@ -215,33 +213,32 @@ for igain = 1 : length(Gains)
             f = fnew;
             
           end
-          
+
           out.alphapow(:,tr) = squeeze(mean(PSD(frequencies>=flp&frequencies<=fhi,:,:),1));
           
+          % ----------------------------------
+          % WAVELET ANALYSIS
+          % ----------------------------------
+          for j=1:nseg
+            dloc2=rE((j-1)*n_shift+1:(j-1)*n_shift+n_win,:)';
+            dataf(j,:)=abs(dloc2*wavelet).^2; 
+          end
+          out.rc_wl = corr(dataf);
+          out.rc_wl_cov = cov(dataf);
+          % ----------------------------------
           % EXTRACT PEAK FREQ
           % ---------------------------
           [~,peak_idx]=max(smooth(mean(PSD(f>3,:),2),20));
           out.peakfreq = f(peak_idx+find(f<4,1,'last'));
           clear PSD
           
-          flp = 9;           % lowpass frequency of filter
-          fhi = 13;
-          
-          k     = 4;                  % 2nd order butterworth filter
-          fnq   = 1/(2*resol);       % Nyquist frequency
-          Wn    = [flp/fnq fhi/fnq]; % butterworth bandpass non-dimensional frequency
-          [bfilt,afilt] = butter(k,Wn);
-          
-          % COMPUTE DFA, EXTRACT HURST
+          % ENVELOPE CORRELATIONS
           % ---------------------------
-          env = abs(hilbert(filtfilt(bfilt,afilt,rE)));
-          
-          % COMPUTE CORRELATIONS BASED ON ENV
-          % ---------------------------
-          % Alpha range
-          % ---------------------------
+          env             = abs(hilbert(filtfilt(bfilt,afilt,rE)));
           rc              = corrcoef(env.^2);
           out.FC_env      = out.FC_env + single(rc./nTrials);
+          out.COV_env     = out.COV_env + single(rc./nTrials);
+          % ---------------------------
           
           clear rc fc_env
         end

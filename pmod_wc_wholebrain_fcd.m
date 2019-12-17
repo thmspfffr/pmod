@@ -28,10 +28,10 @@ N_workers   = 4;
 % VERSION 3: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
 % -------------------------------------------------------------------------
 v           = 2;
-Ies         = -3.5:0.025:-0.5;
-Iis         = -4.5:0.025:-1.5;
-Gg          = 2;
-Gains       = [0 0.025:0.025:0.7 -0.025:-0.025:-0.7];
+Ies         = -4:0.05:-1;
+Iis         = -5:0.05:-2;
+Gg          = 1.5;
+Gains       = [-0.2:0.05:0.5];
 nTrials     = 1;
 tmax        = 67000;  % in units of tauE, this is 10 minutes
 EC          = 0;
@@ -99,10 +99,10 @@ fnq   = 1/(2*delt);           % Nyquist frequency
 Wn    = [flp/fnq fhi/fnq];    % butterworth bandpass non-dimensional frequency
 [bfilt,afilt] = butter(k,Wn);
 
-p=gcp('nocreate');
-if isempty(p)
-  parpool(N_workers);
-end
+% p=gcp('nocreate');
+% if isempty(p)
+%   parpool(N_workers);
+% end
 
 % FCD
 seglen    = round(60*(1/resol));
@@ -120,22 +120,22 @@ for igain = 1 : length(Gains)
       %       if tp_parallel(fn,'~/pmod/proc/',1,0)
       %         continue
       %       end
-      
-      for iiis = 1: 8%length(Iis)
-        out(iiis).FC_env  	= zeros(N,N);
-        out(iiis).Cee       = zeros(1,1);
-        out(iiis).CeeSD     = zeros(2,1);
-        out(iiis).FC_env    = zeros(N,N);
-        out(iiis).Cee_env   = zeros(1,1);
-        out(iiis).CeeSD_env = zeros(2,1);
-        out(iiis).Ie        = zeros(1,1);
-        out(iiis).Ii        = zeros(1,1);
-        out(iiis).Gain      = zeros(1,1);
-        out(iiis).alphapow  = zeros(76,1);
-        out(iiis).peakfreq  = zeros(1,1);
-        out(iiis).KOPsd     = zeros(1,1);
-        out(iiis).KOPmean   = zeros(1,1);
-      end
+%       
+%       for iiis = 1: 8%length(Iis)
+%         out(iiis).FC_env  	= zeros(N,N);
+%         out(iiis).Cee       = zeros(1,1);
+%         out(iiis).CeeSD     = zeros(2,1);
+%         out(iiis).FC_env    = zeros(N,N);
+%         out(iiis).Cee_env   = zeros(1,1);
+%         out(iiis).CeeSD_env = zeros(2,1);
+%         out(iiis).Ie        = zeros(1,1);
+%         out(iiis).Ii        = zeros(1,1);
+%         out(iiis).Gain      = zeros(1,1);
+%         out(iiis).alphapow  = zeros(76,1);
+%         out(iiis).peakfreq  = zeros(1,1);
+%         out(iiis).KOPsd     = zeros(1,1);
+%         out(iiis).KOPmean   = zeros(1,1);
+%       end
       
       for iiis = 1: 4%length(Iis)
         fprintf('Gain%d, Coupling%d, Ie%d, Ii%d...\n',igain,iG,iies,iiis)
