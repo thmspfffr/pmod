@@ -1,64 +1,48 @@
-%% pmod_wc_wholebrain_final
+%% pmod_wc_wholebrain_fcd
 % Stochastic simulation of 2*N WC nodes during "rest"
-%--------------------------------------------------------------------------
+%-------------------------------------------------------------------------- 
 
-clear all
-
-outdir = '~/pmod/proc/';
-
-N_workers   = 4;
-
-% 29-05-2018: fit E and I through resting state recordings. Then obtain
-% changes in E and I due to task from recordings and keep those parameters
-% fixed for the drug simulations. Vary excitability and gain for the drug
-% recordings.
+clear
 
 %--------------------------------------------------------------------------
-% VERSION 1: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
+% VERSION 1: DETERMINE GLOBAL COUPLING PARAMETER
 % %------------------------------------------------------------------------
-% v           = 1;
-% Ies         = -3.5:0.05:-0.5;
-% Iis         = -4.5:0.05:-1.5;
-% Gg          = 0:0.25:3;
-% Gains       = [-0.5:0.1:0.5];
-% nTrials     = 1;
-% tmax        = 65000;  % in units of tauE
-% EC          = 0;
+v           = 1;
+Ies         = -4:0.05:-1;
+Iis         = -5:0.05:-2;
+Gg          = 0.1:0.1:1.5;
+Gains       = 0;
+nTrials     = 1;
+tmax        = 67000;  % in units of tauE
+EC          = 0;
 % -------------------------------------------------------------------------
-% VERSION 3: 20-10-2018: DETERMINE GLOBAL COUPLING PARAMETER
-% -------------------------------------------------------------------------
+% VERSION 2: SAME AS ABOVE, BUT INCLUDING FCD ON FIRING RATES
+% %------------------------------------------------------------------------
 v           = 2;
 Ies         = -4:0.05:-1;
 Iis         = -5:0.05:-2;
-Gg          = 1.5;
-Gains       = [-0.2:0.05:0.5];
+Gg          = 0.1:0.1:1.5;
+Gains       = 0;
 nTrials     = 1;
-tmax        = 67000;  % in units of tauE, this is 10 minutes
+tmax        = 67000;  % in units of tauE
 EC          = 0;
-%--------------------------------------------------------------------------
+% -------------------------------------------------------------------------
 
-% EXCLUDE CERTAIN REGIONS - BCN ordering
+% EXCLUDE CERTAIN REGIONS - BCN layout
+% ------------------
 k = 1 : 90;
 exclude_bcn = [11 15 21 36 37 38 39 52 53 54 55 70 76 80];
 include_bcn = find(~ismember(k,exclude_bcn));
 % ------------------
 
 % load connectome
-if EC
-  load ~/pmod/matlab/EC.mat %Matt_EC
-  C = EC;
-else
-  load ~/sc90.mat %Bea SC
-  C = SC;
-end
-
+load ~/sc90.mat %Bea SC
+C = SC;
 C = C/max(C(C>0));
 C = C(include_bcn,include_bcn);
 N = size(C,1);
 
-addpath ~/Documents/MATLAB/Colormaps/'Colormaps (5)'/Colormaps/
 addpath ~/pconn/matlab
-addpath ~/Documents/MATLAB/cbrewer/cbrewer/
 %--------------------------------------------------------------------------
 % PARAMETER DEFINITIONS
 %--------------------------------------------------------------------------
@@ -68,14 +52,14 @@ wII   = 4;
 wIE   = 16;
 wEI   = 12;
 wEE   = 12;
-
+% time constants
 tauE          = 1;
 tauI          = 2;
 tau           = zeros(2*N,1);
 tau(1:N)      = tauE;
 tau(N+1:2*N)  = tauI;
 
-dt=0.02;
+dt=0.01;
 tspan=0:dt:tmax;
 L = length(tspan);
 clear tspan
@@ -86,58 +70,37 @@ tauEsec   = 0.009; % in seconds
 resol     = ds*dt*tauEsec;
 
 sigma = 0.0005;
-%Qn = (sigma*dt)^2*eye(2*N);
 
 isub = find( triu(ones(N)) - eye(N) );
-
-% ALPHA FILTER
-flp = 9;                      % lowpass frequency of filter
-fhi = 13;
-delt  = resol;                % sampling interval
-k     = 4;                    % 2nd order butterworth filter
-fnq   = 1/(2*delt);           % Nyquist frequency
-Wn    = [flp/fnq fhi/fnq];    % butterworth bandpass non-dimensional frequency
-[bfilt,afilt] = butter(k,Wn);
-
-% p=gcp('nocreate');
-% if isempty(p)
-%   parpool(N_workers);
-% end
-
-% FCD
-seglen    = round(60*(1/resol));
-segshift  = round(2*(1/resol));
-% nseg      = floor((size(env,1)-seglen)/segshift+1);
 mask      = logical(tril(ones(76,76),-1));
+
+% ----------------
+% WAVELETS
+% ----------------
+[wavelet,f]=tp_mkwavelet(11.3137,0.5,(1/resol));
+delta_time = 6/pi./(f(2)-f(1));
+delta_time = round(delta_time*1000)/1000;
+t_shift    = delta_time/2;
+n_win      = round(delta_time*(1/resol));
+n_shift    = round(t_shift*(1/resol));
+nseg=floor((L/10-n_win)/n_shift+1);
 
 %%
 for igain = 1 : length(Gains)
   for iG = 1 : length(Gg)
     for iies = 1: length(Ies)
-      iies
-      
-      fn = sprintf('pmod_wc_wholebrain_fcd_Ie%d_G%d_gain%d_v%d',iies,iG,igain,v);
-      %       if tp_parallel(fn,'~/pmod/proc/',1,0)
-      %         continue
-      %       end
-%       
-%       for iiis = 1: 8%length(Iis)
-%         out(iiis).FC_env  	= zeros(N,N);
-%         out(iiis).Cee       = zeros(1,1);
-%         out(iiis).CeeSD     = zeros(2,1);
-%         out(iiis).FC_env    = zeros(N,N);
-%         out(iiis).Cee_env   = zeros(1,1);
-%         out(iiis).CeeSD_env = zeros(2,1);
-%         out(iiis).Ie        = zeros(1,1);
-%         out(iiis).Ii        = zeros(1,1);
-%         out(iiis).Gain      = zeros(1,1);
-%         out(iiis).alphapow  = zeros(76,1);
-%         out(iiis).peakfreq  = zeros(1,1);
-%         out(iiis).KOPsd     = zeros(1,1);
-%         out(iiis).KOPmean   = zeros(1,1);
-%       end
-      
-      for iiis = 1: 4%length(Iis)
+      for iiis = 1: length(Iis)
+
+        if ~exist(sprintf('~/pmod/proc/fcd/v%d/',v))
+          mkdir(sprintf(['~/pmod/proc/fcd/' 'v%d'],v));
+        end
+        outdir = sprintf(['~/pmod/proc/fcd/v%d/'],v);
+
+        fn = sprintf('pmod_wc_wholebrain_fcd_Ie%d_Ii%d_G%d_gain%d_v%d',iies,iiis,iG,igain,v);
+        if tp_parallel(fn,outdir,1,0)
+          continue
+        end
+        
         fprintf('Gain%d, Coupling%d, Ie%d, Ii%d...\n',igain,iG,iies,iiis)
         
         tic
@@ -146,14 +109,15 @@ for igain = 1 : length(Gains)
         %--------------------
         % Control params.
         %--------------------
-        out(iiis).Ie = Ies(iies);
-        out(iiis).Ii = Iis(iiis);
-        out(iiis).Gain = Gains(igain);
+        out.Ie = Ies(iies);
+        out.Ii = Iis(iiis);
+        out.Gain = Gains(igain);
+        out.coupl = g;
         
         % Working point:
         Io          = zeros(2*N,1);
-        Io(1:N)     = out(iiis).Ie;
-        Io(N+1:2*N) = out(iiis).Ii;
+        Io(1:N)     = out.Ie;
+        Io(N+1:2*N) = out.Ii;
         
         % transfer function:
         gE = 1 + Gains(igain);
@@ -198,15 +162,6 @@ for igain = 1 : length(Gains)
           end
           
           rE = R;
-          rI = Ri;
-          z  = rE + 1i*rI;
-          
-          % KURAMOTO PARAMETERS
-          % ---------------------
-          ku                      = sum(z,2)/N;
-          KOP                     = abs(ku);
-          out(iiis).KOPsd(tr,1)   = std(KOP);
-          out(iiis).KOPmean(tr,1) = mean(KOP);
           
           % FC matrix
           % ---------------------
@@ -230,77 +185,74 @@ for igain = 1 : length(Gains)
             
           end
           
-          out(iiis).alphapow(:,tr) = squeeze(mean(PSD(frequencies>=flp&frequencies<=fhi,:,:),1));
+          [wavelet,~,opt] = tp_mkwavelet(11.3137,0.5,(1/resol));
+          nseg=floor((L/10-opt.n_win)/opt.n_shift+1);
+%         
+%           out.alphapow(:,tr) = squeeze(mean(PSD(frequencies>=flp&frequencies<=fhi,:,:),1));
           
           % EXTRACT PEAK FREQ
           % ---------------------------
-          [~,peak_idx]=max(smooth(mean(PSD(f>3,:),2),20));
-          out(iiis).peakfreq = f(peak_idx+find(f<4,1,'last'));
-          
-          % COMPUTE DFA, EXTRACT HURST
-          % ---------------------------
-          hilb    = hilbert(filtfilt(bfilt,afilt,rE));
-          phase   = angle(hilb);
-          r       = abs(sum(exp(i*phase),2)/N);
-          
-          env = abs(hilbert(filtfilt(bfilt,afilt,rE))).^2;
-          nseg = floor((size(env,1)-seglen)/segshift+1);
-          
-          for iseg = 1 : nseg
-            dloc = env((iseg-1)*segshift+1:(iseg-1)*segshift+seglen,:);
-            r_env(:,:,iseg) = corrcoef(dloc);
+          [~,peak_idx]=max(smooth(mean(PSD(f>4,:),2),20));
+          out.peakfreq = f(peak_idx+find(f<4,1,'last'));
+                    
+          for j=1:nseg
+            dloc2=rE((j-1)*n_shift+1:(j-1)*n_shift+n_win,:)';
+            dataf(j,:)=abs(dloc2*wavelet).^2;
+            seg_data(:,:,j) = dloc2;
           end
+          out.rc_wl = corr(dataf);
+          out.rc_wl_cov = cov(dataf);
+          
+          % 60s window length, 40s overlap (Deco et al., 2017, Sci Rep)
+          segleng = floor(40/(size(wavelet,1)*(resol)));
+          segshift = floor(20/(size(wavelet,1)*(resol)));
+          nseg = floor((size(dataf,1)-segleng)/segshift+1);
+                    
+          for iseg = 1 : nseg
+            dloc = dataf((iseg-1)*segshift+1:(iseg-1)*segshift+segleng,:);
+            r_env(:,:,iseg) = corrcoef(dloc);
+            dloc = seg_data(:,:,(iseg-1)*segshift+1:(iseg-1)*segshift+segleng);
+            dloc = reshape(dloc,[76 opt.n_win*segleng]);
+            r_env_fr(:,:,iseg)=corrcoef(dloc');
+          end
+          
+          
           for iseg = 1 : nseg
             for jseg = 1 : nseg
               tmp1 = r_env(:,:,iseg);
               tmp2 = r_env(:,:,jseg);
-              out(iiis).fcd(iseg,jseg) = corr(tmp1(mask),tmp2(mask));
+              out.fcd_env(iseg,jseg) = corr(tmp1(mask),tmp2(mask));
+              tmp1 = r_env_fr(:,:,iseg);
+              tmp2 = r_env_fr(:,:,jseg);
+              out.fcd_env_fr(iseg,jseg) = corr(tmp1(mask),tmp2(mask));
             end
           end
           
-          % COMPUTE CORRELATIONS BASED ON ENV
-          % ---------------------------
-          % Alpha range
-          % ---------------------------
-          rc                  = corrcoef(env);
-          out(iiis).FC_env  	= single(out(iiis).FC_env) + single(rc/nTrials);
-          fc_env              = rc(isub);
-          out(iiis).Cee_env   = out(iiis).Cee_env + mean(fc)/nTrials;
-          out(iiis).CeeSD_env	= out(iiis).CeeSD_env + var(fc)/nTrials;
-          
-          % COMPUTE FCD
+          % COMPUTE FCD BASED ON FIRING RATES
           % ---------------------------
           
+
           
-          
-          %           clear rc fc_env
-          % ---------------------------
-          % Beta filtered
-          % ---------------------------
-          %           rc                  = corrcoef(env_beta);
-          %           out.FC_env_beta     = single(out.FC_env) + single(rc/nTrials);
-          %           fc_env              = rc(isub);
-          %           out.Cee_env_beta    = out.Cee_env + mean(fc)/nTrials;
-          %           out.CeeSD_env_beta  = out.CeeSD_env + var(fc)/nTrials;
-          % ---------------------------
-          
-          %           smpd; clear rE rI env fc_env rc fc env
           toc
         end
-      end
-      save(sprintf('~/pmod/proc/%s.mat',fn),'out')
-      
-      % make sure file is saved
-      while 1
-        try
-          load(sprintf('~/pmod/proc/%s.mat',fn))
-          break
-        catch me
-          save(sprintf('~/pmod/proc/%s.mat',fn),'out')
+        
+        save([outdir sprintf('%s.mat',fn)],'out')
+        
+%         make sure file is saved
+        while 1
+          try
+            load([outdir sprintf('%s.mat',fn)])
+            break
+          catch me
+            save([outdir sprintf('%s.mat',fn)],'out')
+          end
         end
+        
+        clear out dataf nseg r_env
+        
+        tp_parallel(fn,outdir,0)
+        
       end
-      
-      tp_parallel(fn,'~/pmod/proc/',0)
     end
   end
 end

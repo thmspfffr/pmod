@@ -9,7 +9,7 @@ clear
 % Ies         = -4:0.05:-1;
 % Iis         = -5:0.05:-2;
 % Gg          = 0:0.05:2;
-% Gains       = [0 0.45]; 
+% Gains       = [0]; 
 % nTrials     = 1;
 % tmax        = 6500;  % in units of tauE
 % EC          = 0;
@@ -17,11 +17,23 @@ clear
 %-------------------------------------------------------------------------
 % VERSION 1: 20-10-2018
 % %-------------------------------------------------------------------------
-v           = 2;
+% v           = 2;
+% Ies         = -4:0.025:-1;
+% Iis         = -5:0.025:-2;
+% Gg          = 1.4;
+% Gains       = [0:0.05:0.6 -0.2:0.05:-0.05 0.65:0.05:1]; 
+% nTrials     = 1;
+% tmax        = 6500;  % in units of tauE
+% EC          = 0;
+% dt          = 0.01;
+%-------------------------------------------------------------------------
+% VERSION 3: 27/01/2020
+% %-------------------------------------------------------------------------
+v           = 3;
 Ies         = -4:0.025:-1;
 Iis         = -5:0.025:-2;
-Gg          = 1.4;
-Gains       = [0:0.05:0.6 -0.2:0.05:-0.05 0.65:0.05:1]; 
+Gg          = 1.2;
+Gains       = [-0.1:0.02:0.3]; 
 nTrials     = 1;
 tmax        = 6500;  % in units of tauE
 EC          = 0;
@@ -33,11 +45,10 @@ dt          = 0.01;
 % Gains = [0 0.025:0.025:0.4 -0.025:-0.025:-0.3 ]
 v_sim = v;
 % connectivity, AAL
-v_conn =  25;
+v_conn =  33;
 addpath ~/Documents/MATLAB/Colormaps/'Colormaps (5)'/Colormaps/
 
 set(groot,{'DefaultAxesXColor','DefaultAxesYColor','DefaultAxesZColor'},{'k','k','k'})
-Gs = 1;
 
 % ---------
 % LOAD EMPIRICAL DFA (LCMV)
@@ -65,8 +76,8 @@ load ~/sc90.mat
 SC = SC(include_bcn,include_bcn);
 
 % ifoi = 1;
-fc_rest = squeeze(nanmean(nanmean(cleandat(1:90,1:90,:,1,1,2),3),6));
-fc_task = squeeze(nanmean(nanmean(cleandat(1:90,1:90,:,1,2,2),3),6));
+fc_rest = squeeze(nanmean(nanmean(cleandat(1:90,1:90,:,1,1,[3 4 5 6]),3),6));
+fc_task = squeeze(nanmean(nanmean(cleandat(1:90,1:90,:,1,2,[3 4 5 6]),3),6));
 
 para          = [];
 para.transfer = 'to_bcn';
@@ -91,64 +102,136 @@ for isubj = 1 : 28
 end
 
 k = [0 0];
+
 %%
+% v_sim=3
 if ~exist(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_all_v%d.mat',v_sim,v_sim))
   
   for iies = 1 : length(Ies)
     iies
     for iG = 1:length(Gg)
       for igain = 1:length(Gains)
-        for iiis = 1 : length(Iis)
+        for iiis = 1 :length(Iis)
           
           load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,iies,iiis,iG,igain,v_sim))
-%           out.peakfreq
           
-          outp.fc_sim_env_tmp = out.rc_wl;
-          %             outp.fc_sim_env_ad = out(iiis).FC_env_ad;
+          outp.fc_sim_fr_tmp = out.fc_FR;
           
-          [outp.r_env_rest_corr(iies,iiis,iG,igain), outp.p_env_rest_corr(iies,iiis,iG,igain)]=corr(outp.fc_sim_env_tmp(mask),fc_rest(mask));
-          [outp.r_env_task_corr(iies,iiis,iG,igain), outp.p_env_task_corr(iies,iiis,iG,igain)]=corr(outp.fc_sim_env_tmp(mask),fc_task(mask));
+          [outp.r_fr_rest_corr(iies,iiis,iG,igain), outp.p_env_rest_corr(iies,iiis,iG,igain)]=corr(outp.fc_sim_fr_tmp(mask),fc_rest(mask));
+          [outp.r_fr_task_corr(iies,iiis,iG,igain), outp.p_env_task_corr(iies,iiis,iG,igain)]=corr(outp.fc_sim_fr_tmp(mask),fc_task(mask));          
           
-          %             [outp.r_env_rest_corr_ad(iies,iiis,iG,igain), outp.p_env_rest_corr_ad(iies,iiis,iG,igain)]=corr(outp.fc_sim_env_ad(mask),fc_rest(mask));
+          [outp.r_fr_rest_indiv_corr(:,iies,iiis,iG,igain), outp.p_env_rest_indiv_corr(:,iies,iiis,iG,igain)]=corr(outp.fc_sim_fr_tmp(mask),fc_rest_indiv);
+          [outp.r_fr_task_indiv_corr(:,iies,iiis,iG,igain), outp.p_env_task_indiv_corr(:,iies,iiis,iG,igain)]=corr(outp.fc_sim_fr_tmp(mask),fc_task_indiv);
           
+          outp.dist_fr_rest(iies,iiis,iG,igain) = 1-(outp.r_fr_rest_corr(iies,iiis,iG,igain)-(mean(fc_rest(mask))-mean(outp.fc_sim_fr_tmp(mask))).^2);
+          outp.dist_fr_task(iies,iiis,iG,igain) = 1-(outp.r_fr_task_corr(iies,iiis,iG,igain)-(mean(fc_task(mask))-mean(outp.fc_sim_fr_tmp(mask))).^2);
           
-          [outp.r_env_rest_indiv_corr(:,iies,iiis,iG,igain), outp.p_env_rest_indiv_corr(:,iies,iiis,iG,igain)]=corr(outp.fc_sim_env_tmp(mask),fc_rest_indiv);
-          [outp.r_env_task_indiv_corr(:,iies,iiis,iG,igain), outp.p_env_task_indiv_corr(:,iies,iiis,iG,igain)]=corr(outp.fc_sim_env_tmp(mask),fc_task_indiv);
+          outp.dist_fr_rest_indiv(:,iies,iiis,iG,igain) = 1-(squeeze(outp.r_fr_rest_indiv_corr(:,iies,iiis,iG,igain))'-(squeeze(mean(fc_rest_indiv))-mean(outp.fc_sim_fr_tmp(mask))).^2);
+          outp.dist_fr_task_indiv(:,iies,iiis,iG,igain) = 1-(squeeze(outp.r_fr_task_indiv_corr(:,iies,iiis,iG,igain))'-(squeeze(mean(fc_task_indiv))-mean(outp.fc_sim_fr_tmp(mask))).^2);
           
-          outp.dist_rest(iies,iiis,iG,igain) = 1-(outp.r_env_rest_corr(iies,iiis,iG,igain)-(mean(fc_rest(mask))-mean(outp.fc_sim_env_tmp(mask))).^2);
-          outp.dist_task(iies,iiis,iG,igain) = 1-(outp.r_env_task_corr(iies,iiis,iG,igain)-(mean(fc_task(mask))-mean(outp.fc_sim_env_tmp(mask))).^2);
-          
-          outp.dist_rest_indiv(:,iies,iiis,iG,igain) = 1-(squeeze(outp.r_env_rest_indiv_corr(:,iies,iiis,iG,igain))'-(squeeze(mean(fc_rest_indiv))-mean(outp.fc_sim_env_tmp(mask))).^2);
-          outp.dist_task_indiv(:,iies,iiis,iG,igain) = 1-(squeeze(outp.r_env_task_indiv_corr(:,iies,iiis,iG,igain))'-(squeeze(mean(fc_task_indiv))-mean(outp.fc_sim_env_tmp(mask))).^2);
-          
-          outp.fc_sim_env_mean(iies,iiis,iG,igain) = mean(outp.fc_sim_env_tmp(mask));
-          %             outp.fc_sim_env_mean_ad(iies,iiis,iG,igain) = mean( outp.fc_sim_env_ad(mask));
+          outp.fc_sim_fr_mean(iies,iiis,iG,igain) = mean(outp.fc_sim_fr_tmp(mask));
           
           outp.Ies(iies) = out.Ie;
           outp.Iis(iiis) = out.Ii;
           if isempty( out.peakfreq)
-            
              out.peakfreq = nan;
           end
           outp.peakfreq(iies,iiis,iG,igain) = out.peakfreq;
-          outp.alphapow(iies,iiis,iG,igain) = mean(out.alphapow);
+          outp.alphapow(iies,iiis,iG,igain) = mean(out.alphapow);   
+          
+          % DO THE SAME AS ABOVE WITH ENVELOPES
+          % ------------------------
+          
+          outp.fc_sim_env_tmp = out.rc_wl;
+          
+          [outp.r_env_rest_corr(iies,iiis,iG,igain), outp.p_env_rest_corr(iies,iiis,iG,igain)]=corr(outp.fc_sim_env_tmp(mask),fc_rest(mask));
+          [outp.r_env_task_corr(iies,iiis,iG,igain), outp.p_env_task_corr(iies,iiis,iG,igain)]=corr(outp.fc_sim_env_tmp(mask),fc_task(mask));          
+          
+          [outp.r_env_rest_indiv_corr(:,iies,iiis,iG,igain), outp.p_env_rest_indiv_corr(:,iies,iiis,iG,igain)]=corr(outp.fc_sim_env_tmp(mask),fc_rest_indiv);
+          [outp.r_env_task_indiv_corr(:,iies,iiis,iG,igain), outp.p_env_task_indiv_corr(:,iies,iiis,iG,igain)]=corr(outp.fc_sim_env_tmp(mask),fc_task_indiv);
+          
+          outp.dist_env_rest(iies,iiis,iG,igain) = 1-(outp.r_env_rest_corr(iies,iiis,iG,igain)-(mean(fc_rest(mask))-mean(outp.fc_sim_env_tmp(mask))).^2);
+          outp.dist_env_task(iies,iiis,iG,igain) = 1-(outp.r_env_task_corr(iies,iiis,iG,igain)-(mean(fc_task(mask))-mean(outp.fc_sim_env_tmp(mask))).^2);
+          
+          outp.dist_env_rest_indiv(:,iies,iiis,iG,igain) = 1-(squeeze(outp.r_env_rest_indiv_corr(:,iies,iiis,iG,igain))'-(squeeze(mean(fc_rest_indiv))-mean(outp.fc_sim_env_tmp(mask))).^2);
+          outp.dist_env_task_indiv(:,iies,iiis,iG,igain) = 1-(squeeze(outp.r_env_task_indiv_corr(:,iies,iiis,iG,igain))'-(squeeze(mean(fc_task_indiv))-mean(outp.fc_sim_env_tmp(mask))).^2);
+          
+          outp.fc_sim_env_mean(iies,iiis,iG,igain) = mean(outp.fc_sim_env_tmp(mask));      
+          
         end
-        fclose all;
-        
       end
     end
   end
-  
+%   
   save(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_all_v%d.mat',v_sim,v_sim),'outp')
-
+% % 
 else
   load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_all_v%d.mat',v_sim,v_sim))
   load(sprintf('~/pmod/proc/detosc/v%d/pmod_wc_wholebrain_detosc_all_v%d.mat',v_sim,v_sim))
 end
 % osc1=osc1(1:121,1:121,:,:);
-clear cleandat
+% clear cleandat
 
 error('!')
+
+%% PEAK FREQUENCY
+
+igain = find(Gains==0);
+
+figure_w
+ax{1} = subplot(2,3,1);
+par=outp.peakfreq(:,:,:,igain);
+par(osc1(:,:,:,igain)>0)=nan;
+b=imagesc(par,[5 20]); colormap(plasma);
+set(b,'AlphaData',~isnan(par)); set(gca,'ydir','normal')
+
+ax{2} = subplot(2,3,2);
+b=imagesc(par>7.8814 & par<18.7452)
+set(b,'AlphaData',~isnan(par)); set(gca,'ydir','normal')
+
+
+for iax = [1 2 ]
+%   scatter(ax{4},idx(2),idx(1),20,'markerfacecolor','w','markeredgecolor','k')
+  if iax == 1
+    colormap(ax{iax},plasma)
+    xlabel(ax{iax},'Background input to I')
+    ylabel(ax{iax},'External input (to E');
+    set(ax{iax},'YTick',1:40:length(Ies ),'YTickLabels',num2cell(Ies(1:40:end)))
+    set(ax{iax},'XTick',1:40:length(Iis),'XTickLabels',num2cell(Iis(1:40:end)))
+  elseif iax == 2
+    colormap(ax{iax},plasma)
+    xlabel(ax{iax},'Background input to I')
+    ylabel(ax{iax},'Background input to E');
+    set(ax{iax},'YTick',1:40:length(Ies ),'YTickLabels',num2cell(Ies(1:40:end)))
+    set(ax{iax},'XTick',1:40:length(Iis),'XTickLabels',num2cell(Iis(1:40:end)))
+  elseif iax == 3
+    colormap(ax{iax},plasma)
+    xlabel(ax{iax},'Background input to I')
+    ylabel(ax{iax},'Background input to E');
+    set(ax{iax},'YTick',1:40:length(Ies ),'YTickLabels',num2cell(Ies(1:40:end)))
+    set(ax{iax},'XTick',1:40:length(Iis),'XTickLabels',num2cell(Iis(1:40:end)))
+  elseif iax ==4
+    colormap(ax{iax},plasma)
+    xlabel(ax{iax},'Background input to I')
+    ylabel(ax{iax},'Background input to E')
+    set(ax{iax},'YTick',1:40:length(Ies ),'YTickLabels',num2cell(Ies(1:40:end)))
+    set(ax{iax},'XTick',1:40:length(Iis),'XTickLabels',num2cell(Iis(1:40:end)))
+  end
+  
+  tp_editplots(ax{iax})
+  
+%   c = colorbar(ax{iax}); axis(ax{iax},'tight')
+%   c.Ticks = [min(c.Limits) max(c.Limits)];
+%   if iax == 3
+%     c.TickLabels = {'0';'1'};
+%   end
+  axis(ax{iax},[1 length(Iis) 1 length(Ies) ])
+%   c.Ticks = [min(c.Ticks) max(c.Ticks)];
+  axis(ax{iax},'square')
+  
+end
+
+print(gcf,'-depsc2',sprintf('~/pmod/plots/pmod_final_fitting_peakfreq_igain%d_v%d.eps',igain,v_sim))
 
 %%
 lim = 121;
@@ -156,122 +239,134 @@ lim = 121;
 oscthres = 0;
 nancol = [0.97 0.97 0.97];
 
-
 clear par ax
 figure; set(gcf,'color','w')
 
-igain = 1;
+igain = 6;
 iG = 1;
-osc = osc1(1:lim,1:lim,iG);
+osc = osc1(1:lim,1:lim,iG,igain);
 
 % plot peak freq model
-ax{1} = subplot(2,2,1); hold on
-par = outp.fc_sim_env_mean(1:lim,1:lim,iG,igain);
-par(osc>oscthres)=nan;
+ax{1} = subplot(3,2,1); hold on
+par = outp.fc_sim_fr_mean(1:lim,1:lim,iG,igain);
+par(osc==1)=nan;
 b=imagesc(par,[0 0.02]); set(b,'AlphaData',~isnan(par))
-title('Mean FC (Envelopes)');
-
-% % plot corr fc_model with fc_meg
-% ax{2} = subplot(2,2,2); hold on
-% par = outp.r_env_rest_corr(1:lim,1:lim,iG,igain);
-% par(osc>oscthres)=nan;
-% b=imagesc(par,[0 0.5]); set(b,'AlphaData',~isnan(par))
-% title('r(FC_{sim},FC_{MEG})');
 
 % plot corr fc_model with fc_meg
-ax{3} = subplot(2,2,2); hold on
+ax{3} = subplot(3,2,3); hold on
+par = outp.r_fr_rest_corr(1:lim,1:lim,iG,igain);
+par(osc==1)=nan;
+b=imagesc(par,[0 0.5]); set(b,'AlphaData',~isnan(par))
+% title('r(FC_{im},FC_{MEG})');
+
+% plot peak freq model
+ax{2} = subplot(3,2,2); hold on
+par = outp.fc_sim_env_mean(1:lim,1:lim,iG,igain);
+par(osc==1)=nan;
+b=imagesc(par,[0 0.02]); set(b,'AlphaData',~isnan(par))
+
+% plot corr fc_model with fc_meg
+ax{4} = subplot(3,2,4); hold on
 par = outp.r_env_rest_corr(1:lim,1:lim,iG,igain);
-par(osc>oscthres)=nan;
+par(osc==1)=nan;
 b=imagesc(par,[0 0.4]); set(b,'AlphaData',~isnan(par))
-title('r(FC_{sim},FC_{MEG})');
+% title('r(FC_{sim},FC_{MEG})');
 
-k=(par>prctile(par(:),99));
-clust = bwlabel(k,8);
-for iclust = 1 : max(clust(:))
-  n_clust(iclust)=sum(clust(:)==iclust);
-end
+% 
+% k=(par>prctile(par(:),99));
+% clust = bwlabel(k,8);
+% for iclust = 1 : max(clust(:))
+%   n_clust(iclust)=sum(clust(:)==iclust);
+% end
+% 
+% [~,k] = max(n_clust);
+% par = clust == k
+% m2 = par>0;
+% [i,j]= find(m2);
+% idx = round([mean(i) mean(j)]);
+% 
+% scatter(idx(2),idx(1),20,'markerfacecolor','w','markeredgecolor','k')
+% 
+% par = outp.dist_rest(:,:,iG,igain); par(osc>oscthres)=nan;
+% prc = prctile(reshape(par,[lim*lim 1 1]),1);
+% 
+% ax{4} = subplot(2,3,3); hold on
+% par = par<prc;
+% par(osc>oscthres)=0;
+% clust = bwlabel(par,8);
+% for iclust = 1 : max(clust(:))
+%   n_clust(iclust)=sum(clust(:)==iclust);
+% end
 
-[~,k] = max(n_clust);
-par = clust == k
-m2 = par>0;
-[i,j]= find(m2);
-idx = round([mean(i) mean(j)]);
+% [~,k] = max(n_clust);
+% par = clust == k
+% m2 = par>0;
+% par = double(par); par(par<1)=NaN;
+% b=imagesc(par,[0 1]); set(b,'AlphaData',~isnan(par))
+% title('Correlation: p-values (log10)');
 
-scatter(idx(2),idx(1),20,'markerfacecolor','w','markeredgecolor','k')
+% [i,j]= find(m2);
+% idx_avg = round([mean(i) mean(j)]);
 
-par = outp.dist_rest(:,:,iG,igain); par(osc>oscthres)=nan;
-prc = prctile(reshape(par,[lim*lim 1 1]),1);
-
-ax{4} = subplot(2,2,4); hold on
-par = par<prc;
-par(osc>oscthres)=0;
-clust = bwlabel(par,8);
-for iclust = 1 : max(clust(:))
-  n_clust(iclust)=sum(clust(:)==iclust);
-end
-
-[~,k] = max(n_clust);
-par = clust == k
-m2 = par>0;
-par = double(par); par(par<1)=NaN;
-b=imagesc(par,[0 1]); set(b,'AlphaData',~isnan(par))
-title('Correlation: p-values (log10)');
-
-[i,j]= find(m2);
-idx_avg = round([mean(i) mean(j)]);
-
-for iax = [1 3 4]
-  scatter(ax{4},idx(2),idx(1),20,'markerfacecolor','w','markeredgecolor','k')
+for iax = [1 2 3 4]
+%   scatter(ax{4},idx(2),idx(1),20,'markerfacecolor','w','markeredgecolor','k')
   if iax == 1
     colormap(ax{iax},plasma)
-    ylabel(ax{iax},'Excitatory input');
+    xlabel(ax{iax},'Background input to I')
+    ylabel(ax{iax},'Background input to E');
     set(ax{iax},'YTick',1:40:length(Ies ),'YTickLabels',num2cell(Ies(1:40:end)))
     set(ax{iax},'XTick',1:40:length(Iis),'XTickLabels',num2cell(Iis(1:40:end)))
   elseif iax == 2
+    xlabel(ax{iax},'Background input to I')
+    ylabel(ax{iax},'Background input to E');
     colormap(ax{iax},plasma)
     set(ax{iax},'YTick',1:40:length(Ies ),'YTickLabels',num2cell(Ies(1:40:end)))
     set(ax{iax},'XTick',1:40:length(Iis),'XTickLabels',num2cell(Iis(1:40:end)))
   elseif iax == 3
     colormap(ax{iax},plasma)
-    xlabel(ax{iax},'Inhibitory input')
-    ylabel(ax{iax},'Excitatory input');
+    xlabel(ax{iax},'Background input to I')
+    ylabel(ax{iax},'Background input to E');
     set(ax{iax},'YTick',1:40:length(Ies ),'YTickLabels',num2cell(Ies(1:40:end)))
     set(ax{iax},'XTick',1:40:length(Iis),'XTickLabels',num2cell(Iis(1:40:end)))
   elseif iax ==4
-    colormap(ax{iax},[nancol; 1 0 0])
-    xlabel(ax{iax},'Inhibitory input')
+    colormap(ax{iax},plasma)
+%     colormap(ax{iax},[nancol; 1 0 0])
+    xlabel(ax{iax},'Background input to I')
+    ylabel(ax{iax},'Background input to E');
     set(ax{iax},'YTick',1:40:length(Ies ),'YTickLabels',num2cell(Ies(1:40:end)))
     set(ax{iax},'XTick',1:40:length(Iis),'XTickLabels',num2cell(Iis(1:40:end)))
   end
   
   tp_editplots(ax{iax})
   
-  c = colorbar(ax{iax}); axis(ax{iax},'tight')
-  c.Ticks = [min(c.Limits) max(c.Limits)];
-  if iax == 3
-    c.TickLabels = {'0';'1'};
-  end
+%   c = colorbar(ax{iax}); axis(ax{iax},'tight')
+%   c.Ticks = [min(c.Limits) max(c.Limits)];
+%   if iax == 3
+%     c.TickLabels = {'0';'1'};
+%   end
   axis(ax{iax},[1 length(Iis) 1 length(Ies) ])
-  c.Ticks = [min(c.Ticks) max(c.Ticks)];
+%   c.Ticks = [min(c.Ticks) max(c.Ticks)];
   axis(ax{iax},'square')
   
 end
 
 set(gcf,'Renderer','Painters')
-print(gcf,'-depsc2',sprintf('~/pmod/plots/pmod_final_fitting_fc_v%d.eps',v_sim))
+print(gcf,'-depsc2',sprintf('~/pmod/plots/pmod_final_fitting_fc_frandenv_iG%d_v%d.eps',iG,v_sim))
 
-%% FIT INDIVIDUAL SUBJECTS
-% --------------------------------------
-% --------------------------------------
+%% FIT RESTING STATE PLACEBO 
+% (THROUGH CORRELATION OR DISTANCE)
+% ----------------------------------
+load ~/pmod/proc/numerical/ksdistance.mat
 
+% osc=permute(repmat(osc,[1 1 1 16 28]),[5,1,2,3,4]);
+% outp.r_fr_rest_indiv_corr(osc>0)=nan;
 clear idx par ax cnt idx_rest par
-
+lim = 121;
 iG         = 1; 
-igain      = 1;
+igain      = find(Gains==0);
 osc        = osc1(1:lim,1:lim,iG,igain);
 oscthresh  = 0;
-prc_thresh = 99;
-
+prc_thresh = 5;
 
 h=figure; set(gcf,'color','w')
 
@@ -280,9 +375,9 @@ for isubj = 1 : 28
   clear par bw
   
     clear k
-    par                 = squeeze(outp.r_env_rest_indiv_corr(isubj,1:lim,1:lim,iG,igain));    
-    par(osc>oscthresh)  = nan;
-    binmap              = par>prctile(par(:),prc_thresh);
+    par                 = squeeze(outp.dist_fr_rest_indiv(isubj,1:lim,1:lim,iG,igain));    
+    par(nanmean(osc1,4)>0)  = nan;
+    binmap              = par<prctile(par(:),prc_thresh);
     bw                  = bwlabel(binmap,8);
     cnt                 = [];
     
@@ -301,13 +396,40 @@ for isubj = 1 : 28
     [~,k(isubj)]       = max(cnt);
     par(bw==k(isubj))  = 1;
     par(bw~=k(isubj))  = 0;
-    r = squeeze(outp.r_env_rest_indiv_corr(isubj,1:lim,1:lim,iG,igain));
+    
+    r = squeeze(outp.dist_fr_rest_indiv(isubj,1:lim,1:lim,iG,igain));
     [i,kk]=find(par==1);
     idx(isubj,:) = round([mean(i) mean(kk)]);
-%     idx(isubj,:) = [round(sum(r(logical(par)).*i)/sum(r(logical(par)))) round(sum(r(par).*kk)/sum(r(par)))];
+    
+    % PLOT INDIVIDUAL SUBJECT FITTING RESULT
+    % ------------------------------------------------
+    if isubj == 1
+      k=figure_w; subplot(3,2,1)
+      par1 = par;
+      par1(par1==0)=nan;
+      imagesc(par1)
+      b=imagesc(par1,[0 0.4]); set(b,'AlphaData',~isnan(par1))
+      colormap(jet)
+
+      xlabel(gca,'Background input to I')
+      ylabel(gca,'Background input to E');
+      set(gca,'YTick',1:40:length(Ies ),'YTickLabels',num2cell(Ies(1:40:end)))
+      set(gca,'XTick',1:40:length(Iis),'XTickLabels',num2cell(Iis(1:40:end)),'ydir','normal')
+      tp_editplots
+
+      axis(gca,[1 length(Iis) 1 length(Ies) ])
+      axis(gca,'square')
+      
+      hold on
+      scatter(idx(isubj,2),idx(isubj,1),5,'o')
+print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_final_fitting_indivfitthresh_iG%d_v%d.pdf',igain,v))
+close
+    end
+    % ------------------------------------------------
+    
    % PLOT RESULT
   ax{1}   = subplot(6,5,isubj); hold on
-  par = squeeze(outp.dist_rest_indiv(isubj,1:lim,1:lim,iG,igain));
+  par = squeeze(outp.dist_fr_rest_indiv(isubj,1:lim,1:lim,iG,igain));
   par(osc>oscthresh)  = nan;
   b=imagesc(par,[0.6 1.4]); colormap(plasma)
   set(b,'AlphaData',~isnan(par))
@@ -326,265 +448,215 @@ save(sprintf('~/pmod/proc/pmod_final_fitting_indivfits_rest_v%d.mat',v_sim),'idx
 
 clear idx
 
-%% GET INDIV TASK PARAMETERS
 
-clear idx_task idx
-task_effect = 6;
-
-for isubj = 1:28
-idx_task.inh(isubj)= idx_rest.inh(isubj)+task_effect;
-  idx_task.exc(isubj)= idx_rest.exc(isubj)+task_effect;
-
-  
-end
-
-indiv_idx.rest = idx_rest;
-indiv_idx.task = idx_task;
-%%
-clear d
-[sorted_gains,ii]=sort(Gains);
-for igain = ii
-  
-  for isubj = 1 : 28
-    isubj
-  d(1,igain,isubj) = squeeze(outp.fc_sim_env_mean(round(idx_rest.exc(isubj)),round(idx_rest.inh(isubj)),:,igain)-outp.fc_sim_env_mean(round(idx_rest.exc(isubj)),round(idx_rest.inh(isubj)),:,1));
-  d(2,igain,isubj) = squeeze(outp.fc_sim_env_mean(round(idx_task.exc(isubj)),round(idx_task.inh(isubj)),:,igain)-outp.fc_sim_env_mean(round(idx_task.exc(isubj)),round(idx_task.inh(isubj)),:,1));
-  end
-end
-
-figure; set(gcf,'color','w');hold on
-plot(sorted_gains,nanmean(d(1,:,:),3))
-plot(sorted_gains,nanmean(d(2,:,:),3))
-line([-0.3 1.1],[0 0],'linestyle','--','color',[.5 .5 .5])
-axis([-0.3 1.1 -0.8 0.8]); tp_editplots
-%% PLOT REST AND TASK
-
-figure; set(gcf,'color','white')
-load redblue.mat
-
-ax{1} = subplot(2,2,1); hold on
-imagesc(zeros(lim,lim))
-set(gca,'ydir','normal')
-scatter(gca,idx_rest.inh,idx_rest.exc,25,'markerfacecolor','r','markeredgecolor','k');
-axis(ax{1},[1 lim 1 lim])
-set(ax{1},'YTick',1:40:length(Ies ),'YTickLabels',num2cell(Ies(1:40:end)))
-set(ax{1},'XTick',1:40:length(Iis),'XTickLabels',num2cell(Iis(1:40:end)))
-xlabel(ax{1},'Inhibitory input'); ylabel(ax{1},'Excitatory input');
-title('Indiv subjects')
-axis(ax{1},'square')
-tp_editplots; colormap([0.9 0.9 0.9])
-
-ax{2}= subplot(2,2,2); hold on
-
-imagesc(zeros(lim,lim))
-set(gca,'ydir','normal')
-scatter(gca,idx_task.inh,idx_task.exc,25,'markerfacecolor','y','markeredgecolor','k');
-axis(ax{2},[1 lim 1 lim])
-set(ax{2},'YTick',1:40:length(Ies ),'YTickLabels',num2cell(Ies(1:40:end)))
-set(ax{2},'XTick',1:40:length(Iis),'XTickLabels',num2cell(Iis(1:40:end)))
-xlabel(ax{2},'Inhibitory input'); ylabel(ax{1},'Excitatory input');
-title('Indiv subjects')
-axis(ax{2},'square')
-tp_editplots
-
-ax{3}= subplot(2,2,3); hold on
-imagesc(zeros(lim,lim))
-scatter(gca,round(nanmean(indiv_idx.rest.inh)),round(nanmean(indiv_idx.rest.exc)),35,'markerfacecolor','r','markeredgecolor','k');
-scatter(gca,round(nanmean(indiv_idx.task.inh)),round(nanmean(indiv_idx.task.exc)),35,'markerfacecolor','y','markeredgecolor','k');
-axis(ax{3},[1 lim 1 lim])
-set(ax{3},'YTick',1:40:length(Ies ),'YTickLabels',num2cell(Ies(1:40:end)))
-set(ax{3},'XTick',1:40:length(Iis),'XTickLabels',num2cell(Iis(1:40:end)))
-xlabel(ax{3},'Input to inhibitory population'); ylabel(ax{1},'Input to excitatory population');
-title('Indiv subjects')
-axis(ax{3},'square')
-tp_editplots
-
-% set(gca,'ydir','normal')
-print(gcf,'-depsc2',sprintf('~/pmod/plots/pmod_final_fitting_indivfits_taskandrest_v%d.eps',v_sim))
-
-save(sprintf('~/pmod/proc/pmod_final_fitting_indivfits_taskandrest_v%d.mat',v_sim),'indiv_idx')
 
 %% PLOT HIGH GAIN VS BASELINE GAIN
-Ies_ad_rest = -2.85;% -1.85]; 
-Iis_ad_rest = -3.50;% -2.2];
 
-Ies_ad_task = -1.85; 
-Iis_ad_task = -2.2;
+[Mu,ia,ic]=unique([idx_rest.inh' idx_rest.exc'],'rows','stable')
+c=accumarray(ic,1);
+cols = cbrewer('seq', 'YlOrRd', 12);
+cols = cols(4:end,:);
 
-for igain = 1:25
-  
-  
-  osc=osc1(:,:,:,1);
-  par = outp.fc_sim_env_mean(:,:,:,igain)-outp.fc_sim_env_mean(:,:,:,1);
-  par(osc>oscthres)=0;
+SUBJ = 1:28; %SUBJ(17)=[];
+clear fc_mod_rest fc_mod_task
 
-  figure; set(gcf,'color','w'); hold on
-  subplot(2,2,1); hold on
-  b=imagesc(Iis,Ies,par,[-0.03 0.03]); set(gca,'ydir','normal');  set(b,'AlphaData',~isnan(par))
-  hold on
-  colormap(redblue); axis square
-  scatter(gca,Iis(round(nanmean(indiv_idx.rest.inh))),Ies(round(nanmean(indiv_idx.rest.exc))),35,'markerfacecolor','w','markeredgecolor','k');
-  scatter(gca,Iis(round(nanmean(indiv_idx.task.inh))),Ies(round(nanmean(indiv_idx.task.exc))),35,'markerfacecolor','y','markeredgecolor','k');
-%   scatter(gca,Iis(idx_rest.inh),Ies(idx_rest.exc),10,'markerfacecolor','r','markeredgecolor','k');
+igain = find(Gains==0);
 
-  set(gca,'YTick',Ies(1:40:end),'YTickLabels',num2cell(Ies(1:40:end)))
-  set(gca,'XTick',Iis(1:40:end),'XTickLabels',num2cell(Iis(1:40:end)))
-  axis([-5 -2 -4 -1]); xlabel('Input to I');  ylabel('Input to E'); 
-  tp_editplots
+inh_avg(1) = round(mean(idx_rest.inh(SUBJ)));
+exc_avg(1) = round(mean(idx_rest.exc(SUBJ)));
+
+inh_avg(2) = round(mean(idx_rest.inh(SUBJ)))+15;
+exc_avg(2) = round(mean(idx_rest.exc(SUBJ)))+10;
+
+h = figure_w; 
+
+subplot(2,3,1); hold on
+par = outp.fc_sim_fr_mean(:,:,:,igain);
+par(osc1(:,:,:,igain)==1)=nan;
+% 
+% b=imagesc(par,[0 0.02]); colormap(plasma)
+% set(b,'AlphaData',~isnan(par))
+
+for isubj = 1:size(Mu,1)
   
-  subplot(2,2,2); hold on
-  b=imagesc(Iis,Ies,par,[-0.03 0.03]); set(gca,'ydir','normal');  set(b,'AlphaData',~isnan(par))
-  hold on
-  colormap(redblue); axis square
-  scatter(gca,Iis(round(nanmean(indiv_idx.rest.inh))),Ies(round(nanmean(indiv_idx.rest.exc))),35,'markerfacecolor','w','markeredgecolor','k');
-  scatter(gca,Iis(round(nanmean(indiv_idx.task.inh))),Ies(round(nanmean(indiv_idx.task.exc))),35,'markerfacecolor','y','markeredgecolor','k');
-%   scatter(gca,Iis(idx_task.inh),Ies(idx_task.exc),10,'markerfacecolor','y','markeredgecolor','k');
-  tp_editplots
-  set(gca,'YTick',Ies(1:40:end),'YTickLabels',num2cell(Ies(1:40:end)))
-  set(gca,'XTick',Iis(1:40:end),'XTickLabels',num2cell(Iis(1:40:end)))
-  axis([-5 -2 -4 -1]); xlabel('Input to I');  ylabel('Input to E'); 
+  scatter(Mu(isubj,1),Mu(isubj,2),10,'o','markerfacecolor',cols(c(isubj),:),'markeredgecolor','none');
   
-  print(gcf,'-depsc2',sprintf('~/pmod/plots/pmod_final_fitting_indivfits_highvslowgain_gain%d_v%d.eps',igain,v_sim))
 end
-%% LOAD FRACTIION OF ALTERED CORRELATIONS FROM DATA
-v = 25;
-para.nfreq = 1:3;
-para.alpha = 0.05;
-SUBJLIST1  = [4 5 6 7 8 9 10 11 12 13 15 16 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34];
-k = 1 : 90;
-exclude_bcn = [11 15 21 36 37 38 39 52 53 54 55 70 76 80];
-include_bcn = find(~ismember(k,exclude_bcn));
-para.transfer = 'to_bcn'
-if ~exist('emp','var')
-  if ~exist('cleandat','var')
-    cleandat = pupmod_loadpowcorr(v,SUBJLIST1,1);
-  end
-  % transform indiv. subj. matrices to AAL BCN
-  for isubj = 1 : 28
-    isubj
-    for im = 1 : 3
-      for icont = 1 : 2
-        for ifreq = 1 : max(para.nfreq)
-          tmp = squeeze(cleandat(:,:,isubj,im,icont,ifreq));
-          tmp = tp_match_aal(para,tmp);
-          fc_indiv(:,:,isubj,im,icont,ifreq) = tmp(include_bcn,include_bcn);
+
+line([40 40],[40 50],'color','k')
+line([40 60],[50 50],'color','k')
+line([60 60],[40 50],'color','k')
+line([40 60],[40 40],'color','k')
+
+axis(gca,[1 121 1 121 ])
+tp_editplots; axis square
+set(gca,'YTick',1:40:length(Ies ),'YTickLabels',num2cell(Ies(1:40:end)))
+set(gca,'XTick',1:40:length(Iis),'XTickLabels',num2cell(Iis(1:40:end)))
+xlabel('Background input to I'); ylabel('Background input to E'); 
+
+subplot(2,3,4); hold on
+for isubj = 1:size(Mu,1)
+  scatter(Mu(isubj,1),Mu(isubj,2),20,'o','markerfacecolor',cols(c(isubj),:),'markeredgecolor','none');
+end
+
+axis(gca,[40 61 40 51 ])
+tp_editplots; %axis square
+set(gca,'YTick',1:5:length(Ies ),'YTickLabels',num2cell(Ies(1:5:end)))
+set(gca,'XTick',1:5:length(Iis),'XTickLabels',num2cell(Iis(1:5:end)))
+xlabel('Background input to I'); ylabel('Background input to E'); 
+
+baseline_gain=find(Gains==0);
+
+load redblue.mat
+
+for igain = 12
+  
+  for isubj = SUBJ
+      load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,idx_rest.exc(isubj),idx_rest.inh(isubj),iG,baseline_gain,v_sim))
+      fc_mod_rest(isubj,1) = mean(out.fc_FR(mask));
+      fc_all_mod(:,isubj,1,1) = out.fc_FR(mask);
+      load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,idx_rest.exc(isubj),idx_rest.inh(isubj),iG,igain,v_sim))
+      fc_mod_rest(isubj,2) = mean(out.fc_FR(mask));
+      fc_all_mod(:,isubj,2,1) = out.fc_FR(mask);
       
-        end
-      end
-    end
+      load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,idx_rest.exc(isubj)+10,idx_rest.inh(isubj)+15,iG,baseline_gain,v_sim))
+      fc_mod_task(isubj,1) = mean(out.fc_FR(mask));
+      fc_all_mod(:,isubj,1,2) = out.fc_FR(mask);
+      load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,idx_rest.exc(isubj)+10,idx_rest.inh(isubj)+15,iG,igain,v_sim))
+      fc_mod_task(isubj,2) = mean(out.fc_FR(mask));
+      fc_all_mod(:,isubj,2,2) = out.fc_FR(mask);
+      
   end
-  emp = pupmod_compute_altered_correlations(fc_indiv,para);
+  
+  for isubj = SUBJ
+
+      load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,idx_rest.exc(isubj)-14,idx_rest.inh(isubj)-19,iG,igain,v_sim))
+      fc_mod_rest(isubj,3) = mean(out.fc_FR(mask));
+      fc_all_mod(:,isubj,3,1) = out.fc_FR(mask);
+      
+      load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,idx_rest.exc(isubj)-4,idx_rest.inh(isubj)-4,iG,igain,v_sim))
+      fc_mod_task(isubj,3) = mean(out.fc_FR(mask));
+      fc_all_mod(:,isubj,3,2) = out.fc_FR(mask);
+      
+  end
+
+  par = outp.fc_sim_fr_mean(:,:,:,igain)-outp.fc_sim_fr_mean(:,:,:,baseline_gain);
+  par(osc1(:,:,1,baseline_gain)>0)=nan;
+  par(osc1(:,:,1,igain)==1)=nan;
+
+  subplot(2,3,2); hold on
+  b=imagesc(par,[-0.01 0.01]); set(gca,'ydir','normal');  
+%   for isubj = 1 : 28
+% 
+%     scatter(idx_rest.inh(isubj),idx_rest.exc(isubj),8,'o','markerfacecolor',[0.5 0.5 0.5],'markeredgecolor','w');
+% 
+%   end
+
+  scatter(round(mean(idx_rest.inh(SUBJ))),round(mean(idx_rest.exc(SUBJ))),20,'o','markerfacecolor',[0.5 0.5 0.5],'markeredgecolor','k');
+  scatter(round(mean(idx_rest.inh(SUBJ)))+15,round(mean(idx_rest.exc(SUBJ)))+10,20,'o','markerfacecolor','y','markeredgecolor','k');
+
+  set(b,'AlphaData',~isnan(par));
+  colormap(gca,redblue)
+  ylabel(gca,'External input (to E)');
+  set(gca,'YTick',1:40:121,'YTickLabels',num2cell(Ies(1:40:end)))
+  set(gca,'XTick',1:40:121,'XTickLabels',num2cell(Iis(1:40:end)))
+
+  tp_editplots; axis square; axis([1 121 1 121])
+  
+  par = outp.fc_sim_fr_mean(:,:,:,igain)-outp.fc_sim_fr_mean(:,:,:,baseline_gain);
+  par(osc1(:,:,1,baseline_gain)>0)=nan;
+  par(osc1(:,:,1,igain)==1)=nan;
+  
+  subplot(2,3,5); hold on
+  b=imagesc(par,[-0.01 0.01]); set(gca,'ydir','normal');  
+
+  scatter(round(mean(idx_rest.inh))-4,round(mean(idx_rest.exc))-4,20,'o','markerfacecolor','y','markeredgecolor','k');
+  scatter(round(mean(idx_rest.inh))-19,round(mean(idx_rest.exc))-14,20,'o','markerfacecolor','w','markeredgecolor','k');
+%   scatter(round(mean(idx_rest.inh))-12,round(mean(idx_rest.exc))-10,20,'o','markerfacecolor','y','markeredgecolor','k');
+
+  set(b,'AlphaData',~isnan(par));
+  colormap(gca,redblue)
+  ylabel(gca,'External input (to E)');
+  set(gca,'YTick',1:40:121,'YTickLabels',num2cell(Ies(1:40:end)))
+  set(gca,'XTick',1:40:121,'XTickLabels',num2cell(Iis(1:40:end)))
+
+  tp_editplots; axis square; axis([1 121 1 121])
+  
 end
 
-
-%% PLOT ALTERED CORRELATIONS AS FUNCTION OF GAIN
-clear FC_simrest FC_simtask pp_pos_atx_sim pp_neg_atx_sim
-
-SUBJLIST = find(idx_rest.inh>15);
-
-mask = logical(tril(ones(76,76),-1));
-[~,idx_gain]=sort(Gains)
-
-idx_gain1 = idx_gain(1:1:end);
-
-pp_pos_atx_sim = nan(length(idx_gain1),2);
-pp_neg_atx_sim = nan(length(idx_gain1),2);
-
-for igain = 1:length(idx_gain(1:1:end))
+  subplot(2,3,3); hold on
   
-  if Gains(idx_gain1(igain)) == 0
-    pp_pos_atx_sim(igain,:) = [nan nan];
-    pp_neg_atx_sim(igain,:) = [nan nan];
-    continue
-  end
+  bar(1,mean(fc_mod_rest(:,1)),'facecolor',[.8 .8 .8])
+  bar(2,mean(fc_mod_rest(:,2)),'facecolor',[1 1 1])
+  bar(3,mean(fc_mod_task(:,1)),'facecolor',[1 0 0])
+  bar(4,mean(fc_mod_task(:,2)),'facecolor',[1 .5 .5])
   
-  gain = idx_gain1(igain)
+  axis square; tp_editplots
+  axis([0 5 0 0.03]);
+  set(gca,'XTick',[1 2 3 4],'XTickLabels',{'Rest (Pbo)';'Rest (Atx)';'Task (Pbo)';'Task (Atx)'})
+  xtickangle(gca,45)
   
-  for isubj = 1:length(SUBJLIST)
-    load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,indiv_idx.rest.exc(SUBJLIST(isubj)),indiv_idx.rest.inh(SUBJLIST(isubj)),1,1,v_sim))
-    FC_simrest(:,:,isubj,1) = out.rc_wl; 
-    pf_rest(isubj,1) = out.peakfreq; clear out
-    load(sprintf('~/pmod/proc/numerical/v%d//pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,indiv_idx.rest.exc(SUBJLIST(isubj)),indiv_idx.rest.inh(SUBJLIST(isubj)),1,gain,v_sim))
-    FC_simrest(:,:,isubj,2) = out.rc_wl; 
-    pf_rest(isubj,2) = out.peakfreq; clear out
-    load(sprintf('~/pmod/proc/numerical/v%d//pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,indiv_idx.task.exc(SUBJLIST(isubj)),indiv_idx.task.inh(SUBJLIST(isubj)),1,1,v_sim))
-    FC_simtask(:,:,isubj,1) = out.rc_wl; 
-    pf_task(isubj,1) = out.peakfreq; clear out
-    load(sprintf('~/pmod/proc/numerical/v%d//pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,indiv_idx.task.exc(SUBJLIST(isubj)),indiv_idx.task.inh(SUBJLIST(isubj)),1,gain,v_sim))
-    FC_simtask(:,:,isubj,2) = out.rc_wl; 
-    pf_task(isubj,2) = out.peakfreq; clear out
-  end
+  subplot(2,3,6); hold on
   
-  fc_sim_rest(igain,:) = mean(squeeze(mean(mean(FC_simrest),2)));
-  fc_sim_task(igain,:) = mean(squeeze(mean(mean(FC_simtask),2)));
+  bar(1,mean(fc_mod_rest(:,1)),'facecolor',[.8 .8 .8])
+  bar(2,mean(fc_mod_rest(:,3)),'facecolor',[1 1 1])
+  bar(3,mean(fc_mod_task(:,1)),'facecolor',[1 0 0])
+  bar(4,mean(fc_mod_task(:,3)),'facecolor',[1 .5 .5])
   
-  [h,~,~,s]=ttest(atanh(FC_simrest(:,:,:,2)),atanh(FC_simrest(:,:,:,1)),'dim',3);
-  pp_pos_atx_sim(igain,1) = sum(s.tstat(mask)>0 & h(mask)) / sum(mask(:));
-  pp_neg_atx_sim(igain,1) = sum(s.tstat(mask)<0 & h(mask)) / sum(mask(:));
+  axis square; tp_editplots
+  axis([0 5 0 0.03]);
+  set(gca,'XTick',[1 2 3 4],'XTickLabels',{'Rest (Pbo)';'Rest (Dpz)';'Task (Pbo)';'Task (Dpz)'})
+  xtickangle(gca,45)
   
-  [h,~,~,s]=ttest(atanh(FC_simtask(:,:,:,2)),atanh(FC_simtask(:,:,:,1)),'dim',3);
-  pp_pos_atx_sim(igain,2) = sum(s.tstat(mask)>0 & h(mask)) / sum(mask(:));
-  pp_neg_atx_sim(igain,2) = sum(s.tstat(mask)<0 & h(mask)) / sum(mask(:));
-  %
-  %   [h,~,~,s]=ttest(atanh(FC_simtask(:,:,:,2)),atanh(FC_simrest(:,:,:,2)),'dim',3);
-  %   p_pos_tvr_sim(igain) = sum(s.tstat(mask)>0 & h(mask)) / sum(mask(:));
-  %   p_neg_tvr_sim(igain) = sum(s.tstat(mask)<0 & h(mask)) / sum(mask(:));
-  %
-  %   diff_tvr(igain) = sum(sum(triu(nanmean(FC_simtask(:,:,:,2),3)-nanmean(FC_simrest(:,:,:,2),3),1)))./sum(mask(:));
-  
-end
-%
-% [h,~,~,s]=ttest(atanh(FC_simtask(:,:,:,1)),atanh(FC_simrest(:,:,:,1)),'dim',3);
-% p_pos_tvr_sim(Gains(idx_gain)==0) = sum(s.tstat(mask)>0 & h(mask)) / sum(mask(:));
-% p_neg_tvr_sim(Gains(idx_gain)==0) = sum(s.tstat(mask)<0 & h(mask)) / sum(mask(:));
-%%
-% PLOT
-% -----------------------
-figure; set(gcf,'color','w');
-subplot(4,3,1); hold on
-plot(pp_pos_atx_sim(:,1),'k');
-plot(pp_neg_atx_sim(:,1),'color',[.5 .5 .5],'linestyle','-');
-plot(length(idx_gain1)+2,nanmean(emp.n_p_atx(:,1)),'o','markerfacecolor','k')
-plot(length(idx_gain1)+2,nanmean(emp.n_n_atx(:,1)),'o','markerfacecolor',[.5 .5 .5])
-line([0 length(idx_gain1)+2],[nanmean(emp.n_p_atx(:,1)) nanmean(emp.n_p_atx(:,1))],'color','k','linestyle','--')
-line([0 length(idx_gain1)+2],[nanmean(emp.n_n_atx(:,1)) nanmean(emp.n_n_atx(:,2))],'color',[.5 .5 .5],'linestyle','--')
+% 
+% for igain = 1 : 16
+% 
+%   diff_rest(igain) = outp.fc_sim_fr_mean(exc_avg(1),inh_avg(1),:,igain)-outp.fc_sim_fr_mean(exc_avg(1),inh_avg(1),:,baseline_gain);
+%   diff_task(igain) = outp.fc_sim_fr_mean(exc_avg(2),inh_avg(2),:,igain)-outp.fc_sim_fr_mean(exc_avg(2),inh_avg(2),:,baseline_gain);
+% 
+% end
+% 
 
-axis([0 length(idx_gain1)+2  -0.05 1]);
-set(gca,'XTick',[1:4:length(idx_gain1) length(idx_gain)+2],'XTickLabels',[num2cell(Gains(idx_gain1(1:4:length(idx_gain1)))) 'Emp.'])
-set(gca,'yTick',[0 0.50  1],'yTickLabels',num2cell([0 50 100]))
-xlabel('Change in gain'); %ylabel('Fraction of altered correlations');
-tp_editplots
+print(gcf,'-depsc2',sprintf('~/pmod/plots/pmod_final_fitting_indivfits_highvslowgain_gain%d_v%d.pdf',igain,v_sim))
 
-subplot(4,3,3); hold on
-plot(pp_pos_atx_sim(:,2),'k');
-plot(pp_neg_atx_sim(:,2),'color',[.5 .5 .5],'linestyle','-');
-plot(length(idx_gain1)+2,nanmean(emp.n_p_atx(:,2)),'o','markerfacecolor','k')
-plot(length(idx_gain1)+2,nanmean(emp.n_n_atx(:,2)),'o','markerfacecolor',[.5 .5 .5])
-axis([0 length(idx_gain1)+2 -0.05 1]);
-set(gca,'XTick',[1:4:length(idx_gain1) length(idx_gain1)+2],'XTickLabels',[num2cell(Gains(idx_gain1(1:4:length(idx_gain1)))) 'Emp.'])
-set(gca,'yTick',[0  0.50  1],'yTickLabels',num2cell([0  50  100]))
-xlabel('Change in gain'); %ylabel('Fraction of altered correlations');
-tp_editplots
-line([0 length(idx_gain1)+2],[nanmean(emp.n_p_atx(:,2)) nanmean(emp.n_p_atx(:,2))],'color','k','linestyle','--')
-line([0 length(idx_gain1)+2],[nanmean(emp.n_n_atx(:,2)) nanmean(emp.n_n_atx(:,2))],'color',[.5 .5 .5],'linestyle','--')
+% 
+[h,~,~,s]=ttest(fc_all_mod(:,:,2,1),fc_all_mod(:,:,1,1),'dim',2);
+atx_p(1) = sum(h>0&s.tstat>0)/2850;
+atx_n(1) = sum(h>0&s.tstat<0)/2850;
+[h,~,~,s]=ttest(fc_all_mod(:,:,2,2),fc_all_mod(:,:,1,2),'dim',2);
+atx_p(2) = sum(h>0&s.tstat>0)/2850;
+atx_n(2) = sum(h>0&s.tstat<0)/2850;
+[h,~,~,s]=ttest(fc_all_mod(:,:,3,1),fc_all_mod(:,:,1,1),'dim',2);
+dpz_p(1) = sum(h>0&s.tstat>0)/2850;
+dpz_n(1) = sum(h>0&s.tstat<0)/2850;
+[h,~,~,s]=ttest(fc_all_mod(:,:,3,2),fc_all_mod(:,:,1,2),'dim',2);
+dpz_p(2) = sum(h>0&s.tstat>0)/2850;
+dpz_n(2) = sum(h>0&s.tstat<0)/2850;
 
-% PLOT CONTEXT DEPENDENCE
-subplot(4,3,5); hold on
-plot(pp_pos_atx_sim(:,1)-pp_pos_atx_sim(:,2),'k');
-plot(pp_neg_atx_sim(:,1)-pp_neg_atx_sim(:,2),'color',[.5 .5 .5],'linestyle','-');
-plot(length(idx_gain1)+2,nanmean(emp.n_n_atx(:,1))-nanmean(emp.n_n_atx(:,2)),'o','markerfacecolor','b')
-plot(length(idx_gain1)+2,nanmean(emp.n_p_atx(:,1))-nanmean(emp.n_p_atx(:,2)),'o','markerfacecolor','r')
-axis([0 length(idx_gain1)+2  -1 1]);
-set(gca,'XTick',[1:4:length(idx_gain1) length(idx_gain1)+2],'XTickLabels',[num2cell(Gains(idx_gain1(1:4:length(idx_gain1)))) 'Emp.'])
-set(gca,'yTick',[-1 -0.5 0 0.5 1],'yTickLabels',num2cell([-100 -50 0 50 100]))
-xlabel('Change in gain'); %ylabel('Fraction of altered correlations');
-tp_editplots
-line([0 length(idx_gain1)+2],[nanmean(emp.n_n_atx(:,1))-nanmean(emp.n_n_atx(:,2)) nanmean(emp.n_n_atx(:,1))-nanmean(emp.n_n_atx(:,2))],'color','b','linestyle',':')
-line([0 length(idx_gain1)+2],[nanmean(emp.n_p_atx(:,1))-nanmean(emp.n_p_atx(:,2)) nanmean(emp.n_p_atx(:,1))-nanmean(emp.n_p_atx(:,2))],'color','r','linestyle',':')
-line([find(round(Gains(idx_gain)*100)==55) find(round(Gains(idx_gain)*100)==55)],[-1 0],'color',[0.5 0.5 0.5],'linestyle','-')
-
-
-print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_fits_gainmodulation_fraction_as_gain_v%d.pdf',v_sim))
+% figure_w;
+% subplot(2,3,5); hold on
+%   
+% bar(1,atx_p(1),'facecolor',[.8 .3 .3])
+% bar(2,atx_n(1),'facecolor',[0 0 1])
+% bar(3,atx_p(2),'facecolor',[1 0 0])
+% bar(4,atx_n(2),'facecolor',[.3 .3 1])
+%   
+% axis square; tp_editplots
+% axis([0 5 0 0.3]);
+% set(gca,'XTick',[1 2 3 4],'XTickLabels',{'Pos. (Rest)';'Neg. (Rest)';'Pos. (Task)';'Neg. (Task)'})
+% xtickangle(gca,45)
+% 
+% subplot(2,3,6); hold on
+%   
+% bar(1,dpz_p(1),'facecolor',[.8 .3 .3])
+% bar(2,dpz_n(1),'facecolor',[0 0 1])
+% bar(3,dpz_p(2),'facecolor',[1 0 0])
+% bar(4,dpz_n(2),'facecolor',[.3 .3 1])
+%   
+% axis square; tp_editplots
+% axis([0 5 0 0.3]);
+% set(gca,'XTick',[1 2 3 4],'XTickLabels',{'Pos. (Rest)';'Neg. (Rest)';'Pos. (Task)';'Neg. (Task)'})
+% xtickangle(gca,45)
 %% CORRELATE DIFFERENCE MATRICES
 fc_task = squeeze(nanmean(cleandat(:,:,:,:,2,:),6));%-nanmean(cleandat(:,:,:,1,2,:),6));
 v = 2;
@@ -644,8 +716,6 @@ colorbar; colormap(redblue)
 figure; set(gcf,'color','w');
 change_sim = nanmean(FC_simtask(:,:,:,2,igain)-FC_simtask(:,:,:,1,1),3);
 baseline_sim = nanmean(FC_simtask(:,:,:,2,igain)+FC_simtask(:,:,:,1,1),3);
-
-
 
 subplot(2,2,1); hold on
 plot(baseline_sim(mask),change_sim(mask),'.')
@@ -743,7 +813,7 @@ end
 
 %%
 gg = Gains(idx_gain1);
-gain = 6;
+gain = 1;
 % PLOT
 % -----------------------
 figure; set(gcf,'color','w');
@@ -776,7 +846,7 @@ colormap(plasma)
 
 
 subplot(2,3,3); hold on
-imagesc(p_pos_atx_sim(:,:,gain,1)-p_pos_atx_sim(:,:,gain,2),[-0.2 0.2]); set(gca,'ydir','normal'); axis tight square; tp_editplots
+imagesc((p_pos_atx_sim(:,:,gain,1)-p_pos_atx_sim(:,:,gain,2)),[-0.2 0.2]); set(gca,'ydir','normal'); axis tight square; tp_editplots
 set(gca,'xtick',[1:6:37],'xticklabel',num2cell(es([1:6:37])*mean(diff(Ies))))
 set(gca,'ytick',[1:6:37],'yticklabel',num2cell(is([1:6:37])*mean(diff(Ies))))
 title(sprintf('Ctx - Pos (g=%.2f)',gg(gain)')); colormap(gca,redblue)
@@ -786,20 +856,20 @@ imagesc(p_neg_atx_sim(:,:,gain,1)-p_neg_atx_sim(:,:,gain,2),[-0.2 0.2]); set(gca
 set(gca,'xtick',[1:6:37],'xticklabel',num2cell(es([1:6:37])*mean(diff(Ies))))
 set(gca,'ytick',[1:6:37],'yticklabel',num2cell(is([1:6:37])*mean(diff(Ies))))
 title(sprintf('Ctx - Neg (g=%.2f)',gg(gain)'));colormap(gca,redblue)
-
-for i = 1 : length(es)
-  neg(i) = p_neg_atx_sim(i,i,gain,1)-p_neg_atx_sim(i,i,gain,2);
-  pos(i) = p_pos_atx_sim(i,i,gain,1)-p_pos_atx_sim(i,i,gain,2);
-end
-
-figure; set(gcf,'color','w');
-subplot(2,3,3); hold on
-plot(pos,'r')
-plot(neg,'b')
-axis square; tp_editplots
-axis([-1 38 -0.2 0.2]);
-xlabel('\Delta(Background input)'); ylabel('Fraction of altered correlations [%]')
-% axis([])
+% 
+% for i = 1 : length(es)
+%   neg(i) = p_neg_atx_sim(i,i,gain,1)-p_neg_atx_sim(i,i,gain,2);
+%   pos(i) = p_pos_atx_sim(i,i,gain,1)-p_pos_atx_sim(i,i,gain,2);
+% end
+% 
+% figure; set(gcf,'color','w');
+% subplot(2,3,3); hold on
+% plot(pos,'r')
+% plot(neg,'b')
+% axis square; tp_editplots
+% axis([-1 38 -0.2 0.2]);
+% xlabel('\Delta(Background input)'); ylabel('Fraction of altered correlations [%]')
+% % axis([])
 
 
 
@@ -1434,3 +1504,48 @@ save(sprintf('~/pmod/proc/pmod_correlationmodeldifferences_v%d.mat',v),'r_task',
 % 
 % indiv_idx.rest = idx_rest;
 % indiv_idx.task = idx_task;
+
+%% PLOT KS DISTANCE FROM FCD MATRICES (FIRING RATES AND ENVELOPES)
+osc = osc1(1:2:end,1:2:end,3:2:31);
+
+for iG = 1 : length(Gg)
+  
+  par1=nanmean(outp.fc(:,:,iG,:),4);
+  par1(osc(:,:,iG)==1)=nan;
+  
+  figure_w;
+  
+  subplot(1,4,1);
+  b= imagesc(par1,[0 0.1]); 
+  set(gca,'ydir','normal'); axis square;  colormap(plasma);  set(b,'AlphaData',~isnan(par1))
+  set(gca,'XTick',1:20:length(Iis),'XTickLabels',num2cell(Iis(1:20:end)))
+  set(gca,'YTick',1:20:length(Iis),'YTickLabels',num2cell(Iis(1:20:end)))
+  title('Mean FC (Envelopes)'); tp_editplots
+  
+  par1=nanmean(outp.ks_rest_env(:,:,iG,:),4);
+  par2=nanmean(outp.ks_rest_fr(:,:,iG,:),4);
+  
+  par1((osc(:,:,iG)==1))=nan;
+  par2((osc(:,:,iG)==1))=nan;
+  
+  k=subplot(1,4,3);
+  b=imagesc(par1,[0.4 0.8]); set(gca,'ydir','normal'); set(b,'AlphaData',~isnan(par1))
+  set(gca,'ydir','normal'); axis square;  colormap(k,plasma);
+  set(gca,'XTick',1:20:length(Iis),'XTickLabels',num2cell(Iis(1:20:end)))
+  set(gca,'YTick',1:20:length(Iis),'YTickLabels',num2cell(Iis(1:20:end)))
+  title('KS-D (Envelopes)'); tp_editplots
+  
+  k=subplot(1,4,4);
+  b=imagesc(par2,[0.4 0.8]); set(gca,'ydir','normal');
+  set(gca,'ydir','normal'); axis square;  colormap(k,plasma);  set(b,'AlphaData',~isnan(par2))
+  set(gca,'XTick',1:20:length(Iis),'XTickLabels',num2cell(Iis(1:20:end)))
+  set(gca,'YTick',1:20:length(Iis),'YTickLabels',num2cell(Iis(1:20:end)))
+  title('KS-D (Firing rates)'); tp_editplots
+end
+  
+  
+ 
+ 
+  
+  
+  

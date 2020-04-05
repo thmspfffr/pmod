@@ -16,56 +16,40 @@ outdir = '~/pmod/proc/';
 % VERSION 1: 20-10-2018
 % %-------------------------------------------------------------------------
 % v           = 1;
-% Ies         = -4:0.05:-1;
-% Iis         = -5:0.05:-2;
-% Gg          = 0:0.05:2;
-% Gains       = [0 0.45]; 
-% nTrials     = 1;
-% tmax        = 1000;  % in units of tauE
-% EC          = 0;
-% dt          = 0.01;
-% transient   = 500;
-% %-------------------------------------------------------------------------
-% VERSION 2
-% %-------------------------------------------------------------------------
-v           = 2;
-Ies         = -4:0.025:-1;
-Iis         = -5:0.025:-2;
-Gg          = 1.4;
-Gains       = [0:0.05:0.25]; 
-nTrials     = 1;
-tmax        = 6500;  % in units of tauE
-EC          = 0;
-dt          = 0.01;
-transient   = 7000;
-%-------------------------------------------------------------------------
-
-%-------------------------------------------------------------------------
-% VERSION 1: 20-10-2018
-% %-------------------------------------------------------------------------
-% v           = 11;
-% Ies         = -4:0.05:-1;
-% Iis         = -5:0.05:-2;
+% Ies         = -4:0.025:-1;
+% Iis         = -5:0.025:-2;
 % Gg          = 0:0.05:2;
 % Gains       = 0; 
 % nTrials     = 1;
 % tmax        = 6500;  % in units of tauE
-% EC          = 0;
 % dt          = 0.01;
-% transient   = 500;
-%-------------------------------------------------------------------------
-% VERSION 111: 20-10-2018
+% transient   = 1000;
 % %-------------------------------------------------------------------------
-% v           = 111;
-% Ies         = -4:0.05:-1;
-% Iis         = -5:0.05:-2;
-% Gg          = 0:0.05:2;
-% Gains       = 0; 
-% nTrials     = 3;
-% tmax        = 1000;  % in units of tauE
+% VERSION 2: 20-10-2018
+% %-------------------------------------------------------------------------
+% v           = 2;
+% Ies         = -4:0.025:-1;
+% Iis         = -5:0.025:-2;
+% Gg          = 1.4;
+% Gains       = [0:0.05:0.6 -0.2:0.05:-0.05 0.65:0.05:1]; 
+% nTrials     = 1;
+% tmax        = 6500;  % in units of tauE
 % EC          = 0;
 % dt          = 0.01;
-% transient   = 7000;
+% transient   = 1000;
+% %-------------------------------------------------------------------------
+% VERSION 3: 27/01/2020
+% %-------------------------------------------------------------------------
+v           = 3;
+Ies         = -4:0.025:-1;
+Iis         = -5:0.025:-2;
+Gg          = 1.2;
+Gains       = [-0.1:0.02:0.3]; 
+nTrials     = 1;
+tmax        = 6500;  % in units of tauE
+EC          = 0;
+dt          = 0.01;
+transient   = 20000;
 %-------------------------------------------------------------------------
 
 % EXCLUDE CERTAIN REGIONS - BCN ordering
@@ -74,14 +58,9 @@ exclude_bcn = [11 15 21 36 37 38 39 52 53 54 55 70 76 80];
 include_bcn = find(~ismember(k,exclude_bcn));
 
 % load connectome
-if EC
-  load ~/pmod/matlab/EC.mat %Matt_EC
-  C = EC;
-else
-  load ~/sc90.mat %Bea SC
-  C = SC;
-end
-
+load ~/sc90.mat %Bea SC
+C = SC;
+ 
 C = C/max(C(C>0));
 C = C(include_bcn,include_bcn);
 N = size(C,1);
@@ -115,9 +94,9 @@ tauEsec = 0.009; % in seconds
 %%
 
 
-for igain = 1:2
+for igain = 10:length(Gains)
   for iG = 1 : length(Gg)
-    for iies = 1: length(Ies)
+    for iies = 50: length(Ies)
       for iiis = 1: length(Iis)
         tic
         
@@ -128,9 +107,9 @@ for igain = 1:2
         outdir = sprintf(['~/pmod/proc/detosc/' 'v%d/'],v);
         
         fn = sprintf('pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d',iies,iiis,iG,igain,v);
-        if tp_parallel(fn,outdir,1,0)
-          continue
-        end
+%         if tp_parallel(fn,outdir,1,0)
+%           continue
+%         end
 
         g = Gg(iG);
         W = [wEE*eye(N)+g*C -wEI*eye(N); wIE*eye(N) -wII*eye(N)];

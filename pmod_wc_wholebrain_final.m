@@ -28,11 +28,23 @@ outdir = '~/pmod/proc/';
 %-------------------------------------------------------------------------
 % VERSION 1: 20-10-2018
 % %-------------------------------------------------------------------------
-v           = 2;
+% v           = 2;
+% Ies         = -4:0.025:-1;
+% Iis         = -5:0.025:-2;
+% Gg          = 1.4;
+% Gains       = [0:0.05:0.6 -0.2:0.05:-0.05 0.65:0.05:1]; 
+% nTrials     = 1;
+% tmax        = 6500;  % in units of tauE
+% EC          = 0;
+% dt          = 0.01;
+%-------------------------------------------------------------------------
+% VERSION 3: 27/01/2020
+% %-------------------------------------------------------------------------
+v           = 3;
 Ies         = -4:0.025:-1;
 Iis         = -5:0.025:-2;
-Gg          = 1.4;
-Gains       = [0:0.05:0.6 -0.2:0.05:-0.05 0.65:0.05:1]; 
+Gg          = 1.2;
+Gains       = [-0.1:0.02:0.3]; 
 nTrials     = 1;
 tmax        = 6500;  % in units of tauE
 EC          = 0;
@@ -228,19 +240,10 @@ for igain = 1 : length(Gains)
           % ----------------------------------
           % EXTRACT PEAK FREQ
           % ---------------------------
-          [~,peak_idx]=max(smooth(mean(PSD(f>3,:),2),20));
+          [~,peak_idx]=max(smooth(mean(PSD(f>4,:),2),20));
           out.peakfreq = f(peak_idx+find(f<4,1,'last'));
-          clear PSD
-          
-          % ENVELOPE CORRELATIONS
-          % ---------------------------
-          env             = abs(hilbert(filtfilt(bfilt,afilt,rE)));
-          rc              = corrcoef(env.^2);
-          out.FC_env      = out.FC_env + single(rc./nTrials);
-          out.COV_env     = out.COV_env + single(rc./nTrials);
-          % ---------------------------
-          
-          clear rc fc_env
+          clear PSD rc fc_env
+         
         end
         
         save(sprintf([outdir '/%s.mat'],fn),'out')

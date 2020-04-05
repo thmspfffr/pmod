@@ -5,21 +5,17 @@
 
 clear all;
 
-outdir  = '~/pmod/proc/analytical/';
+% outdir  = '~/pmod/proc/analytical/';
+
 % -------------------------------
-% VERSION 1 
-% -------------------------------
-% v = 1;
-% Ies = -5:.1:3; %-4:.1:-1;
-% Iis = -13:.1:2; %-4:.1:-1;
-% all_gains = 0:0.1:0.6;
-% -------------------------------
-% VERSION 3 
+% VERSION 1
 % -------------------------------
 v = 3;
-Ies = -4:0.025:-0;
-Iis = -5:0.025:-1;
-all_gains = 0:0.1:0.6;
+Ies = -4:0.025:-1;
+Iis = -5:0.025:-2;
+all_gains = 0:0.02:0.3;
+all_inh = 1:-0.05:0.7;
+
 % -------------------------------
 
 % fixed params:
@@ -47,13 +43,6 @@ ds = 5;
 Tds = length(0:ds*dt:tmax)-1;
 sigma = 0.0005;
 Qn = (sigma*dt)^2*eye(N);
-% Connectivity:
-W11 = [wEE -wEI; wIE -wII];
-W22 = W11;
-W12 = [g 0; 0 0];
-W21 = [g 0; 0 0];
-
-W = [W11 W12; W21 W22];
 
 p = 1.5;
 
@@ -63,42 +52,36 @@ numIis = length(Iis);
 %%
 
 for igain = 1 : length(all_gains)
-
+  
   Gain = all_gains(igain);
   
-  if ~exist(sprintf([outdir 'v%d/'],v))
-    mkdir(sprintf([outdir 'v%d'],v))
+  if ~exist(sprintf(['~/pmod/proc/analytical/v%d'],v))
+    mkdir(sprintf(['~/pmod/proc/analytical/v%d'],v))
   end
-  outdir = sprintf([outdir 'v%d'],v);
-
+  outdir = sprintf(['~/pmod/proc/analytical/v%d/'],v);
+  
   if ~exist(sprintf([outdir 'pmod_wc_analytical_gain%d_v%d_processing.txt'],igain,v))
     system(['touch ' outdir sprintf('pmod_wc_analytical_gain%d_v%d_processing.txt',igain,v)]);
   else
     continue
   end
+  
+  for iinh = 1 : length(all_inh)
+    % Connectivity:
+    W11 = [wEE -wEI*all_inh(iinh); wIE -wII];
+    W22 = W11;
+    W12 = [g 0; 0 0];
+    W21 = [g 0; 0 0];
 
-  fprintf('Gain %d...\n',igain)
+    W = [W11 W12; W21 W22];
 
-  for Q = 2  % conditions (no gain change, equivalent gain change, daE<daI, daE>daI)
-    % transfer functions:
-    % gains are given by 1/aE and 1/aI
 
-    if Q == 1
-      gE = 1;
-      gI = 1;
-    elseif Q == 2
-      gE = 1+Gain;
-      gI = 1+Gain;
-    elseif Q == 3
-      gE = 1+p*Gain;
-      gI = 1+Gain;
-    elseif Q == 4
-      gE = 1+Gain;
-      gI = 1+p*Gain;
-    end
+    fprintf('Gain %d...\n',igain)
 
+    gE = 1+Gain;
+    gI = 1+Gain;
     aE = 1/gE;
-    aI = 1/gI; 
+    aI = 1/gI;
 
     Fe = @(x) 1./(1 + exp(-x/aE) );
     Fi = @(x) 1./(1 + exp(-x/aI) );
@@ -112,7 +95,7 @@ for igain = 1 : length(all_gains)
       Io(2) = Ii;
       Io(4) = Ii;
 
-      for k = 1:numIes     
+      for k = 1:numIes
 
         Ie = Ies(k);
         Io(1) = Ie;
@@ -121,7 +104,7 @@ for igain = 1 : length(all_gains)
         r = rand(N,1);
         R = zeros(Tds,N);
         tt = 0;
-        
+
         % get fixed points:
         for t = 1:300000
           u = W*r + Io;
@@ -146,7 +129,7 @@ for igain = 1 : length(all_gains)
         if maxR-minR<10e-10
 
           Cov = zeros(N);
-          
+
           for t = 1:10000
 
             u = W*r + Io;
@@ -168,12 +151,12 @@ for igain = 1 : length(all_gains)
             AeI = 0;
             AiE = 0;
             AiI = 0;
-           
+
             AEe = g*1/aE*rE*(1-rE);
             AIe = 0;
             AEi = 0;
             AIi = 0;
-          
+
             AEE = -1/tauE + wEE*1/aE*rE*(1-rE);
             AEI = -wEI*1/aE*rE*(1-rE);
             AIE = wIE*1/aI*rI*(1-rI)*(tauE/tauI);
@@ -200,17 +183,17 @@ for igain = 1 : length(all_gains)
             end
           end
 
-          out.CeE(k,l) = Corr(1,3);
+          out.CeE(k,l,iinh) = Corr(1,3);
 
         else
-          out.CeE(k,l) = NaN;
+          out.CeE(k,l,iinh) = NaN;
         end
       end
     end
-  end
   
-  save(sprintf([outdir 'pmod_wc_analytical_gain%d_v%d.mat'],igain,v),'out')
-
+  
+    save(sprintf([outdir 'pmod_wc_analytical_gain%d_v%d.mat'],igain,v),'out')
+  end
 end
 
 % save WCs_Correlations_ParamSpace CeE p Gain W g tau Iis Ies
@@ -218,171 +201,107 @@ end
 %%
 Ies = -4:0.025:-1;
 Iis = -5:0.025:-2;
+
 v = 3;
 outdir = sprintf('~/pmod/proc/analytical/v%d/',v);
 
-for igain = 1 : 7
+for igain = 1:11
   load(sprintf([outdir 'pmod_wc_analytical_gain%d_v%d.mat'],igain,v))
-  CeE(:,:,igain) = out.CeE;
+  CeE(:,:,igain) = out.CeE(:,:,1);
 end
-
-
 
 %%
-
-y=[]; x=[];
-
-for j=1:size(CeE,2);
-
-  temp=find(isnan(CeE(:,j,1)),1,'first');
-
-  if temp<size(CeE,2);
-
-    y(j)=Ies(temp);
-
-    x(j)=Iis(j);
-
-  end
-
-end
-
-
 
 load redblue.mat
 
-idxE = find(Ies==-4,1,'first'):find(Ies==-1,1,'first');
-idxI = find(Iis==-5,1,'first'):find(Iis==-2,1,'first');
-% CeE(isnan(CeE)) = 0;
+for igain = 11
+  
+  h=figure; set(gcf,'color','w');
+  
+  b=subplot(2,3,1); hold on
+  %   igain = gain;
+  par = CeE(:,:,igain)-CeE(:,:,1);
+  
+  c=imagesc(par,[-.05 .05]); axis square
+  set(c,'AlphaData',~isnan(par))
+  
+  
+  colormap(b,redblue)
+  axis square; set(gca,'ydir','normal')
+  axis([1 121 1 121])
+  set(gca,'XTick',1:40:length(Iis),'XTickLabels',num2cell(Iis(1:40:end)))
+  set(gca,'YTick',1:40:length(Ies ),'YTickLabels',num2cell(Ies(1:40:end)))
+  
+  xlabel('Background input to I'); ylabel('Background input to E'); tp_editplots
+  hf=text(10,60,sprintf('Oscillations'),'fontsize',8,'fontangle','italic','color',[.5 .5 .5],'parent',b)
+  set(hf,'Rotation',45)
+  
+  ii_rest_pbo = -3.7; ii_task_pbo = -3.3;
+  ie_rest_pbo = -2.7; ie_task_pbo = -2.3;
+  ii_rest_dpz = -4.1; ii_task_dpz = -3.7;
+  ie_rest_dpz = -3.1; ie_task_dpz = -2.7;
 
-figure; set(gcf,'color','w');
-a = subplot(3,2,1); hold on
-imagescnan(Iis,Ies,CeE(:,:,1),[0 .25]); colormap(jet)
-xlabel('Background input (to I)'); ylabel('Background input (to E)');
-tp_editplots; colormap(a,'plasma')
-axis square tight
-
-labI = Iis(idxI);
-labE = Ies(idxE);
-
-b = subplot(3,2,2); hold on
-imagescnan(CeE(idxE,idxI,1),[0 .25])
-
-plot(find(Iis==-3.7)-idxI(1),find(round(Ies*10)==-2.7*10)-idxE(1),'ko','markersize',5,'markerfacecolor','r')
-plot(find(round(Iis*10)==-3.1*10)-idxI(1),find(round(Ies*10)==-2.1*10)-idxE(1),'ko','markersize',5,'markerfacecolor','y')
-
-xlabel('Background input (to I)'); ylabel('Background input (to E)');
-
-tp_editplots; colormap(b,plasma)
-axis tight equal
-set(gca,'YTick',1:10:length(labE),'YTickLabels',num2cell(labE(1:10:end)))
-set(gca,'XTick',1:10:length(labI),'XTickLabels',num2cell(labI(1:10:end)))
-
-if v==1
-
-  idxE = find(Ies==-4,1,'first'):find(Ies==-1,1,'first');
-  idxI = find(Iis==-5,1,'first'):find(Iis==-2,1,'first');
-
-  for igain = [2 2 4 7]
-
-    if igain== 7
-      c = subplot(3,2,6); hold on 
-    else
-      c = subplot(3,2,1+igain); hold on 
-    end
-    imagescnan(CeE(idxE,idxI,igain)-CeE(idxE,idxI,1),[-.1 .1])
-%     if igain == 
-    plot(find(Iis==-3.7)-idxI(1),find(round(Ies*10)==-2.7*10)-idxE(1),'ko','markersize',5,'markerfacecolor','r')
-    plot(find(round(Iis*10)==-3.1*10)-idxI(1),find(round(Ies*10)==-2.1*10)-idxE(1),'ko','markersize',5,'markerfacecolor','y')
-    xlabel('Background input (to I)'); ylabel('Background input (to E)');
-    tp_editplots; colormap(c,redblue)
-    axis tight equal square
-
-    labI = Iis(idxI);
-    labE = Ies(idxE);
-    set(gca,'YTick',1:10:length(labE),'YTickLabels',num2cell(labE(1:10:end)))
-    set(gca,'XTick',1:10:length(labI),'XTickLabels',num2cell(labI(1:10:end)))
-
-    set(gcf,'renderer','Painters')
-
-  end
-
+  scatter(find(round(Iis*1000)==round(ii_rest_dpz*1000)),find(round(Ies*1000)==round(ie_rest_dpz*1000)),15,'o','markeredgecolor','k','markerfacecolor',[.8 .8 .8])
+  scatter(find(round(Iis*1000)==round(ii_task_dpz*1000)),find(round(Ies*1000)==round(ie_task_dpz*1000)),15,'o','markeredgecolor','k','markerfacecolor',[1 1 1])
+  
+  corr_rest_pbo=CeE(find(round(Ies.*1000)==ie_rest_pbo*1000),find(round(Iis*1000)==ii_rest_pbo*1000),1)
+  corr_rest_dpz=CeE(find(round(Ies.*1000)==ie_rest_dpz*1000),find(round(Iis*1000)==ii_rest_dpz*1000),igain)
+  corr_task_pbo=CeE(find(round(Ies.*1000)==ie_task_pbo*1000),find(round(Iis*1000)==ii_task_pbo*1000),1)
+  corr_task_dpz=CeE(find(round(Ies.*1000)==ie_task_dpz*1000),find(round(Iis*1000)==ii_task_dpz*1000),igain)
+  
+  subplot(2,3,2); hold on
+  
+  bar(1,corr_rest_pbo,'facecolor',[.8 .8 .8])
+  bar(2,corr_rest_dpz,'facecolor',[1 1 1])
+  bar(3,corr_task_pbo,'facecolor',[1 0 0])
+  bar(4,corr_task_dpz,'facecolor',[1 .5 .5])
+  
+  axis square; tp_editplots
+  axis([0 5 0 0.3]);
+  set(gca,'XTick',[1 2 3 4],'XTickLabels',{'Rest (Pbo)';'Rest (Atx)';'Task (Pbo)';'Task (Atx)'})
+  xtickangle(gca,45)
+  
+  b=subplot(2,3,4); hold on
+  par = CeE(:,:,igain)-CeE(:,:,1);
+  c=imagesc(par,[-.05 .05]); axis square
+  set(c,'AlphaData',~isnan(par))
+  colormap(b,redblue);
+  
+%   ii_rest = -3.7; ii_task = -3.3;
+%   ie_rest = -2.7; ie_task = -2.3;
+  
+  scatter(find(round(Iis*1000)==round(ii_rest_pbo*1000)),find(round(Ies*1000)==round(ie_rest_pbo*1000)),15,'o','markeredgecolor','k','markerfacecolor',[.8 .8 .8])
+  scatter(find(round(Iis*1000)==round(ii_task_pbo*1000)),find(round(Ies*1000)==round(ie_task_pbo*1000)),15,'o','markeredgecolor','k','markerfacecolor',[1 1 1])
+  
+%   colormap(b,plasma); hold on
+  axis square; set(gca,'ydir','normal')
+  set(gca,'XTick',1:40:length(Iis),'XTickLabels',num2cell(Iis(1:40:end)))
+  set(gca,'YTick',1:40:length(Ies ),'YTickLabels',num2cell(Ies(1:40:end)))
+  xlabel({'Background input to I'}); ylabel({'Background input to E'}); tp_editplots
+  axis([1 121 1 121])
+  
+  corr_rest_pbo=CeE(find(Ies==ie_rest_pbo),find(Iis==ii_rest_pbo),1)
+  corr_rest_atx=CeE(find(Ies==ie_rest_pbo),find(Iis==ii_rest_pbo),igain)
+  corr_task_pbo=CeE(find(round(Ies.*1000)==ie_task_pbo*1000),find(round(Iis.*1000)==ii_task_pbo*1000),1)
+  corr_task_atx=CeE(find(round(Ies.*1000)==ie_task_pbo*1000),find(round(Iis.*1000)==ii_task_pbo*1000),igain)
+  
+  
+  subplot(2,3,5); hold on
+  
+  bar(1,corr_rest_pbo,'facecolor',[.8 .8 .8])
+  bar(2,corr_rest_atx,'facecolor',[1 1 1])
+  bar(3,corr_task_pbo,'facecolor',[1 0 0])
+  bar(4,corr_task_atx,'facecolor',[1 .5 .5])
+  
+  axis square; tp_editplots
+  axis([0 5 0 0.3]);
+  set(gca,'XTick',[1 2 3 4],'XTickLabels',{'Rest (Pbo)';'Rest (Atx)';'Task (Pbo)';'Task (Atx)'})
+  xtickangle(gca,45)
+  
+  
+  
 end
 
-print(gcf,'-depsc2',sprintf('~/pmod/plots/pmod_wc_analytical_v%d.eps',v))
+print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_analytical_gain%d_v%d.pdf',igain,v))
 
-%%
-
-igain = 3;
-
-
-
-figure; set(gcf,'color','w');
-
-c = subplot(3,2,1); hold on 
-
-imagescnan(CeE(idxE,idxI,igain)-CeE(idxE,idxI,1),[-.1 .1])
-plot(find(Iis==-3.7)-idxI(1),find(round(Ies*10)==-2.7*10)-idxE(1),'ko','markersize',5,'markerfacecolor','r')
-plot(find(round(Iis*10)==-3.1*10)-idxI(1),find(round(Ies*10)==-2.1*10)-idxE(1),'ko','markersize',5,'markerfacecolor','y')
-xlabel('Background input (to I)'); ylabel('Background input (to E)');
-tp_editplots; colormap(c,redblue)
-axis tight square
-labI = Iis(idxI);
-labE = Ies(idxE);
-set(gca,'YTick',1:10:length(labE),'YTickLabels',num2cell(labE(1:10:end)))
-set(gca,'XTick',1:10:length(labI),'XTickLabels',num2cell(labI(1:10:end)))
-
-c = subplot(3,2,2); hold on 
-
-imagescnan((CeE(idxE,idxI,igain)-CeE(idxE,idxI,1))./CeE(idxE,idxI,1),[-.85 .85])
-plot(find(round(Iis*10)==-4.3*10)-idxI(1),find(round(Ies*10)==-3.3*10)-idxE(1),'ko','markersize',5,'markerfacecolor','r')
-plot(find(round(Iis*10)==-3.7*10)-idxI(1),find(round(Ies*10)==-2.7*10)-idxE(1),'ko','markersize',5,'markerfacecolor','y')
-% xlabel('Background input (to I)'); ylabel('Background input (to E)');
-tp_editplots; colormap(c,redblue)
-axis tight square
-labI = Iis(idxI);
-labE = Ies(idxE);
-set(gca,'YTick',1:10:length(labE),'YTickLabels',num2cell(labE(1:10:end)))
-set(gca,'XTick',1:10:length(labI),'XTickLabels',num2cell(labI(1:10:end)))
-
-r = 100*(CeE(idxE,idxI,igain)-CeE(idxE,idxI,1))./(CeE(idxE,idxI,1));
-
-idxI_rest = find(round(Iis*10)==-3.7*10)-idxI(1);
-idxE_rest = find(round(Ies*10)==-2.7*10)-idxE(1);
-idxI_task = find(round(Iis*10)==-3.1*10)-idxI(1);
-idxE_task = find(round(Ies*10)==-2.1*10)-idxE(1);
-% 
-% subplot(2,2,3); hold on
-% 
-% bar([1 2 3],[r(idxE_rest,idxI_rest) r(idxE_task,idxI_task) r(idxE_rest,idxI_rest)-r(idxE_task,idxI_task)]); axis square
-% axis([0.5 3.5 -60 20]); tp_editplots; ylabel('Change in correlation [in %]')
-% idxI_rest = find(round(Iis*10)==-4.3*10)-idxI(1);
-% idxE_rest = find(round(Ies*10)==-3.3*10)-idxE(1);
-% idxI_task = find(round(Iis*10)==-3.7*10)-idxI(1);
-% idxE_task = find(round(Ies*10)==-2.7*10)-idxE(1);
-% 
-% subplot(2,2,4); hold on
-% bar([1 2 3],[r(idxE_rest,idxI_rest) r(idxE_task,idxI_task) r(idxE_rest,idxI_rest)-r(idxE_task,idxI_task) ]); axis square
-% axis(gca,[0.5 3.5 -60 20]); tp_editplots; ylabel('Change in correlation [in %]')
-    set(gcf,'renderer','Painters')
-
-print(gcf,'-depsc2',sprintf('~/pmod/plots/pmod_wc_analytical_bar_v%d.eps',v))
-
-
-
-%%
-
-
-
-fc1 = rand(50,20,2,100);
-
-fc2 = rand(50,20,2,100);
-
-
-
-scatter(squeeze(mean(mean(fc1(:,:,1,:)))),squeeze(mean(mean(fc1(:,:,2,:))))-squeeze(mean(mean(fc1(:,:,1,:)))))
-
-
-
-h = ttest(fc1(:,:,1,:),fc1(:,:,2,:),'dim',2);
-
-sum(squeeze(h))
+%% TEST ALTERNATIVE MECHANISMS SYSTEMATICALLY
