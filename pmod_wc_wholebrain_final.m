@@ -43,8 +43,8 @@ outdir = '~/pmod/proc/';
 v           = 3;
 Ies         = -4:0.025:-1;
 Iis         = -5:0.025:-2;
-Gg          = 1.2;
-Gains       = [-0.1:0.02:0.3]; 
+Gg          = [1.2:-0.01:1.15];
+Gains       = [-0.1:0.02:0.12]; 
 nTrials     = 1;
 tmax        = 6500;  % in units of tauE
 EC          = 0;
@@ -293,23 +293,24 @@ end
 % end
 %  /home/tpfeffer/pmod/proc/pmod_wc_wholebrain_final_Ie14_Ii56_G1_gain43_v2.mat
 %% DELET EFILES
-% for v = [1 2 3 22]
-%   for igain = 1 : length(Gains)
-%     igain
-%     for iG = 1 : length(Gg)
-%       for iies = 1: length(Ies)
-% %         pmod_wc_wholebrain_final_Ie14_Ii56_G1_gain36_v
-%         iies
-%         delete( sprintf('/home/tpfeffer/pmod/proc/pmod_wc_wholebrain_detosc_Ie%d_Ii*_G%d_gain%d_v%d.mat',iies,iG,igain,v))
-%
-% %         for iiis = 1: length(Iis)
-% %           fn = sprintf('/home/tpfeffer/pmod/proc/pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,v);
-% %           delete(fn)
-% %         end
-%       end
-%     end
-%   end
-% end
+for v = [3]
+  for igain = 13 : length(Gains)
+    igain
+    for iG = 1 %: length(Gg)
+      for iies = 1: length(Ies)
+        iies
+        for iiis = 1: length(Iis)
+        
+        delete( sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v,iies,iiis,iG,igain,v))
+
+        end
+%           fn = sprintf('/home/tpfeffer/pmod/proc/pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,v);
+%           delete(fn)
+%         end
+      end
+    end
+  end
+end
 
 % %%
 % mask    = logical(triu(ones(76,76),1));

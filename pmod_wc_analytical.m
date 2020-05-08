@@ -214,7 +214,7 @@ end
 
 load redblue.mat
 
-for igain = 11
+for igain = 4
   
   h=figure; set(gcf,'color','w');
   
@@ -238,16 +238,28 @@ for igain = 11
   
   ii_rest_pbo = -3.7; ii_task_pbo = -3.3;
   ie_rest_pbo = -2.7; ie_task_pbo = -2.3;
+  
   ii_rest_dpz = -4.1; ii_task_dpz = -3.7;
   ie_rest_dpz = -3.1; ie_task_dpz = -2.7;
-
-  scatter(find(round(Iis*1000)==round(ii_rest_dpz*1000)),find(round(Ies*1000)==round(ie_rest_dpz*1000)),15,'o','markeredgecolor','k','markerfacecolor',[.8 .8 .8])
-  scatter(find(round(Iis*1000)==round(ii_task_dpz*1000)),find(round(Ies*1000)==round(ie_task_dpz*1000)),15,'o','markeredgecolor','k','markerfacecolor',[1 1 1])
   
+  % plot donepezil rest working point
+  scatter(find(round(Iis*1000)==round(ii_rest_dpz*1000)),find(round(Ies*1000)==round(ie_rest_dpz*1000)),15,'o','markeredgecolor','k','markerfacecolor',[.8 .8 .8])
+  % plot donepezil task working point
+  scatter(find(round(Iis*1000)==round(ii_task_dpz*1000)),find(round(Ies*1000)==round(ie_task_dpz*1000)),15,'o','markeredgecolor','k','markerfacecolor',[1 1 1])
+%   % plot placebo rest working point
+%   scatter(find(round(Iis*1000)==round(ii_rest_pbo*1000)),find(round(Ies*1000)==round(ie_rest_pbo*1000)),15,'o','markeredgecolor','r','markerfacecolor',[.8 .8 .8])
+%   % plot placebo task working point
+%   scatter(find(round(Iis*1000)==round(ii_task_pbo*1000)),find(round(Ies*1000)==round(ie_task_pbo*1000)),15,'o','markeredgecolor','r','markerfacecolor',[1 1 1])
+%   
   corr_rest_pbo=CeE(find(round(Ies.*1000)==ie_rest_pbo*1000),find(round(Iis*1000)==ii_rest_pbo*1000),1)
   corr_rest_dpz=CeE(find(round(Ies.*1000)==ie_rest_dpz*1000),find(round(Iis*1000)==ii_rest_dpz*1000),igain)
   corr_task_pbo=CeE(find(round(Ies.*1000)==ie_task_pbo*1000),find(round(Iis*1000)==ii_task_pbo*1000),1)
   corr_task_dpz=CeE(find(round(Ies.*1000)==ie_task_dpz*1000),find(round(Iis*1000)==ii_task_dpz*1000),igain)
+  
+  corr_rest_pbo=CeE(find(Ies==ie_rest_pbo),find(Iis==ii_rest_pbo),1)
+  corr_rest_atx=CeE(find(Ies==ie_rest_pbo),find(Iis==ii_rest_pbo),igain)
+  corr_task_pbo=CeE(find(round(Ies.*1000)==ie_task_pbo*1000),find(round(Iis.*1000)==ii_task_pbo*1000),1)
+  corr_task_atx=CeE(find(round(Ies.*1000)==ie_task_pbo*1000),find(round(Iis.*1000)==ii_task_pbo*1000),igain)
   
   subplot(2,3,2); hold on
   

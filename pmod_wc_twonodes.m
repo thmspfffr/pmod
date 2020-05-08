@@ -16,6 +16,7 @@ v         = 2;
 Gains     = 0:0.05:0.6;
 Ies       = -4:0.025:-1;
 Iis       = -5:0.025:-2;
+Gg        = [1:-0.01:0.96];
 tmax      = 6500; % in units of tauE
 % -------------------------------
 nTrials = 1;
@@ -40,19 +41,6 @@ tau([2 4]) = tauI;
 
 sigma = 0.0005;
 
-% Connectivity:
-wII=4;
-wIE=16;
-wEI=12;
-wEE=12;
-
-% Connectivity:
-W11 = [wEE -wEI; wIE -wII];
-W22 = W11;
-W12 = [1 0; 0 0];
-W21 = [1 0; 0 0];
-W = [W11 W12; W21 W22];
-
 % ----------------
 % WAVELETS
 % ----------------
@@ -69,6 +57,21 @@ nseg=floor((L/10-n_win)/n_shift+1);
 for iies = 1:length(Ies)
   for iiis = 1:length(Iis)
     for igain = 1 : length(Gains)
+      for ig = 1:5
+      
+      % Connectivity:
+      wII=4;
+      wIE=16;
+      wEI=12;
+      wEE=12;
+
+      % Connectivity:
+      W11 = [wEE -wEI; wIE -wII];
+      W22 = W11;
+      W12 = [1*Gg(ig) 0; 0 0];
+      W21 = [1*Gg(ig) 0; 0 0];
+      W = [W11 W12; W21 W22];
+
       
       if ~exist(sprintf('~/pmod/proc/twonodes/v%d/',v))
         mkdir(sprintf(['~/pmod/proc/twonodes/' 'v%d'],v))
@@ -76,7 +79,7 @@ for iies = 1:length(Ies)
 
       outdir = sprintf(['~/pmod/proc/twonodes/v%d/'],v);
       
-      fn = sprintf('pmod_wc_twonodes_Ie%d_Ii%d_gain%d_v%d',iies,iiis,igain,v);
+      fn = sprintf('pmod_wc_twonodes_Ie%d_Ii%d_gain%d_G%d_v%d',iies,iiis,igain,ig,v);
       if tp_parallel(fn,outdir,1,0)
         continue
       end
@@ -219,10 +222,10 @@ for iies = 1:length(Ies)
         end
         
         tp_parallel(fn,outdir,0,0)
+      end
     end
   end
 end
-
 error('!')
 
 %% PLOT RESULTS

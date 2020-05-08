@@ -43,8 +43,8 @@ outdir = '~/pmod/proc/';
 v           = 3;
 Ies         = -4:0.025:-1;
 Iis         = -5:0.025:-2;
-Gg          = 1.2;
-Gains       = [-0.1:0.02:0.3]; 
+Gg          = [1.2:-0.01:1.15];
+Gains       = [-0.1:0.02:0.12]; 
 nTrials     = 1;
 tmax        = 6500;  % in units of tauE
 EC          = 0;
@@ -94,9 +94,9 @@ tauEsec = 0.009; % in seconds
 %%
 
 
-for igain = 10:length(Gains)
+for igain = 1:length(Gains)
   for iG = 1 : length(Gg)
-    for iies = 50: length(Ies)
+    for iies = 1: length(Ies)
       for iiis = 1: length(Iis)
         tic
         
@@ -107,9 +107,9 @@ for igain = 10:length(Gains)
         outdir = sprintf(['~/pmod/proc/detosc/' 'v%d/'],v);
         
         fn = sprintf('pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d',iies,iiis,iG,igain,v);
-%         if tp_parallel(fn,outdir,1,0)
-%           continue
-%         end
+        if tp_parallel(fn,outdir,1,0)
+          continue
+        end
 
         g = Gg(iG);
         W = [wEE*eye(N)+g*C -wEI*eye(N); wIE*eye(N) -wII*eye(N)];
@@ -204,11 +204,11 @@ error('!')
   vv = v;
   outdir = sprintf('~/pmod/proc/detosc/v%d/',vv);
 
-  for iies = 1 : length(Ies)
+  for iies = 1 : 1%length(Ies)
     iies
-    for iiis = 1 : length(Iis)
-      for iG = 1:length(Gg)
-        for igain = 1:length(Gains)
+    for iiis = 1 : 1%length(Iis)
+      for iG = 1:4
+        for igain = 1:9
 
           load(sprintf([outdir 'pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d.mat'],iies,iiis,iG,igain,vv))
           osc1(iies,iiis,iG,igain) = mean(squeeze(mean(squeeze(out.osc1),1)));
@@ -218,7 +218,7 @@ error('!')
     end
   end
 
-  save(sprintf([outdir 'pmod_wc_wholebrain_detosc_all_v%d.mat'],vv),'osc1')
+%   save(sprintf([outdir 'pmod_wc_wholebrain_detosc_all_v%d.mat'],vv),'osc1')
 
 %   % DELETE OLD FILES
 %   for iies = 1 : length(Ies)

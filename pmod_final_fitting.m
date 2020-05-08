@@ -32,8 +32,8 @@ clear
 v           = 3;
 Ies         = -4:0.025:-1;
 Iis         = -5:0.025:-2;
-Gg          = 1.2;
-Gains       = [-0.1:0.02:0.3]; 
+Gg          = [1.2:-0.01:1.15];
+Gains       = [-0.1:0.02:0.12]; 
 nTrials     = 1;
 tmax        = 6500;  % in units of tauE
 EC          = 0;
@@ -163,11 +163,11 @@ if ~exist(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_all_v%d.ma
     end
   end
 %   
-  save(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_all_v%d.mat',v_sim,v_sim),'outp')
+  save(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_all_v%d.mat',v_sim,v_sim),'outp','-v7.3')
 % % 
 else
   load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_all_v%d.mat',v_sim,v_sim))
-  load(sprintf('~/pmod/proc/detosc/v%d/pmod_wc_wholebrain_detosc_all_v%d.mat',v_sim,v_sim))
+%   load(sprintf('~/pmod/proc/detosc/v%d/pmod_wc_wholebrain_detosc_all_v%d.mat',v_sim,v_sim))
 end
 % osc1=osc1(1:121,1:121,:,:);
 % clear cleandat
