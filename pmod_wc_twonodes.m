@@ -13,7 +13,7 @@ clear
 % VERSION 2
 % -------------------------------
 v         = 2;
-Gains     = 0:0.05:0.6;
+Gains     = 0:0.05:0.3;
 Ies       = -4:0.025:-1;
 Iis       = -5:0.025:-2;
 Gg        = [1:-0.01:0.96];
@@ -57,7 +57,7 @@ nseg=floor((L/10-n_win)/n_shift+1);
 for iies = 1:length(Ies)
   for iiis = 1:length(Iis)
     for igain = 1 : length(Gains)
-      for ig = 1:5
+      for ig = 1:length(Gg)
       
       % Connectivity:
       wII=4;

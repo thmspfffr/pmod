@@ -204,11 +204,11 @@ error('!')
   vv = v;
   outdir = sprintf('~/pmod/proc/detosc/v%d/',vv);
 
-  for iies = 1 : 1%length(Ies)
+  for iies = 1 : length(Ies)
     iies
-    for iiis = 1 : 1%length(Iis)
-      for iG = 1:4
-        for igain = 1:9
+    for iiis = 1 : length(Iis)
+      for iG = 1:length(Gg)
+        for igain = 1:length(Gains)
 
           load(sprintf([outdir 'pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d.mat'],iies,iiis,iG,igain,vv))
           osc1(iies,iiis,iG,igain) = mean(squeeze(mean(squeeze(out.osc1),1)));
@@ -218,7 +218,7 @@ error('!')
     end
   end
 
-%   save(sprintf([outdir 'pmod_wc_wholebrain_detosc_all_v%d.mat'],vv),'osc1')
+  save(sprintf([outdir 'pmod_wc_wholebrain_detosc_all_v%d.mat'],vv),'osc1')
 
 %   % DELETE OLD FILES
 %   for iies = 1 : length(Ies)

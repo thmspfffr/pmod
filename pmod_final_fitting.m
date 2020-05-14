@@ -36,7 +36,6 @@ Gg          = [1.2:-0.01:1.15];
 Gains       = [-0.1:0.02:0.12]; 
 nTrials     = 1;
 tmax        = 6500;  % in units of tauE
-EC          = 0;
 dt          = 0.01;
 %-------------------------------------------------------------------------
 
@@ -90,22 +89,25 @@ fc_rest = fc_rest(include_bcn,include_bcn);
 fc_task = fc_task(include_bcn,include_bcn);
 
 % transform indiv. subj. matrices to AAL BCN
+% for ifreq = 5
 for isubj = 1 : 28
   tmp = squeeze(nanmean(cleandat(:,:,isubj,1,1,:),6));
-  tmp = tp_match_aal(para,tmp); tmp = tmp(include_bcn,include_bcn);
-  [corrwithfc_rest(isubj), p_corrwithfc_rest(isubj)]  = corr(tmp(mask),SC(mask));
+  tmp = tp_match_aal(para,tmp); 
+  fc(:,:,isubj)=tmp;
+  tmp = tmp(include_bcn,include_bcn);
+%   [corrwithfc_rest(isubj,ifreq), p_corrwithfc_rest(isubj)]  = corr(tmp(mask),SC(mask));
   fc_rest_indiv(:,isubj) = tmp(mask);
   tmp = squeeze(nanmean(cleandat(:,:,isubj,1,2,:),6));
   tmp = tp_match_aal(para,tmp); tmp = tmp(include_bcn,include_bcn);
   fc_task_indiv(:,isubj) = tmp(mask);
-  [corrwithfc_task(isubj), p_corrwithfc_task(isubj)] = corr(tmp(mask),SC(mask));
+%   [corrwithfc_task(isubj,ifreq), p_corrwithfc_task(isubj)] = corr(tmp(mask),SC(mask));
 end
-
+% end
 k = [0 0];
 
 %%
 % v_sim=3
-if ~exist(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_all_v%d.mat',v_sim,v_sim))
+% if ~exist(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_all_v%d.mat',v_sim,v_sim))
   
   for iies = 1 : length(Ies)
     iies
@@ -117,17 +119,17 @@ if ~exist(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_all_v%d.ma
           
           outp.fc_sim_fr_tmp = out.fc_FR;
           
-          [outp.r_fr_rest_corr(iies,iiis,iG,igain), outp.p_env_rest_corr(iies,iiis,iG,igain)]=corr(outp.fc_sim_fr_tmp(mask),fc_rest(mask));
-          [outp.r_fr_task_corr(iies,iiis,iG,igain), outp.p_env_task_corr(iies,iiis,iG,igain)]=corr(outp.fc_sim_fr_tmp(mask),fc_task(mask));          
+          [outp.r_fr_rest_corr(iies,iiis,iG,igain)]=corr(outp.fc_sim_fr_tmp(mask),fc_rest(mask));
+%           [outp.r_fr_task_corr(iies,iiis,iG,igain)]=corr(outp.fc_sim_fr_tmp(mask),fc_task(mask));          
           
-          [outp.r_fr_rest_indiv_corr(:,iies,iiis,iG,igain), outp.p_env_rest_indiv_corr(:,iies,iiis,iG,igain)]=corr(outp.fc_sim_fr_tmp(mask),fc_rest_indiv);
-          [outp.r_fr_task_indiv_corr(:,iies,iiis,iG,igain), outp.p_env_task_indiv_corr(:,iies,iiis,iG,igain)]=corr(outp.fc_sim_fr_tmp(mask),fc_task_indiv);
+          [outp.r_fr_rest_indiv_corr(:,iies,iiis,iG,igain)]=corr(outp.fc_sim_fr_tmp(mask),fc_rest_indiv);
+%           [outp.r_fr_task_indiv_corr(:,iies,iiis,iG,igain)]=corr(outp.fc_sim_fr_tmp(mask),fc_task_indiv);
           
           outp.dist_fr_rest(iies,iiis,iG,igain) = 1-(outp.r_fr_rest_corr(iies,iiis,iG,igain)-(mean(fc_rest(mask))-mean(outp.fc_sim_fr_tmp(mask))).^2);
-          outp.dist_fr_task(iies,iiis,iG,igain) = 1-(outp.r_fr_task_corr(iies,iiis,iG,igain)-(mean(fc_task(mask))-mean(outp.fc_sim_fr_tmp(mask))).^2);
+%           outp.dist_fr_task(iies,iiis,iG,igain) = 1-(outp.r_fr_task_corr(iies,iiis,iG,igain)-(mean(fc_task(mask))-mean(outp.fc_sim_fr_tmp(mask))).^2);
           
           outp.dist_fr_rest_indiv(:,iies,iiis,iG,igain) = 1-(squeeze(outp.r_fr_rest_indiv_corr(:,iies,iiis,iG,igain))'-(squeeze(mean(fc_rest_indiv))-mean(outp.fc_sim_fr_tmp(mask))).^2);
-          outp.dist_fr_task_indiv(:,iies,iiis,iG,igain) = 1-(squeeze(outp.r_fr_task_indiv_corr(:,iies,iiis,iG,igain))'-(squeeze(mean(fc_task_indiv))-mean(outp.fc_sim_fr_tmp(mask))).^2);
+%           outp.dist_fr_task_indiv(:,iies,iiis,iG,igain) = 1-(squeeze(outp.r_fr_task_indiv_corr(:,iies,iiis,iG,igain))'-(squeeze(mean(fc_task_indiv))-mean(outp.fc_sim_fr_tmp(mask))).^2);
           
           outp.fc_sim_fr_mean(iies,iiis,iG,igain) = mean(outp.fc_sim_fr_tmp(mask));
           
@@ -142,33 +144,33 @@ if ~exist(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_all_v%d.ma
           % DO THE SAME AS ABOVE WITH ENVELOPES
           % ------------------------
           
-          outp.fc_sim_env_tmp = out.rc_wl;
+%           outp.fc_sim_env_tmp = out.rc_wl;
           
-          [outp.r_env_rest_corr(iies,iiis,iG,igain), outp.p_env_rest_corr(iies,iiis,iG,igain)]=corr(outp.fc_sim_env_tmp(mask),fc_rest(mask));
-          [outp.r_env_task_corr(iies,iiis,iG,igain), outp.p_env_task_corr(iies,iiis,iG,igain)]=corr(outp.fc_sim_env_tmp(mask),fc_task(mask));          
-          
-          [outp.r_env_rest_indiv_corr(:,iies,iiis,iG,igain), outp.p_env_rest_indiv_corr(:,iies,iiis,iG,igain)]=corr(outp.fc_sim_env_tmp(mask),fc_rest_indiv);
-          [outp.r_env_task_indiv_corr(:,iies,iiis,iG,igain), outp.p_env_task_indiv_corr(:,iies,iiis,iG,igain)]=corr(outp.fc_sim_env_tmp(mask),fc_task_indiv);
-          
-          outp.dist_env_rest(iies,iiis,iG,igain) = 1-(outp.r_env_rest_corr(iies,iiis,iG,igain)-(mean(fc_rest(mask))-mean(outp.fc_sim_env_tmp(mask))).^2);
-          outp.dist_env_task(iies,iiis,iG,igain) = 1-(outp.r_env_task_corr(iies,iiis,iG,igain)-(mean(fc_task(mask))-mean(outp.fc_sim_env_tmp(mask))).^2);
-          
-          outp.dist_env_rest_indiv(:,iies,iiis,iG,igain) = 1-(squeeze(outp.r_env_rest_indiv_corr(:,iies,iiis,iG,igain))'-(squeeze(mean(fc_rest_indiv))-mean(outp.fc_sim_env_tmp(mask))).^2);
-          outp.dist_env_task_indiv(:,iies,iiis,iG,igain) = 1-(squeeze(outp.r_env_task_indiv_corr(:,iies,iiis,iG,igain))'-(squeeze(mean(fc_task_indiv))-mean(outp.fc_sim_env_tmp(mask))).^2);
-          
-          outp.fc_sim_env_mean(iies,iiis,iG,igain) = mean(outp.fc_sim_env_tmp(mask));      
-          
+%           [outp.r_env_rest_corr(iies,iiis,iG,igain), outp.p_env_rest_corr(iies,iiis,iG,igain)]=corr(outp.fc_sim_env_tmp(mask),fc_rest(mask));
+%           [outp.r_env_task_corr(iies,iiis,iG,igain), outp.p_env_task_corr(iies,iiis,iG,igain)]=corr(outp.fc_sim_env_tmp(mask),fc_task(mask));          
+%           
+%           [outp.r_env_rest_indiv_corr(:,iies,iiis,iG,igain), outp.p_env_rest_indiv_corr(:,iies,iiis,iG,igain)]=corr(outp.fc_sim_env_tmp(mask),fc_rest_indiv);
+%           [outp.r_env_task_indiv_corr(:,iies,iiis,iG,igain), outp.p_env_task_indiv_corr(:,iies,iiis,iG,igain)]=corr(outp.fc_sim_env_tmp(mask),fc_task_indiv);
+%           
+%           outp.dist_env_rest(iies,iiis,iG,igain) = 1-(outp.r_env_rest_corr(iies,iiis,iG,igain)-(mean(fc_rest(mask))-mean(outp.fc_sim_env_tmp(mask))).^2);
+%           outp.dist_env_task(iies,iiis,iG,igain) = 1-(outp.r_env_task_corr(iies,iiis,iG,igain)-(mean(fc_task(mask))-mean(outp.fc_sim_env_tmp(mask))).^2);
+%           
+%           outp.dist_env_rest_indiv(:,iies,iiis,iG,igain) = 1-(squeeze(outp.r_env_rest_indiv_corr(:,iies,iiis,iG,igain))'-(squeeze(mean(fc_rest_indiv))-mean(outp.fc_sim_env_tmp(mask))).^2);
+%           outp.dist_env_task_indiv(:,iies,iiis,iG,igain) = 1-(squeeze(outp.r_env_task_indiv_corr(:,iies,iiis,iG,igain))'-(squeeze(mean(fc_task_indiv))-mean(outp.fc_sim_env_tmp(mask))).^2);
+%           
+%           outp.fc_sim_env_mean(iies,iiis,iG,igain) = mean(outp.fc_sim_env_tmp(mask));      
+%           
         end
       end
     end
   end
 %   
-  save(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_all_v%d.mat',v_sim,v_sim),'outp','-v7.3')
+  save(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_all_v%d.mat',v_sim,v_sim),'outp')
 % % 
-else
-  load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_all_v%d.mat',v_sim,v_sim))
-%   load(sprintf('~/pmod/proc/detosc/v%d/pmod_wc_wholebrain_detosc_all_v%d.mat',v_sim,v_sim))
-end
+% else
+%   load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_all_v%d.mat',v_sim,v_sim))
+  load(sprintf('~/pmod/proc/detosc/v%d/pmod_wc_wholebrain_detosc_all_v%d.mat',v_sim,v_sim))
+% end
 % osc1=osc1(1:121,1:121,:,:);
 % clear cleandat
 
@@ -366,7 +368,7 @@ iG         = 1;
 igain      = find(Gains==0);
 osc        = osc1(1:lim,1:lim,iG,igain);
 oscthresh  = 0;
-prc_thresh = 5;
+prc_thresh = 2.5;
 
 h=figure; set(gcf,'color','w')
 
@@ -376,7 +378,7 @@ for isubj = 1 : 28
   
     clear k
     par                 = squeeze(outp.dist_fr_rest_indiv(isubj,1:lim,1:lim,iG,igain));    
-    par(nanmean(osc1,4)>0)  = nan;
+    par(nanmean(osc1(:,:,iG,6:12),4)>0)  = nan;
     binmap              = par<prctile(par(:),prc_thresh);
     bw                  = bwlabel(binmap,8);
     cnt                 = [];
@@ -454,7 +456,7 @@ clear idx
 
 [Mu,ia,ic]=unique([idx_rest.inh' idx_rest.exc'],'rows','stable')
 c=accumarray(ic,1);
-cols = cbrewer('seq', 'YlOrRd', 12);
+cols = cbrewer('seq', 'YlOrRd', max(c)+3);
 cols = cols(4:end,:);
 
 SUBJ = 1:28; %SUBJ(17)=[];
@@ -472,7 +474,7 @@ h = figure_w;
 
 subplot(2,3,1); hold on
 par = outp.fc_sim_fr_mean(:,:,:,igain);
-par(osc1(:,:,:,igain)==1)=nan;
+par(osc1(:,:,iG,igain)==1)=nan;
 % 
 % b=imagesc(par,[0 0.02]); colormap(plasma)
 % set(b,'AlphaData',~isnan(par))
@@ -509,7 +511,7 @@ baseline_gain=find(Gains==0);
 
 load redblue.mat
 
-for igain = 12
+for igain = 8
   
   for isubj = SUBJ
       load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,idx_rest.exc(isubj),idx_rest.inh(isubj),iG,baseline_gain,v_sim))
