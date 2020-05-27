@@ -23,7 +23,6 @@ outdir = '~/pmod/proc/';
 % Gains       = [0 0.45]; 
 % nTrials     = 1;
 % tmax        = 6500;  % in units of tauE
-% noise_mod   = 1
 %-------------------------------------------------------------------------
 % VERSION 1: 20-10-2018
 % %-------------------------------------------------------------------------
@@ -34,30 +33,16 @@ outdir = '~/pmod/proc/';
 % Gains       = [0:0.05:0.6 -0.2:0.05:-0.05 0.65:0.05:1]; 
 % nTrials     = 1;
 % tmax        = 6500;  % in units of tauE
-% noise_mod   = 1;
 %-------------------------------------------------------------------------
 % VERSION 3: M
 % %-------------------------------------------------------------------------
 v           = 3;
 Ies         = -4:0.025:-1;
 Iis         = -5:0.025:-2;
-Gg          = [1.2:-0.01:1.15];
+Gg          = [1.2:-0.01:1.10];
 Gains       = [-0.1:0.02:0.12]; 
 nTrials     = 1;
 tmax        = 6500;  % in units of tauE
-noise_mod   = 1;
-%-------------------------------------------------------------------------
-% VERSION 4: 27/01/2020
-% %-------------------------------------------------------------------------
-% v           = 4;
-% Ies         = -4:0.025:-1;
-% Iis         = -5:0.025:-2;
-% Gg          = [1.2];
-% Gains       = 0; 
-% nTrials     = 1;
-% tmax        = 6500;  % in units of tauE
-% EC          = 0;
-% noise_mod   = 1:0.2:2;
 %-------------------------------------------------------------------------
 
 dt          = 0.01;
@@ -82,7 +67,7 @@ wIE=16;
 wEI=12;
 wEE=12;
 % noise level
-sigma = 0.0005*noise_mod;
+sigma = 0.0005;
 
 tauE = 1;
 tauI = 2;
@@ -125,10 +110,10 @@ Wn    = [flp/fnq fhi/fnq]; % butterworth bandpass non-dimensional frequency
 
 %%
 
-for igain = 1 : length(Gains)
-  for iG = 1 : length(Gg)
-    for iies = 1 : length(Ies)
-      for iiis = 1: length(Iis)
+for igain = 6
+  for iG = 6
+    for iies = 43
+      for iiis = 35
         
         out.FC_env    = zeros(N,N,1);
         out.COV_env    = zeros(N,N,1);
@@ -145,9 +130,9 @@ for igain = 1 : length(Gains)
         outdir = sprintf(['~/pmod/proc/numerical/v%d/'],v);
         
         fn = sprintf('pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d',iies,iiis,iG,igain,v);
-        if tp_parallel(fn,outdir,1,0)
-          continue
-        end
+%         if tp_parallel(fn,outdir,1,0)
+%           continue
+%         end
         
         fprintf('Gain%d, Coupling%d, Ie%d, Ii%d...\n',igain,iG,iies,iiis)
         

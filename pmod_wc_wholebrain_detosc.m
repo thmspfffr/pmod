@@ -43,7 +43,7 @@ outdir = '~/pmod/proc/';
 v           = 3;
 Ies         = -4:0.025:-1;
 Iis         = -5:0.025:-2;
-Gg          = [1.2:-0.01:1.15];
+Gg          = [1.2:-0.01:1.10];
 Gains       = [-0.1:0.02:0.12]; 
 nTrials     = 1;
 tmax        = 6500;  % in units of tauE
@@ -99,7 +99,8 @@ for igain = 1:length(Gains)
     for iies = 1: length(Ies)
       for iiis = 1: length(Iis)
         tic
-        
+        fprintf('Rest, Ie%d, Ii%d, Gain%d, G%d ...\n',iies,iiis,igain,iG)
+
         if ~exist(sprintf('~/pmod/proc/detosc/v%d/',v))
           mkdir(sprintf(['~/pmod/proc/detosc/' 'v%d'],v))
         end
@@ -141,7 +142,6 @@ for igain = 1:length(Gains)
         Io(N+1:2*N) = Ii;
 
         for tr=1:nTrials
-          fprintf('Rest, Ie%d, Ii%d, trial%d ...\n',iies,iiis,tr)
           r   = 0.001*rand(2*N,1);
           R   = zeros(Tds,N);
           Ri  = zeros(Tds,N);
