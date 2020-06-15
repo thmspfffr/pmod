@@ -295,6 +295,12 @@ clear idx
 
 %% PLOT HIGH GAIN VS BASELINE GAIN
 
+% task_exc = 8;
+% task_inh = 15;
+
+task_exc = 10;
+task_inh = 17;
+
 [Mu,ia,ic]=unique([idx_rest.inh' idx_rest.exc'],'rows','stable')
 c=accumarray(ic,1);
 cols = cbrewer('seq', 'YlOrRd', max(c)+3);
@@ -357,10 +363,10 @@ for isubj = SUBJ
   fc_mod_rest(isubj,2) = mean(out.fc_FR(mask));
   fc_all_mod(:,isubj,2,1) = out.fc_FR(mask);
   
-  load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,idx_rest.exc(isubj)+9,idx_rest.inh(isubj)+15,baseline_coupling,baseline_gain,v_sim))
+  load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,idx_rest.exc(isubj)+task_exc,idx_rest.inh(isubj)+task_inh,baseline_coupling,baseline_gain,v_sim))
   fc_mod_task(isubj,1) = mean(out.fc_FR(mask));
   fc_all_mod(:,isubj,1,2) = out.fc_FR(mask);
-  load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,idx_rest.exc(isubj)+9,idx_rest.inh(isubj)+15,iG,igain,v_sim))
+  load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,idx_rest.exc(isubj)+task_exc,idx_rest.inh(isubj)+task_inh,iG,igain,v_sim))
   fc_mod_task(isubj,2) = mean(out.fc_FR(mask));
   fc_all_mod(:,isubj,2,2) = out.fc_FR(mask);
   
@@ -376,7 +382,7 @@ text(10,110,['\DeltaGain' sprintf('=%.2f',Gains(igain))],'fontsize',7)
 text(10,100,['\DeltaCoupl.' sprintf('=%.2f',Gg(iG)-Gg(baseline_coupling))],'fontsize',7)
 
 scatter(round(mean(idx_rest.inh(SUBJ))),round(mean(idx_rest.exc(SUBJ))),20,'o','markerfacecolor',[0.5 0.5 0.5],'markeredgecolor','k');
-scatter(round(mean(idx_rest.inh(SUBJ)))+15,round(mean(idx_rest.exc(SUBJ)))+9,20,'o','markerfacecolor','y','markeredgecolor','k');
+scatter(round(mean(idx_rest.inh(SUBJ)))+task_inh,round(mean(idx_rest.exc(SUBJ)))+task_exc,20,'o','markerfacecolor','y','markeredgecolor','k');
 
 set(b,'AlphaData',~isnan(par));
 colormap(gca,redblue)
@@ -386,10 +392,10 @@ set(gca,'YTick',1:40:121,'YTickLabels',num2cell(Ies(1:40:end)))
 set(gca,'XTick',1:40:121,'XTickLabels',num2cell(Iis(1:40:end)))
 
 tp_editplots; axis square; axis([1 121 1 121])
-  
 
 % DPZ
-igain = 8; iG = 11
+% igain =8; iG = 10;
+igain = 11; iG = 10
 
 for isubj = SUBJ
   
@@ -397,7 +403,7 @@ for isubj = SUBJ
   fc_mod_rest(isubj,3) = mean(out.fc_FR(mask));
   fc_all_mod(:,isubj,3,1) = out.fc_FR(mask);
   
-  load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,idx_rest.exc(isubj)+9,idx_rest.inh(isubj)+14,iG,igain,v_sim))
+  load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,idx_rest.exc(isubj)+task_exc,idx_rest.inh(isubj)+task_inh,iG,igain,v_sim))
   fc_mod_task(isubj,3) = mean(out.fc_FR(mask));
   fc_all_mod(:,isubj,3,2) = out.fc_FR(mask);
   
@@ -413,7 +419,7 @@ text(10,110,['\DeltaGain' sprintf('=%.2f',Gains(igain))],'fontsize',7)
 text(10,100,['\DeltaCoupl.' sprintf('=%.2f',Gg(iG)-Gg(baseline_coupling))],'fontsize',7)
 
 scatter(round(mean(idx_rest.inh(SUBJ))),round(mean(idx_rest.exc(SUBJ))),20,'o','markerfacecolor',[0.5 0.5 0.5],'markeredgecolor','k');
-scatter(round(mean(idx_rest.inh(SUBJ)))+14,round(mean(idx_rest.exc(SUBJ)))+9,20,'o','markerfacecolor','y','markeredgecolor','k');
+scatter(round(mean(idx_rest.inh(SUBJ)))+task_inh,round(mean(idx_rest.exc(SUBJ)))+task_exc,20,'o','markerfacecolor','y','markeredgecolor','k');
 
 set(b,'AlphaData',~isnan(par));
 colormap(gca,redblue);
@@ -497,7 +503,7 @@ set(gca,'XTick',[1 2],'XTickLabels',{'Rest';'Task'})
 xtickangle(gca,45)
 ylabel('Change in correlation [%]')
 
-print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_final_fitting_indivfits_highvslowgain_ig%d_gain%d_v%d.pdf',iG,igain,v_sim))
+print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_final_fitting_indivfits_highvslowgain_ig%d_gain%d_tE%dtI%d_v%d.pdf',iG,igain,task_exc,task_inh,v_sim))
 
 %
 [h,~,~,s]=ttest(fc_all_mod(:,:,2,1),fc_all_mod(:,:,1,1),'dim',2);
@@ -512,4 +518,6 @@ dpz_n(1) = sum(h>0&s.tstat<0)/2850;
 [h,~,~,s]=ttest(fc_all_mod(:,:,3,2),fc_all_mod(:,:,1,2),'dim',2);
 dpz_p(2) = sum(h>0&s.tstat>0)/2850;
 dpz_n(2) = sum(h>0&s.tstat<0)/2850;
+
+%%
 

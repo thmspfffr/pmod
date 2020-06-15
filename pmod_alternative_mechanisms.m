@@ -1,3 +1,5 @@
+% pmod_alternative_mechanisms.m
+
 v_sim = 3;
 
 fc = pupmod_loadpowcorr(v_conn,SUBJLIST,1);

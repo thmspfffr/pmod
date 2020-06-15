@@ -1,5 +1,5 @@
 %% FITTING
-% pmod_final_fitting
+% pmod_fitting_globalcoupling.m
 
 clear
 % %-------------------------------------------------------------------------
