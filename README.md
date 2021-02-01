@@ -1,2 +1,0 @@
-# pmod
-Wilson Cowan Simulations

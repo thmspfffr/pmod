@@ -1,4 +1,4 @@
-%% pmod_wc_wholebrain_final
+%% pmod_wc_wholebrain_task
 % Stochastic simulation of 2*N WC nodes during "rest"
 %--------------------------------------------------------------------------
 
@@ -90,28 +90,43 @@ isub = find( triu(ones(N)) - eye(N) );
 % ----------------
 % WAVELETS
 % ----------------
-[wavelet,f]=tp_mkwavelet(11.3137,0.5,(1/resol));
-delta_time = 6/pi./(f(2)-f(1));
-delta_time = round(delta_time*1000)/1000;
-t_shift    = delta_time;
-n_win      = round(delta_time*(1/resol));
-n_shift    = round(t_shift*(1/resol));
-nseg=floor((L/10-n_win)/n_shift+1);
-% ----------------
-% BAND PASS FILTER
-% ----------------
-flp = 9;           % lowpass frequency of filter
-fhi = 13;
-k     = 4;                  % 2nd order butterworth filter
-fnq   = 1/(2*resol);       % Nyquist frequency
-Wn    = [flp/fnq fhi/fnq]; % butterworth bandpass non-dimensional frequency
-[bfilt,afilt] = butter(k,Wn);
+% [wavelet,f]=tp_mkwavelet(11.3137,0.5,(1/resol));
+% delta_time = 6/pi./(f(2)-f(1));
+% delta_time = round(delta_time*1000)/1000;
+% t_shift    = delta_time;
+% n_win      = round(delta_time*(1/resol));
+% n_shift    = round(t_shift*(1/resol));
+% nseg=floor((L/10-n_win)/n_shift+1);
 % ----------------
 
 % LOAD REGIONS THAT ARE SIGNIFICANTLY (P<0.05) ALTERED BY TASK (mostly
 % decreased), in the relevant freq range
-v = 33; % AAL
-load(sprintf('~/pupmod/proc/src/pupmod_src_pow_taskmodulationindex_v%d.mat',v))
+vvv = 33; % AAL
+load(sprintf('~/pupmod/proc/src/pupmod_src_pow_taskmodulationindex_v%d.mat',vvv))
+
+
+% load(sprintf('~/pmod/proc/pmod_final_fitting_indivfits_rest_v%d.mat',3))
+% 
+% clear idx
+
+% task_exc = 8;
+% task_inh = 15;
+
+% task_exc = 10;
+% task_inh = 17;
+% 
+% [Mu,ia,ic]=unique([idx_rest.inh' idx_rest.exc'],'rows','stable')
+% c=accumarray(ic,1);
+% cols = cbrewer('seq', 'YlOrRd', max(c)+3);
+% cols = cols(4:end,:);
+% 
+% % find idx of delta_gain = 0 and coupling (Gg) = 1.15
+% baseline_gain=find(Gains==0);
+% baseline_coupling = find(Gg==1.15);
+% 
+% SUBJ = 1:28;
+% clear fc_mod_rest fc_mod_task
+
 
 %%
 
@@ -123,8 +138,8 @@ for igain = 1:length(Gains)
         out.FC_env    = zeros(N,N,1);
         out.COV_env    = zeros(N,N,1);
         
-        if ~exist(sprintf('~/pmod/proc/numerical/v%d/',v))
-          mkdir(sprintf(['~/pmod/proc/numerical/' 'v%d'],v))
+        if ~exist(sprintf('~/pmod/proc/numerical/task/v%d/',v))
+          mkdir(sprintf(['~/pmod/proc/numerical/task/' 'v%d'],v))
         end
         
         % save configuration, with all above parameters
@@ -132,9 +147,9 @@ for igain = 1:length(Gains)
           save(sprintf([outdir 'pmod_wc_wholebrain_final_parameters_v%d.mat'],v))
         end
 
-        outdir = sprintf(['~/pmod/proc/numerical/v%d/'],v);
+        outdir = sprintf(['~/pmod/proc/numerical/task/v%d/'],v);
         
-        fn = sprintf('pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d',iies,iiis,iG,igain,v);
+        fn = sprintf('pmod_wc_wholebrain_task_Ie%d_Ii%d_G%d_gain%d_v%d',iies,iiis,iG,igain,v);
         if tp_parallel(fn,outdir,1,0)
           continue
         end
@@ -161,9 +176,11 @@ for igain = 1:length(Gains)
         F   = @(x) [feval(Fe,x(1:N));feval(Fi,x(N+1:2*N))];
         
         % Working point:
+        idx         = [task_idx; task_idx];
         Io          = zeros(2*N,1);
-        Io(1:N)     = Ies(iies);
+        Io(1:N)     = Ies(iies); 
         Io(N+1:2*N) = Iis(iiis);
+        Io(~idx) = 0;
         
         T           = Tds*resol; %% define time of interval
         freqs       = (0:Tds/2)/T; %% find the corresponding frequency in Hz
@@ -210,40 +227,40 @@ for igain = 1:length(Gains)
           
           out.fc_FR = rc;
           
-          for i=1:N
-            
-            % COMPUTE POWER SPECTRUM
-            % ---------------------------
-            f = rE(:,i) - mean(rE(:,i));
-            xdft = fft(f);
-            xdft = xdft(1:floor(Tds/2)+1);
-            pw = (1/(Tds/2)) * abs(xdft).^2;
-            psd = pw(freqs<100 & freqs>1);
-            f = freqs(freqs<100 & freqs>1);
-            fnew = f(1:10:end);
-            psd  = psd(1:10:end);
-            PSD(:,i,tr) = psd';
-            f = fnew;
-            
-          end
+%           for i=1:N
+%             
+%             % COMPUTE POWER SPECTRUM
+%             % ---------------------------
+%             f = rE(:,i) - mean(rE(:,i));
+%             xdft = fft(f);
+%             xdft = xdft(1:floor(Tds/2)+1);
+%             pw = (1/(Tds/2)) * abs(xdft).^2;
+%             psd = pw(freqs<100 & freqs>1);
+%             f = freqs(freqs<100 & freqs>1);
+%             fnew = f(1:10:end);
+%             psd  = psd(1:10:end);
+%             PSD(:,i,tr) = psd';
+%             f = fnew;
+%             
+%           end
 
-          out.alphapow(:,tr) = squeeze(mean(PSD(frequencies>=flp&frequencies<=fhi,:,:),1));
+%           out.alphapow(:,tr) = squeeze(mean(PSD(frequencies>=flp&frequencies<=fhi,:,:),1));
           
           % ----------------------------------
           % WAVELET ANALYSIS
           % ----------------------------------
-          for j=1:nseg
-            dloc2=rE((j-1)*n_shift+1:(j-1)*n_shift+n_win,:)';
-            dataf(j,:)=abs(dloc2*wavelet).^2; 
-          end
-          out.rc_wl = corr(dataf);
-          out.rc_wl_cov = cov(dataf);
+%           for j=1:nseg
+%             dloc2=rE((j-1)*n_shift+1:(j-1)*n_shift+n_win,:)';
+%             dataf(j,:)=abs(dloc2*wavelet).^2; 
+%           end
+%           out.rc_wl = corr(dataf);
+%           out.rc_wl_cov = cov(dataf);
           % ----------------------------------
           % EXTRACT PEAK FREQ
           % ---------------------------
-          [~,peak_idx]=max(smooth(mean(PSD(f>4,:),2),20));
-          out.peakfreq = f(peak_idx+find(f<4,1,'last'));
-          clear PSD rc fc_env
+%           [~,peak_idx]=max(smooth(mean(PSD(f>4,:),2),20));
+%           out.peakfreq = f(peak_idx+find(f<4,1,'last'));
+%           clear PSD rc fc_env
          
         end
         
@@ -266,61 +283,5 @@ for igain = 1:length(Gains)
   end
 end
 
-% error('!')
+error('!')
 %%
-
-% fprintf('WAAAAAT')
-%
-% v = 1;
-%
-% ord   = pconn_randomization;
-%
-% for iies = 1: length(Ies)
-%   iies
-%   for iiis = 1: length(Iis)
-%     for iG = 1 : length(Gg)
-%       for igain = 1 : length(Gains)
-% %
-%
-% %         delete(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt'],iies,iiis,iG,igain,v))
-%         if ~exist(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat'],iies,iiis,iG,igain,v))
-%         	delete(sprintf(['~/pmod/proc/' 'pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d_processing.txt'],iies,iiis,iG,igain,v))
-%             warning('deleted')
-%         end
-%
-%       end
-%     end
-%   end
-% end
-%  /home/tpfeffer/pmod/proc/pmod_wc_wholebrain_final_Ie14_Ii56_G1_gain43_v2.mat
-%% DELET EFILES
-for v = [3]
-  for igain = 13 : length(Gains)
-    igain
-    for iG = 1 %: length(Gg)
-      for iies = 1: length(Ies)
-        iies
-        for iiis = 1: length(Iis)
-        
-        delete( sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v,iies,iiis,iG,igain,v))
-
-        end
-%           fn = sprintf('/home/tpfeffer/pmod/proc/pmod_wc_wholebrain_detosc_Ie%d_Ii%d_G%d_gain%d_v%d.mat',iies,iiis,iG,igain,v);
-%           delete(fn)
-%         end
-      end
-    end
-  end
-end
-
-% %%
-% mask    = logical(triu(ones(76,76),1));
-% for iies= 1 : 31
-%   for iiis = 1 : 31
-%     
-%     load(sprintf('~/pmod/proc/numerical/v3/pmod_wc_wholebrain_final_Ie%d_Ii%d_G1_gain1_v3.mat',iies,iiis))
-%     aaa(iies,iiis) = mean(out.FC_env(mask));
-%   end
-% end
-
-

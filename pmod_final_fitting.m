@@ -171,8 +171,15 @@ nancol = [0.97 0.97 0.97];
 clear par ax
 figure; set(gcf,'color','w')
 
+% ---------
+% Basline: delta_gain = 0 
+% ---------
 igain = find(Gains==0);
+% ---------
+% Set global coupling to 1.15 (see pmod_fitting_globalcoupling.m)
+% ---------
 iG = find(Gg==1.15);
+% ---------
 osc = osc1(1:lim,1:lim,iG,igain);
 
 % plot peak freq model
@@ -207,7 +214,13 @@ print(gcf,'-depsc2',sprintf('~/pmod/plots/pmod_final_fitting_fc_frandenv_iG%d_v%
 
 clear idx par ax cnt idx_rest par
 lim = 121;
+% ---------
+% Global coupling = 1.15 (baseline)
+% ---------
 iG         = find(Gg==1.15); 
+% ---------
+% Basline: delta_gain = 0 
+% ---------
 igain      = find(Gains==0);
 osc        = osc1(1:lim,1:lim,iG,igain);
 oscthresh  = 0;
@@ -394,8 +407,8 @@ set(gca,'XTick',1:40:121,'XTickLabels',num2cell(Iis(1:40:end)))
 tp_editplots; axis square; axis([1 121 1 121])
 
 % DPZ
-% igain =8; iG = 10;
-igain = 11; iG = 10
+igain =8; iG = 10;
+% igain = 11; iG = 10
 
 for isubj = SUBJ
   
