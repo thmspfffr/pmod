@@ -539,24 +539,28 @@ dpz_n(2) = sum(h>0&s.tstat<0)/2850;
 % igain = 6; iG = 6;
 % DPZ: 
 % igain = 8; iG = 10
+
+task_mod = [-9 -6 -3 0 3 6 9]
   
 for isubj = SUBJ
   for iG = 1 : length(Gg)
     for igain = 1 : length(Gains)
+      for itask = 1 :length(task_mod)
   isubj
   load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,idx_rest.exc(isubj),idx_rest.inh(isubj),baseline_coupling,baseline_gain,v_sim))
-  fc_mod_rest(isubj,iG,igain,1) = mean(out.fc_FR(mask));
-  fc_all_mod(:,isubj,iG,igain,1,1) = out.fc_FR(mask);
+  fc_mod_rest(isubj,iG,igain,itask,1) = mean(out.fc_FR(mask));
+  fc_all_mod(:,isubj,iG,igain,itask,1,1) = out.fc_FR(mask);
   load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,idx_rest.exc(isubj),idx_rest.inh(isubj),iG,igain,v_sim))
-  fc_mod_rest(isubj,iG,igain,2) = mean(out.fc_FR(mask));
-  fc_all_mod(:,isubj,iG,igain,2,1) = out.fc_FR(mask);
+  fc_mod_rest(isubj,iG,igain,itask,2) = mean(out.fc_FR(mask));
+  fc_all_mod(:,isubj,iG,igain,itask,2,1) = out.fc_FR(mask);
   
-  load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,idx_rest.exc(isubj)+task_exc,idx_rest.inh(isubj)+task_inh,baseline_coupling,baseline_gain,v_sim))
-  fc_mod_task(isubj,iG,igain,1) = mean(out.fc_FR(mask));
-  fc_all_mod(:,isubj,iG,igain,1,2) = out.fc_FR(mask);
-  load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,idx_rest.exc(isubj)+task_exc,idx_rest.inh(isubj)+task_inh,iG,igain,v_sim))
-  fc_mod_task(isubj,iG,igain,2) = mean(out.fc_FR(mask));
-  fc_all_mod(:,isubj,iG,igain,2,2) = out.fc_FR(mask);
+  load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,idx_rest.exc(isubj)+task_exc+task_mod(itask),idx_rest.inh(isubj)+task_inh+task_mod(itask),baseline_coupling,baseline_gain,v_sim))
+  fc_mod_task(isubj,iG,igain,itask,1) = mean(out.fc_FR(mask));
+  fc_all_mod(:,isubj,iG,igain,itask,1,2) = out.fc_FR(mask);
+  load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,idx_rest.exc(isubj)+task_exc+task_mod(itask),idx_rest.inh(isubj)+task_inh+task_mod(itask),iG,igain,v_sim))
+  fc_mod_task(isubj,iG,igain,itask,2) = mean(out.fc_FR(mask));
+  fc_all_mod(:,isubj,iG,igain,itask,2,2) = out.fc_FR(mask);
+      end
     end
   end
 end
@@ -620,24 +624,61 @@ colormap(k2,cmap)
 
 %%
 
+itask = 8;
+
 igain_atx = 11; iG_atx = 6
 igain_dpz = 8; iG_dpz = 10
 
 figure_w
 subplot(2,2,1); hold on
-h=squeeze(ttest(fc_mod_rest(:,:,:,2),fc_mod_rest(:,:,:,1),'dim',1));
-par = squeeze(nanmean(fc_mod_rest(:,:,:,2))-nanmean(fc_mod_rest(:,:,:,1)));
-imagesc(par.*squeeze(h),[-0.01 0.01])
-plot(igain_atx,iG_atx,'o','markeredgecolor','k','markerfacecolor','r')
-colormap(cmap); axis square; tp_editplots; set(gca,'ydir','reverse')
-set(gca,'xtick',[1 6 11],'xticklabel',[-0.1 0 0.1],'fontsize',6); xlabel('Change in gain')
-set(gca,'ytick',[1 6 11],'yticklabel',[0.05 0 -0.05],'fontsize',6); ylabel('Change in coupling')
-subplot(2,2,2);
-imagesc(squeeze(nanmean(fc_mod_task(:,:,:,2))-nanmean(fc_mod_task(:,:,:,1))),[-0.01 0.01])
-colormap(cmap); axis square; tp_editplots
+h=squeeze(ttest(fc_mod_rest(:,:,:,itask,2),fc_mod_rest(:,:,:,itask,1),'dim',1));
+par_rest = squeeze(nanmean(fc_mod_rest(:,:,:,itask,2))-nanmean(fc_mod_rest(:,:,:,itask,1))); par_rest(isnan(par_rest))=0; h(isnan(h))=0;
+imagesc(par_rest.*squeeze(h),[-0.01 0.01])
+plot(6,6,'o','markeredgecolor','k','markerfacecolor','w','markersize',5)
+plot(igain_atx,iG_atx,'o','markeredgecolor','k','markerfacecolor','r','markersize',5)
+plot(igain_dpz,iG_dpz,'o','markeredgecolor','k','markerfacecolor','b','markersize',5)
+colormap(cmap); axis square tight; tp_editplots; set(gca,'ydir','reverse')
 set(gca,'xtick',[1 6 11],'xticklabel',[-0.1 0 0.1],'fontsize',6); xlabel('Change in gain')
 set(gca,'ytick',[1 6 11],'yticklabel',[0.05 0 -0.05],'fontsize',6); ylabel('Change in coupling')
 
+
+subplot(2,2,2); hold on
+h=squeeze(ttest(fc_mod_task(:,:,:,3,2),fc_mod_task(:,:,:,itask,1),'dim',1));
+par_task = squeeze(nanmean(fc_mod_task(:,:,:,itask,2))-nanmean(fc_mod_task(:,:,:,itask,1))); par_task(isnan(par_task))=0; h(isnan(h))=0;
+imagesc(par_task,[-0.01 0.01]); 
+plot(6,6,'o','markeredgecolor','k','markerfacecolor','w','markersize',5)
+plot(igain_atx,iG_atx,'o','markeredgecolor','k','markerfacecolor','r','markersize',5)
+plot(igain_dpz,iG_dpz,'o','markeredgecolor','k','markerfacecolor','b','markersize',5)
+colormap(cmap); axis square tight; tp_editplots; set(gca,'ydir','reverse')
+set(gca,'xtick',[1 6 11],'xticklabel',[-0.1 0 0.1],'fontsize',6); xlabel('Change in gain')
+set(gca,'ytick',[1 6 11],'yticklabel',[0.05 0 -0.05],'fontsize',6); ylabel('Change in coupling')
+
+
+subplot(2,2,3); hold on
+imagesc(par_rest-par_task,[-0.01 0.01]); par(isnan(par))=0; h(isnan(h))=0;
+plot(6,6,'o','markeredgecolor','k','markerfacecolor','w','markersize',5)
+plot(igain_atx,iG_atx,'o','markeredgecolor','k','markerfacecolor','r','markersize',5)
+plot(igain_dpz,iG_dpz,'o','markeredgecolor','k','markerfacecolor','b','markersize',5)
+colormap(cmap); axis square tight; tp_editplots; set(gca,'ydir','reverse')
+set(gca,'xtick',[1 6 11],'xticklabel',[-0.1 0 0.1],'fontsize',6); xlabel('Change in gain')
+set(gca,'ytick',[1 6 11],'yticklabel',[0.05 0 -0.05],'fontsize',6); ylabel('Change in coupling')
+
+
+atx_bin = (par_task > 0.0015) & abs(par_rest)<0.0015 & (par_rest-par_task)<-0.0015
+dpz_bin = (abs(par_task) < 0.0015) & par_rest<-0.0015 & (par_rest-par_task)<-0.0015
+dpz_bin = -1*dpz_bin;
+par = atx_bin+dpz_bin;
+
+subplot(2,2,4); hold on
+imagesc(par,[-0.01 0.01]); par(isnan(par))=0; h(isnan(h))=0;
+plot(6,6,'o','markeredgecolor','k','markerfacecolor','w','markersize',5)
+plot(igain_atx,iG_atx,'o','markeredgecolor','k','markerfacecolor','r','markersize',5)
+plot(igain_dpz,iG_dpz,'o','markeredgecolor','k','markerfacecolor','b','markersize',5)
+colormap(cmap); axis square tight; tp_editplots; set(gca,'ydir','reverse')
+set(gca,'xtick',[1 6 11],'xticklabel',[-0.1 0 0.1],'fontsize',6); xlabel('Change in gain')
+set(gca,'ytick',[1 6 11],'yticklabel',[0.05 0 -0.05],'fontsize',6); ylabel('Change in coupling')
+
+print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_alternativeparams_task%d_v%d.pdf',itask,v))
 
 
 % a1=squeeze(nanmean(nanmean(nanmean(cleandat(:,:,:,1,2,3:6),6)-nanmean(cleandat(:,:,:,1,1,3:6),6),1),2))
