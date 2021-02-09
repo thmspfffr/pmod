@@ -3,7 +3,7 @@
 %--------------------------------------------------------------------------
 
 clear
-restoredefaultpath;matlabrc
+% restoredefaultpath;matlabrc
 
 outdir = '~/pmod/proc/';
 
@@ -139,7 +139,7 @@ for isubj = 1:size(idx_rest.exc,2)
       
       iies = idx_rest.exc(isubj);
       iiis = idx_rest.inh(isubj);
-
+      
       if ~exist(sprintf('~/pmod/proc/numerical/task/v%d/',v))
         mkdir(sprintf(['~/pmod/proc/numerical/task/' 'v%d'],v))
       end
@@ -161,7 +161,7 @@ for isubj = 1:size(idx_rest.exc,2)
       for itask_E = 1 : length(task_Es)
         for itask_I = 1 : length(task_Is)
           
-
+          
           fprintf('Subject%d, TaskE%d, TaskI%d...\n',isubj,itask_E,itask_I)
           
           tic
@@ -186,9 +186,9 @@ for isubj = 1:size(idx_rest.exc,2)
           % Working point:
           %         idx         = [task_idx; task_idx];
           Io          = zeros(2*N,1);
-          Io(1:N)     = Ies(iies);  
+          Io(1:N)     = Ies(iies);
           Io(1:N)     = Io(1:N)+task_idx.*task_Es(itask_E); % add task effect to E
-          Io(N+1:2*N) = Iis(iiis);  
+          Io(N+1:2*N) = Iis(iiis);
           Io(N+1:2*N) = Io(N+1:2*N)+task_idx.*task_Is(itask_I); % add task effect to I
           %         Io(idx) = 0;
           
@@ -274,22 +274,23 @@ for isubj = 1:size(idx_rest.exc,2)
             
           end
           
-          save(sprintf([outdir '/%s.mat'],fn),'out')
-          %
-          % make sure file is saved
-          while 1
-            try
-              load(sprintf([outdir '%s.mat'],fn))
-              break
-            catch me
-              save(sprintf([outdir '%s.mat'],fn),'out')
-            end
-          end
           
-          tp_parallel(fn,outdir,0,0)
           
         end
       end
+      save(sprintf([outdir '/%s.mat'],fn),'out')
+      %
+      % make sure file is saved
+      while 1
+        try
+          load(sprintf([outdir '%s.mat'],fn))
+          break
+        catch me
+          save(sprintf([outdir '%s.mat'],fn),'out')
+        end
+      end
+      
+      tp_parallel(fn,outdir,0,0)
     end
     % end
   end
@@ -298,43 +299,40 @@ error('!')
 %%
 v_sim = 3;
 
-if ~exist(sprintf('~/pmod/proc/numerical/task/v%d/pmod_wc_wholebrain_task_all_v%d.mat',v_sim,v_sim))
   
-  for iies = 1 : length(Ies)
-    iies
-    for iG = 1:length(Gg)
-      for igain = 1:8
-        for iiis = 1 :length(Iis)
+for isubj = 1 : 28
+          isubj
+          load(sprintf('~/pmod/proc/numerical/task/v%d/pmod_wc_wholebrain_task_isubj%d_v%d.mat',v_sim,isubj,v_sim))
+          fc_task = fc(:,isubj,1,2);
+          for itask_E = 1 : size(out.fc_FR,3)
+%             itask_E
+            for itask_I = 1 : size(out.fc_FR,4)
           
-          load(sprintf('~/pmod/proc/numerical/task/v%d/pmod_wc_wholebrain_task_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,iies,iiis,iG,igain,v_sim))
-          
-          outp.fc_sim_fr_tmp = out.fc_FR;
-          
-          [outp.r_fr_rest_corr(iies,iiis,iG,igain)]=corr(outp.fc_sim_fr_tmp(mask),fc_rest(mask));
-          [outp.r_fr_rest_indiv_corr(:,iies,iiis,iG,igain)]=corr(outp.fc_sim_fr_tmp(mask),fc_rest_indiv);
-          outp.dist_fr_rest(iies,iiis,iG,igain) = 1-(outp.r_fr_rest_corr(iies,iiis,iG,igain)-(mean(fc_rest(mask))-mean(outp.fc_sim_fr_tmp(mask))).^2);
-          outp.dist_fr_rest_indiv(:,iies,iiis,iG,igain) = 1-(squeeze(outp.r_fr_rest_indiv_corr(:,iies,iiis,iG,igain))'-(squeeze(mean(fc_rest_indiv))-mean(outp.fc_sim_fr_tmp(mask))).^2);
-          outp.fc_sim_fr_mean(iies,iiis,iG,igain) = mean(outp.fc_sim_fr_tmp(mask));
-          
-          outp.Ies(iies) = out.Ie;
-          outp.Iis(iiis) = out.Ii;
+              outp.fc_sim = out.fc_FR(:,:,itask_E,itask_I);
+
+              [outp.corr(isubj,itask_E,itask_I)]=corr(outp.fc_sim(mask),fc_task);
+              
+              outp.dist(isubj,itask_E,itask_I) = 1-(outp.corr(isubj,itask_E,itask_I)-(mean(fc_task)-mean(outp.fc_sim(mask))).^2);
+%               outp.dist_fr_rest_indiv(isubj,itask_E,itask_I) = 1-(squeeze(outp.r_fr_rest_indiv_corr(:,iies,iiis,iG,igain))'-(squeeze(mean(fc_rest_indiv))-mean(outp.fc_sim_fr_tmp(mask))).^2);
+%               outp.fc_sim_fr_mean(isubj,itask_E,itask_I) = mean(outp.fc_sim_fr_tmp(mask));
+
+            end
+          end
+end
           %           if isempty( out.peakfreq)
           %              out.peakfreq = nan;
           %           end
           %           outp.peakfreq(iies,iiis,iG,igain) = out.peakfreq;
           %           outp.alphapow(iies,iiis,iG,igain) = mean(out.alphapow);
           
-        end
-      end
-    end
-  end
   
-  save(sprintf('~/pmod/proc/numerical/task/v%d/pmod_wc_wholebrain_task_all_v%d.mat',v_sim,v_sim),'outp')
-  
-else
-  load(sprintf('~/pmod/proc/numerical/task/v%d/pmod_wc_wholebrain_task_all_v%d.mat',v_sim,v_sim))
-  %   load(sprintf('~/pmod/proc/detosc/v%d/pmod_wc_wholebrain_detosc_all_v%d.mat',v_sim,v_sim))
-end
 
-error('!')
+%%
+figure_w
+subplot(2,2,1);
 
+imagesc(squeeze(nanmean(outp.corr(:,:,:)))-squeeze(nanmean(outp.corr(:,21,21))),[0 0.025]); set(gca,'ydir','normal')
+axis square tight; colormap(plasma)
+set(gca,'xtick',1:20:81,'xticklabel',-0.5:0.5:1.5,'fontsize',8); tp_editplots
+set(gca,'ytick',1:20:61,'yticklabel',-0.5:0.5:1,'fontsize',8);
+line([21 21],[1 21],'color','w','linestyle',':'); line([1 21],[21 21],'color','w','linestyle',':')

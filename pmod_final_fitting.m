@@ -533,7 +533,9 @@ dpz_p(2) = sum(h>0&s.tstat>0)/2850;
 dpz_n(2) = sum(h>0&s.tstat<0)/2850;
 
 %% CHECK ALTERNATIVE PARAMETERS AS REQUESTED BY REV2
-% -------------
+% --------------------------
+% 
+% --------------------------
 
 % ATX: 
 % igain = 6; iG = 6;
