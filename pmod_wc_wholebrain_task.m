@@ -157,11 +157,11 @@ for isubj = 1:size(idx_rest.exc,2)
       end
       
       out.fc_FR = zeros(76,76,length(task_Es),length(task_Is));
-      
+      tic
       for itask_E = 1 : length(task_Es)
         for itask_I = 1 : length(task_Is)
           
-          
+          toc
           fprintf('Subject%d, TaskE%d, TaskI%d...\n',isubj,itask_E,itask_I)
           
           tic
@@ -303,16 +303,17 @@ v_sim = 3;
 for isubj = 1 : 28
           isubj
           load(sprintf('~/pmod/proc/numerical/task/v%d/pmod_wc_wholebrain_task_isubj%d_v%d.mat',v_sim,isubj,v_sim))
-          fc_task = fc(:,isubj,1,2);
+          fc_tmp = fc(:,isubj,1,2)-fc(:,isubj,1,1);
           for itask_E = 1 : size(out.fc_FR,3)
 %             itask_E
             for itask_I = 1 : size(out.fc_FR,4)
           
-              outp.fc_sim = out.fc_FR(:,:,itask_E,itask_I);
-
-              [outp.corr(isubj,itask_E,itask_I)]=corr(outp.fc_sim(mask),fc_task);
+              outp.fc_sim = out.fc_FR(:,:,itask_E,itask_I)-out.fc_FR(:,:,21,21);
               
-              outp.dist(isubj,itask_E,itask_I) = 1-(outp.corr(isubj,itask_E,itask_I)-(mean(fc_task)-mean(outp.fc_sim(mask))).^2);
+
+              [outp.corr(isubj,itask_E,itask_I)]=corr(outp.fc_sim(mask),fc_tmp);
+              
+              outp.dist(isubj,itask_E,itask_I) = 1-(outp.corr(isubj,itask_E,itask_I)-(mean(fc_tmp)-mean(outp.fc_sim(mask))).^2);
 %               outp.dist_fr_rest_indiv(isubj,itask_E,itask_I) = 1-(squeeze(outp.r_fr_rest_indiv_corr(:,iies,iiis,iG,igain))'-(squeeze(mean(fc_rest_indiv))-mean(outp.fc_sim_fr_tmp(mask))).^2);
 %               outp.fc_sim_fr_mean(isubj,itask_E,itask_I) = mean(outp.fc_sim_fr_tmp(mask));
 
