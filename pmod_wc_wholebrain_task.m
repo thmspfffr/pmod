@@ -237,22 +237,22 @@ for isubj = 1:size(idx_rest.exc,2)
             
             out.fc_FR(:,:,itask_E,itask_I) = rc;
             
-            %           for i=1:N
-            %
-            %             % COMPUTE POWER SPECTRUM
-            %             % ---------------------------
-            %             f = rE(:,i) - mean(rE(:,i));
-            %             xdft = fft(f);
-            %             xdft = xdft(1:floor(Tds/2)+1);
-            %             pw = (1/(Tds/2)) * abs(xdft).^2;
-            %             psd = pw(freqs<100 & freqs>1);
-            %             f = freqs(freqs<100 & freqs>1);
-            %             fnew = f(1:10:end);
-            %             psd  = psd(1:10:end);
-            %             PSD(:,i,tr) = psd';
-            %             f = fnew;
-            %
-            %           end
+            for i=1:N
+              
+              % COMPUTE POWER SPECTRUM
+              % ---------------------------
+              f = rE(:,i) - mean(rE(:,i));
+              xdft = fft(f);
+              xdft = xdft(1:floor(Tds/2)+1);
+              pw = (1/(Tds/2)) * abs(xdft).^2;
+              psd = pw(freqs<100 & freqs>1);
+              f = freqs(freqs<100 & freqs>1);
+              fnew = f(1:10:end);
+              psd  = psd(1:10:end);
+              PSD(:,i,tr) = psd';
+              f = fnew;
+              
+            end
             
             %           out.alphapow(:,tr) = squeeze(mean(PSD(frequencies>=flp&frequencies<=fhi,:,:),1));
             
@@ -268,9 +268,9 @@ for isubj = 1:size(idx_rest.exc,2)
             % ----------------------------------
             % EXTRACT PEAK FREQ
             % ---------------------------
-            %           [~,peak_idx]=max(smooth(mean(PSD(f>4,:),2),20));
-            %           out.peakfreq = f(peak_idx+find(f<4,1,'last'));
-            %           clear PSD rc fc_env
+            [~,peak_idx]=max(smooth(mean(PSD(f>4,:),2),20));
+            out.peakfreq(itask_E,itask_I) = f(peak_idx+find(f<4,1,'last'));
+            clear PSD rc fc_env
             
           end
           
@@ -302,16 +302,24 @@ v_sim = 3;
   
 for isubj = 1 : 28
           isubj
+          load(sprintf('~/pmod/proc/detosc/task/v%d/pmod_wc_wholebrain_detosc_task_isubj%d_v%d.mat',v_sim,isubj,v_sim))
+          osc(isubj,:,:) = squeeze(nanmean(out.osc1,1)>0.5);
+          osc(isubj,21,21)
           load(sprintf('~/pmod/proc/numerical/task/v%d/pmod_wc_wholebrain_task_isubj%d_v%d.mat',v_sim,isubj,v_sim))
+          
           fc_tmp = fc(:,isubj,1,2)-fc(:,isubj,1,1);
+          fct = fc(:,isubj,1,2);
+          
           for itask_E = 1 : size(out.fc_FR,3)
 %             itask_E
             for itask_I = 1 : size(out.fc_FR,4)
           
               outp.fc_sim = out.fc_FR(:,:,itask_E,itask_I)-out.fc_FR(:,:,21,21);
               
+              tmp  =out.fc_FR(:,:,itask_E,itask_I);
+              [outp.corr_task(isubj,itask_E,itask_I) outp.corr_task_p(isubj,itask_E,itask_I)] = corr(fct,tmp(mask));
 
-              [outp.corr(isubj,itask_E,itask_I)]=corr(outp.fc_sim(mask),fc_tmp);
+              [outp.corr(isubj,itask_E,itask_I) outp.corr_p(isubj,itask_E,itask_I)]=corr(outp.fc_sim(mask),fc_tmp);
               
               outp.dist(isubj,itask_E,itask_I) = 1-(outp.corr(isubj,itask_E,itask_I)-(mean(fc_tmp)-mean(outp.fc_sim(mask))).^2);
 %               outp.dist_fr_rest_indiv(isubj,itask_E,itask_I) = 1-(squeeze(outp.r_fr_rest_indiv_corr(:,iies,iiis,iG,igain))'-(squeeze(mean(fc_rest_indiv))-mean(outp.fc_sim_fr_tmp(mask))).^2);
@@ -329,11 +337,68 @@ end
   
 
 %%
-figure_w
-subplot(2,2,1);
 
-imagesc(squeeze(nanmean(outp.corr(:,:,:)))-squeeze(nanmean(outp.corr(:,21,21))),[0 0.025]); set(gca,'ydir','normal')
-axis square tight; colormap(plasma)
-set(gca,'xtick',1:20:81,'xticklabel',-0.5:0.5:1.5,'fontsize',8); tp_editplots
-set(gca,'ytick',1:20:61,'yticklabel',-0.5:0.5:1,'fontsize',8);
-line([21 21],[1 21],'color','w','linestyle',':'); line([1 21],[21 21],'color','w','linestyle',':')
+isubj = 26;
+
+figure_w
+
+b=subplot(2,3,1);
+
+outp.corr = outp.corr.*(osc==0); outp.corr(outp.corr==0)=nan;
+outp.dist =outp.dist.*(osc==0); outp.dist(outp.dist ==0)=nan;
+
+prc = prctile(reshape(outp.corr_task(isubj,:,:),[1 61*81]),92);
+% m=squeeze(outp.corr_task(isubj,:,:)>prc);
+
+par = squeeze(outp.dist(isubj,:,:)); %par(~m)=1.1;
+c=imagesc(par,[0.6 1.1]); set(gca,'ydir','normal')
+colormap(b,plasma);
+axis square tight; set(c,'AlphaData',~isnan(par))
+
+set(gca,'xtick',1:20:81,'xticklabel',{'-0.5';'0';'0.5';'1';'1.5'},'fontsize',8); tp_editplots
+set(gca,'ytick',1:20:61,'yticklabel',{'-0.5';'0';'0.5';'1'},'fontsize',8);
+line([21 21],[1 21],'color','w','linestyle',':'); line([1 21],[21 21],'color','k','linestyle',':')
+line([61 61],[1 41],'color','w','linestyle',':'); line([1 61],[41 41],'color','k','linestyle',':')
+
+xlabel('Change in I'); ylabel('Change in E')
+
+
+b=subplot(2,3,2);
+
+outp.corr = outp.corr.*(osc==0); outp.corr(outp.corr==0)=nan;
+outp.dist =outp.dist.*(osc==0); outp.dist(outp.dist ==0)=nan;
+
+prc = prctile(reshape(outp.corr_task(isubj,:,:),[1 61*81]),92);
+m=squeeze(outp.corr_task(isubj,:,:)>prc);
+
+par = squeeze(outp.dist(isubj,:,:)); par(~m)=nan;
+c=imagesc(par,[0.6 1.1]); set(gca,'ydir','normal')
+colormap(b,plasma);
+axis square tight; set(c,'AlphaData',~isnan(par))
+
+set(gca,'xtick',1:20:81,'xticklabel',{'-0.5';'0';'0.5';'1';'1.5'},'fontsize',8); tp_editplots
+set(gca,'ytick',1:20:61,'yticklabel',{'-0.5';'0';'0.5';'1'},'fontsize',8);
+line([21 21],[1 21],'color','k','linestyle',':'); line([1 21],[21 21],'color','k','linestyle',':')
+line([61 61],[1 41],'color','k','linestyle',':'); line([1 61],[41 41],'color','k','linestyle',':')
+
+xlabel('Change in I'); ylabel('Change in E')
+
+a=subplot(2,3,3);
+
+imagesc(fc_task-fc_rest,[-0.03 0.03]);
+colormap(a,cmap); axis square off
+
+b=subplot(2,3,4);
+imagesc(out.fc_FR(:,:,21,21),[0 0.1])
+axis square off; colormap(b,plasma)
+
+b=subplot(2,3,5);
+imagesc(out.fc_FR(:,:,41,61),[0 0.1])
+axis square off; colormap(b,plasma)
+
+b=subplot(2,3,6);
+imagesc(out.fc_FR(:,:,41,61)-out.fc_FR(:,:,21,21),[-0.2 0.2])
+axis square off; colormap(b,cmap)
+
+
+print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_fitting_task_v%d.pdf',v))
