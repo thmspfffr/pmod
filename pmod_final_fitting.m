@@ -703,3 +703,12 @@ mask = logical(tril(ones(90,90),-1));
 
 pos = sum(h(mask) > 0 & s.tstat(mask) > 0)/sum(mask(:));
 neg = sum(h(mask) > 0 & s.tstat(mask) < 0)/sum(mask(:));
+
+
+%% PLOT KURAMOTO ORDER PARAMETER
+    
+
+
+
+
+
