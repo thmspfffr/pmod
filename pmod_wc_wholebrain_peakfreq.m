@@ -1,4 +1,4 @@
-%% pmod_wc_wholebrain_task
+%% pmod_wc_wholebrain_peakfreq
 % Stochastic simulation of 2*N WC nodes during "rest"
 %--------------------------------------------------------------------------
 
@@ -235,6 +235,9 @@ for isubj = 1:size(idx_rest.exc,2)
           % FC matrix
           % ---------------------
           rc       	= corrcoef(rE);
+          covariance = cov(rE);
+          covariance(find(eye(size(covariance,1))))=1;
+          out.hc(igain,iG,icond) = diff_entropy(covariance);
           fc      	= rc(isub);
           
           out.fc_FR(:,:,igain,iG,icond) = rc;
