@@ -41,7 +41,7 @@ Ies         = -4:0.025:-1;
 Iis         = -5:0.025:-2;
 Gg          = [1.2:-0.01:1.10];
 Gains       = [-0.1:0.02:0.12];
-nTrials     = 1;
+nTrials     = 5;
 tmax        = 6500;  % in units of tauE
 %-------------------------------------------------------------------------
 
@@ -157,7 +157,7 @@ for isubj = 1:size(idx_rest.exc,2)
   if tp_parallel(fn,outdir,1,0)
     continue
   end
-  
+%   
   for icond = 1 : 2
     
     if icond == 1
@@ -236,11 +236,11 @@ for isubj = 1:size(idx_rest.exc,2)
           % ---------------------
           rc       	= corrcoef(rE);
           covariance = cov(rE);
-          covariance(find(eye(size(covariance,1))))=1;
-          out.hc(igain,iG,icond) = diff_entropy(covariance);
+%           covariance(find(eye(size(covariance,1))))=1;
+          out.hc(igain,iG,icond,tr) = diff_entropy(covariance);
           fc      	= rc(isub);
-          
-          out.fc_FR(:,:,igain,iG,icond) = rc;
+          out.FR(:,igain,iG,icond,tr) = mean(rE);
+          out.fc_FR(:,:,igain,iG,icond,tr) = rc;
           
           for i=1:N
             
@@ -298,18 +298,79 @@ igain_atx = 11; iG_atx = 6
 igain_dpz = 8; iG_dpz = 10
 
 v = 3
+mask = logical(tril(ones(76,76),-1));
 
 for isubj = 1 : 28
   
-  load(sprintf('~/pmod/proc/numerical/peakfreq/v%d/pmod_wc_wholebrain_peakfreq_isubj%d_v%d.mat',v,isubj,v))
-
-  pf(:,:,:,isubj) = out.peakfreq;
-  KOPsd(isubj,:,:,:)=out.KOPsd;
-  KOPmean(isubj,:,:,:)=out.KOPmean;
-
+    load(sprintf('~/pmod/proc/numerical/peakfreq/v%d/pmod_wc_wholebrain_peakfreq_isubj%d_v%d.mat',v,isubj,v))
+    tmp1 = squeeze(nanmean(out.fc_FR(:,:,6,6,1,:),6));
+    fc_model(:,isubj,1)=tmp1(mask);
+    tmp2 = squeeze(nanmean(out.fc_FR(:,:,6,6,2,:),6));
+    fc_model(:,isubj,2)=tmp2(mask);
+%   pf(:,:,:,isubj) = out.peakfreq;
+%   KOPsd(isubj,:,:,:)=out.KOPsd;
+%   KOPmean(isubj,:,:,:)=out.KOPmean;
+%   hc(:,:,:,isubj) = out.hc;
 end
 
+figure_w
 
+m_rest = nanmean(nanmean(fc(:,:,1,1),1),2);
+s_rest = nanstd(nanmean(fc(:,:,1,1),1),[],2)/sqrt(28);
+m_task = nanmean(nanmean(fc(:,:,1,2),1),2);
+s_rest = nanstd(nanmean(fc(:,:,1,2),1),[],2)/sqrt(28);
+prct = 100*(m_task-m_rest)/m_rest;
+
+m_m_rest = nanmean(fc_model(:,1),1);
+s_m_rest = nanstd(fc_model(:,1),[],1)/sqrt(28);
+m_m_task = nanmean(fc_model(:,2),1);
+s_m_rest = nanstd(fc_model(:,2),[],1)/sqrt(28);
+prct_m = 100*(m_m_task-m_m_rest)/m_m_rest;
+
+[h,~,~,s]=ttest(fc(:,:,1,2),fc(:,:,1,1),'dim',2);
+
+altered_corr_neg = 100*sum(h>0 & s.tstat < 0)/size(fc,1);
+altered_corr_pos = 100*sum(h>0 & s.tstat > 0)/size(fc,1);
+
+[h,~,~,s]=ttest(fc_model(:,:,2),fc_model(:,:,1),'dim',2);
+
+altered_corr_m_neg = 100*sum(h>0 & s.tstat < 0)/size(fc,1);
+altered_corr_m_pos = 100*sum(h>0 & s.tstat > 0)/size(fc,1);
+
+subplot(2,2,1)
+bar([1 2],[m_rest m_task])
+axis square; tp_editplots
+axis([0.5 2.5 0 0.06])
+
+subplot(2,2,2)
+bar([1 2],[m_m_rest m_m_task])
+axis square; tp_editplots
+axis([0.5 2.5 0 0.04])
+
+% 
+% figure_w;
+% subplot(2,2,1);
+% imagesc(hc(:,:,1,1),[-5 5]); colormap(cmap); axis square
+% set(gca,'xtick',[1 6 11],'xticklabel',[-0.1 0 0.1],'fontsize',6); xlabel('Change in gain')
+% set(gca,'ytick',[1 6 11],'yticklabel',[0.05 0 -0.05],'fontsize',6); ylabel('Change in coupling')
+% tp_editplots
+% subplot(2,2,2);
+% imagesc(hc(:,:,1,2),[-5 5]); colormap(cmap); axis square
+% set(gca,'xtick',[1 6 11],'xticklabel',[-0.1 0 0.1],'fontsize',6); xlabel('Change in gain')
+% set(gca,'ytick',[1 6 11],'yticklabel',[0.05 0 -0.05],'fontsize',6); ylabel('Change in coupling')
+% tp_editplots
+% subplot(2,2,3);
+% imagesc(hc(:,:,1,3),[-5 5]); colormap(cmap); axis square
+% set(gca,'xtick',[1 6 11],'xticklabel',[-0.1 0 0.1],'fontsize',6); xlabel('Change in gain')
+% set(gca,'ytick',[1 6 11],'yticklabel',[0.05 0 -0.05],'fontsize',6); ylabel('Change in coupling')
+% tp_editplots
+% subplot(2,2,4);
+% imagesc(hc(:,:,1,4),[-5 5]); colormap(cmap); axis square
+% set(gca,'xtick',[1 6 11],'xticklabel',[-0.1 0 0.1],'fontsize',6); xlabel('Change in gain')
+% set(gca,'ytick',[1 6 11],'yticklabel',[0.05 0 -0.05],'fontsize',6); ylabel('Change in coupling')
+% tp_editplots
+% 
+% print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_entropy_v%d.pdf',v))
 %%
 
 

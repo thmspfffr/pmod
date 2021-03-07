@@ -114,7 +114,7 @@ if ~exist(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_all_v%d.ma
           outp.Ies(iies) = out.Ie;
           outp.Iis(iiis) = out.Ii;
           if isempty( out.peakfreq)
-             out.peakfreq = gla;
+             out.peakfreq = nan;
           end
           outp.peakfreq(iies,iiis,iG,igain) = out.peakfreq;
           outp.alphapow(iies,iiis,iG,igain) = mean(out.alphapow);   
@@ -141,13 +141,13 @@ iG = find(Gg==1.15);
 figure_w
 ax{1} = subplot(2,3,1);
 par=outp.peakfreq(:,:,iG,igain);
-par(osc1(:,:,iG,igain)>0)=gla;
+par(osc1(:,:,iG,igain)>0)=NaN;
 b=imagesc(par,[5 20]); colormap(plasma);
-set(b,'AlphaData',~isgla(par)); set(gca,'ydir','normal')
+set(b,'AlphaData',~isnan(par)); set(gca,'ydir','normal')
 
 ax{2} = subplot(2,3,2);
 b=imagesc(par>7.8814 & par<18.7452)
-set(b,'AlphaData',~isgla(par)); set(gca,'ydir','normal')
+set(b,'AlphaData',~isnan(par)); set(gca,'ydir','normal')
 
 for iax = [1 2]
   colormap(ax{iax},plasma)
@@ -166,7 +166,7 @@ print(gcf,'-depsc2',sprintf('~/pmod/plots/pmod_final_fitting_peakfreq_ig%d_igain
 lim = 121;
 
 oscthres = 0;
-glacol = [0.97 0.97 0.97];
+nancol = [0.97 0.97 0.97];
 
 clear par ax
 figure; set(gcf,'color','w')
@@ -185,14 +185,14 @@ osc = osc1(1:lim,1:lim,iG,igain);
 % plot peak freq model
 ax{1} = subplot(3,2,1); hold on
 par = outp.fc_sim_fr_mean(1:lim,1:lim,iG,igain);
-par(osc==1)=gla;
-b=imagesc(par,[0 0.02]); set(b,'AlphaData',~isgla(par))
+par(osc==1)=nan;
+b=imagesc(par,[0 0.02]); set(b,'AlphaData',~isnan(par))
 
 % plot corr fc_model with fc_meg
 ax{2} = subplot(3,2,3); hold on
 par = outp.r_fr_rest_corr(1:lim,1:lim,iG,igain);
-par(osc==1)=gla;
-b=imagesc(par,[0 0.5]); set(b,'AlphaData',~isgla(par))
+par(osc==1)=nan;
+b=imagesc(par,[0 0.5]); set(b,'AlphaData',~isnan(par))
 
 for iax = 1 :2 
   colormap(ax{iax},plasma)
@@ -234,7 +234,7 @@ for isubj = 1 : 28
   
     clear k
     par                 = squeeze(outp.dist_fr_rest_indiv(isubj,1:lim,1:lim,iG,igain));    
-    par(mean(mean(osc1(:,:,iG,:),3),4)>0)  = gla;
+    par(mean(mean(osc1(:,:,iG,:),3),4)>0)  = nan;
     binmap              = par<prctile(par(:),prc_thresh);
     bw                  = bwlabel(binmap,8);
     cnt                 = [];
@@ -245,8 +245,8 @@ for isubj = 1 : 28
     
     % if no cluster(s), omit subject from further analysis
     if isempty(cnt)
-      idx_rest.inh(isubj) = gla;
-      idx_rest.exc(isubj) = gla;
+      idx_rest.inh(isubj) = nan;
+      idx_rest.exc(isubj) = nan;
       continue
     end
     
@@ -264,9 +264,9 @@ for isubj = 1 : 28
     if isubj == 1
       k=figure_w; subplot(3,2,1)
       par1 = par;
-      par1(par1==0)=gla;
+      par1(par1==0)=nan;
       imagesc(par1)
-      b=imagesc(par1,[0 0.4]); set(b,'AlphaData',~isgla(par1))
+      b=imagesc(par1,[0 0.4]); set(b,'AlphaData',~isnan(par1))
       colormap(jet)
 
       xlabel(gca,'Background input to I')
@@ -288,9 +288,9 @@ for isubj = 1 : 28
    % PLOT RESULT
   ax{1}   = subplot(6,5,isubj); hold on
   par = squeeze(outp.dist_fr_rest_indiv(isubj,1:lim,1:lim,iG,igain));
-  par(osc>oscthresh)  = gla;
+  par(osc>oscthresh)  = nan;
   b=imagesc(par,[0.6 1.4]); colormap(plasma)
-  set(b,'AlphaData',~isgla(par))
+  set(b,'AlphaData',~isnan(par))
   scatter(gca,idx(isubj,2),idx(isubj,1),20,'markerfacecolor','w','markeredgecolor','k');
   tp_editplots; axis square
   
@@ -307,9 +307,6 @@ save(sprintf('~/pmod/proc/pmod_final_fitting_indivfits_rest_v%d.mat',v_sim),'idx
 clear idx
 
 %% PLOT HIGH GAIN VS BASELINE GAIN
-
-% task_exc = 8;
-% task_inh = 15;
 
 task_exc = 10;
 task_inh = 17;
@@ -332,7 +329,7 @@ h = figure_w;
 
 subplot(2,3,1); hold on
 par = outp.fc_sim_fr_mean(:,:,baseline_coupling,baseline_gain);
-par(osc1(:,:,baseline_coupling,baseline_gain)==1)=gla; 
+par(osc1(:,:,baseline_coupling,baseline_gain)==1)=nan; 
 
 for isubj = 1:size(Mu,1)
   scatter(Mu(isubj,1),Mu(isubj,2),10,'o','markerfacecolor',cols(c(isubj),:),'markeredgecolor','none');
@@ -363,9 +360,10 @@ xlabel('Background input to I'); ylabel('Background input to E');
 load redblue.mat
 
 % ATX: 
-igain = 11; iG = 6;
+igain = 11; iG = 6; % MANUSCRIPT VERSION
+% 
 % DPZ: 
-% igain = 8; iG = 10
+% igain = 8; iG = 10; % MANUSCRIPT VERSION
   
 for isubj = SUBJ
   
@@ -386,8 +384,8 @@ for isubj = SUBJ
 end
 
 par = outp.fc_sim_fr_mean(:,:,iG,igain)-outp.fc_sim_fr_mean(:,:,baseline_coupling,baseline_gain);
-par(osc1(:,:,baseline_coupling,baseline_gain)>0)=gla;
-par(osc1(:,:,iG,igain)>0)=gla;
+par(osc1(:,:,baseline_coupling,baseline_gain)>0)=nan;
+par(osc1(:,:,iG,igain)>0)=nan;
 
 subplot(2,3,2); hold on
 b=imagesc(par,[-0.01 0.01]); set(gca,'ydir','normal');
@@ -397,7 +395,7 @@ text(10,100,['\DeltaCoupl.' sprintf('=%.2f',Gg(iG)-Gg(baseline_coupling))],'font
 scatter(round(mean(idx_rest.inh(SUBJ))),round(mean(idx_rest.exc(SUBJ))),20,'o','markerfacecolor',[0.5 0.5 0.5],'markeredgecolor','k');
 scatter(round(mean(idx_rest.inh(SUBJ)))+task_inh,round(mean(idx_rest.exc(SUBJ)))+task_exc,20,'o','markerfacecolor','y','markeredgecolor','k');
 
-set(b,'AlphaData',~isgla(par));
+set(b,'AlphaData',~isnan(par));
 colormap(gca,redblue)
 ylabel(gca,'Background input to E');
 xlabel(gca,'Background input to I');
@@ -407,8 +405,7 @@ set(gca,'XTick',1:40:121,'XTickLabels',num2cell(Iis(1:40:end)))
 tp_editplots; axis square; axis([1 121 1 121])
 
 % DPZ
-igain =8; iG = 10;
-% igain = 11; iG = 10
+igain =8; iG = 10; % MANUSCRIPT VERSION
 
 for isubj = SUBJ
   
@@ -423,8 +420,8 @@ for isubj = SUBJ
 end
 
 par = outp.fc_sim_fr_mean(:,:,iG,igain)-outp.fc_sim_fr_mean(:,:,baseline_coupling,baseline_gain);
-par(osc1(:,:,baseline_coupling,baseline_gain)>0)=gla;
-par(osc1(:,:,iG,igain)==1)=gla;
+par(osc1(:,:,baseline_coupling,baseline_gain)>0)=nan;
+par(osc1(:,:,iG,igain)==1)=nan;
 
 subplot(2,3,5); hold on
 b=imagesc(par,[-0.01 0.01]); set(gca,'ydir','normal');
@@ -434,7 +431,7 @@ text(10,100,['\DeltaCoupl.' sprintf('=%.2f',Gg(iG)-Gg(baseline_coupling))],'font
 scatter(round(mean(idx_rest.inh(SUBJ))),round(mean(idx_rest.exc(SUBJ))),20,'o','markerfacecolor',[0.5 0.5 0.5],'markeredgecolor','k');
 scatter(round(mean(idx_rest.inh(SUBJ)))+task_inh,round(mean(idx_rest.exc(SUBJ)))+task_exc,20,'o','markerfacecolor','y','markeredgecolor','k');
 
-set(b,'AlphaData',~isgla(par));
+set(b,'AlphaData',~isnan(par));
 colormap(gca,redblue);
 ylabel(gca,'Background input to E');
 xlabel(gca,'Background input to I');
@@ -518,20 +515,6 @@ ylabel('Change in correlation [%]')
 
 print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_final_fitting_indivfits_highvslowgain_ig%d_gain%d_tE%dtI%d_v%d.pdf',iG,igain,task_exc,task_inh,v_sim))
 
-%
-[h,~,~,s]=ttest(fc_all_mod(:,:,2,1),fc_all_mod(:,:,1,1),'dim',2);
-atx_p(1) = sum(h>0&s.tstat>0)/2850;
-atx_n(1) = sum(h>0&s.tstat<0)/2850;
-[h,~,~,s]=ttest(fc_all_mod(:,:,2,2),fc_all_mod(:,:,1,2),'dim',2);
-atx_p(2) = sum(h>0&s.tstat>0)/2850;
-atx_n(2) = sum(h>0&s.tstat<0)/2850;
-[h,~,~,s]=ttest(fc_all_mod(:,:,3,1),fc_all_mod(:,:,1,1),'dim',2);
-dpz_p(1) = sum(h>0&s.tstat>0)/2850;
-dpz_n(1) = sum(h>0&s.tstat<0)/2850;
-[h,~,~,s]=ttest(fc_all_mod(:,:,3,2),fc_all_mod(:,:,1,2),'dim',2);
-dpz_p(2) = sum(h>0&s.tstat>0)/2850;
-dpz_n(2) = sum(h>0&s.tstat<0)/2850;
-
 %% CHECK ALTERNATIVE PARAMETERS AS REQUESTED BY REV2
 % --------------------------
 % 
@@ -543,30 +526,49 @@ dpz_n(2) = sum(h>0&s.tstat<0)/2850;
 % igain = 8; iG = 10
 
 task_mod = [-9 -6 -3 0 3 6 9]
+
+idx_rest.inh_mean = round(mean(idx_rest.inh));
+idx_rest.exc_mean = round(mean(idx_rest.exc));
+idx_task.inh_mean = round(mean(idx_rest.inh))+task_inh;
+idx_task.exc_mean = round(mean(idx_rest.exc))+task_exc;
+
   
 for isubj = SUBJ
   for iG = 1 : length(Gg)
     for igain = 1 : length(Gains)
       for itask = 1 :length(task_mod)
-  isubj
-  load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,idx_rest.exc(isubj),idx_rest.inh(isubj),baseline_coupling,baseline_gain,v_sim))
-  fc_mod_rest(isubj,iG,igain,itask,1) = mean(out.fc_FR(mask));
-  fc_all_mod(:,isubj,iG,igain,itask,1,1) = out.fc_FR(mask);
-  load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,idx_rest.exc(isubj),idx_rest.inh(isubj),iG,igain,v_sim))
-  fc_mod_rest(isubj,iG,igain,itask,2) = mean(out.fc_FR(mask));
-  fc_all_mod(:,isubj,iG,igain,itask,2,1) = out.fc_FR(mask);
-  
-  load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,idx_rest.exc(isubj)+task_exc+task_mod(itask),idx_rest.inh(isubj)+task_inh+task_mod(itask),baseline_coupling,baseline_gain,v_sim))
-  fc_mod_task(isubj,iG,igain,itask,1) = mean(out.fc_FR(mask));
-  fc_all_mod(:,isubj,iG,igain,itask,1,2) = out.fc_FR(mask);
-  load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,idx_rest.exc(isubj)+task_exc+task_mod(itask),idx_rest.inh(isubj)+task_inh+task_mod(itask),iG,igain,v_sim))
-  fc_mod_task(isubj,iG,igain,itask,2) = mean(out.fc_FR(mask));
-  fc_all_mod(:,isubj,iG,igain,itask,2,2) = out.fc_FR(mask);
+        isubj
+        load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,idx_rest.exc(isubj),idx_rest.inh(isubj),baseline_coupling,baseline_gain,v_sim))
+        fc_mod_rest(isubj,iG,igain,itask,1) = mean(out.fc_FR(mask));
+%         fc_all_mod(:,isubj,iG,igain,itask,1,1) = out.fc_FR(mask);
+        load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,idx_rest.exc(isubj),idx_rest.inh(isubj),iG,igain,v_sim))
+        fc_mod_rest(isubj,iG,igain,itask,2) = mean(out.fc_FR(mask));
+%         fc_all_mod(:,isubj,iG,igain,itask,2,1) = out.fc_FR(mask);
+
+        load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,idx_rest.exc(isubj)+task_exc+task_mod(itask),idx_rest.inh(isubj)+task_inh+task_mod(itask),baseline_coupling,baseline_gain,v_sim))
+        fc_mod_task(isubj,iG,igain,itask,1) = mean(out.fc_FR(mask));
+%         fc_all_mod(:,isubj,iG,igain,itask,1,2) = out.fc_FR(mask);
+        load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,idx_rest.exc(isubj)+task_exc+task_mod(itask),idx_rest.inh(isubj)+task_inh+task_mod(itask),iG,igain,v_sim))
+        fc_mod_task(isubj,iG,igain,itask,2) = mean(out.fc_FR(mask));
+%         fc_all_mod(:,isubj,iG,igain,itask,2,2) = out.fc_FR(mask);
       end
     end
   end
 end
-
+% 
+%  
+%   for iG = 1 : length(Gg)
+%     for igain = 1 : length(Gains)
+%       for itask = 1 :length(task_mod)
+% 
+%         load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,idx_rest.exc_mean,idx_rest.inh_mean,iG,igain,v_sim))
+%         fc_model_rest(igain,iG,itask) = mean(out.fc_FR(mask));
+%           load(sprintf('~/pmod/proc/numerical/v%d/pmod_wc_wholebrain_final_Ie%d_Ii%d_G%d_gain%d_v%d.mat',v_sim,idx_rest.exc_mean++task_exc+task_mod(itask),idx_rest.inh_mean+task_inh+task_mod(itask),iG,igain,v_sim))
+%         fc_model_task(igain,iG,itask) = mean(out.fc_FR(mask));
+%   
+%       end
+%     end
+%   end
 
 %%
 [h,~,~,s]=ttest(fc_all_mod(:,:,:,:,2,1),fc_all_mod(:,:,:,:,1,1),'dim',2);
@@ -623,19 +625,54 @@ tp_editplots; axis square
 set(gca,'xtick',[1 6 11],'xticklabel',[-0.1 0 0.1],'fontsize',6); xlabel('Change in gain')
 set(gca,'ytick',[1 6 11],'yticklabel',[0.05 0 -0.05],'fontsize',6); ylabel('Change in coupling')
 colormap(k2,cmap)
-
 %%
 
-itask = 8;
+itask = 5;
+prc_rest = 100*(fc_mod_rest(:,:,:,itask,2)-fc_mod_rest(:,6,6,itask,2))./fc_mod_rest(:,6,6,itask,2);
+prc_task = 100*(fc_mod_task(:,:,:,itask,2)-fc_mod_task(:,6,6,itask,2))./fc_mod_task(:,6,6,itask,2);
+
+
+figure_w;
+
+subplot(2,2,1); hold on
+imagesc(squeeze(mean(prc_task,1))>10 & squeeze(mean(prc_task,1))<40 & abs(squeeze(mean(prc_rest,1)))<10 & (squeeze(mean(prc_rest,1))-squeeze(mean(prc_task,1)))<-10)
+plot(6,6,'o','markeredgecolor','k','markerfacecolor','w','markersize',5)
+plot(igain_atx,iG_atx,'o','markeredgecolor','k','markerfacecolor','r','markersize',5)
+plot(igain_dpz,iG_dpz,'o','markeredgecolor','k','markerfacecolor','b','markersize',5)
+colormap(cmap); axis square tight; tp_editplots; set(gca,'ydir','reverse')
+set(gca,'xtick',[1 6 11],'xticklabel',[-0.1 0 0.1],'fontsize',6); xlabel('Change in gain')
+set(gca,'ytick',[1 6 11],'yticklabel',[0.05 0 -0.05],'fontsize',6); ylabel('Change in coupling')
+
+subplot(2,2,2); hold on
+imagesc(squeeze(mean(prc_rest,1))>-25 & squeeze(mean(prc_rest,1))<-10 & abs(squeeze(mean(prc_task,1)))<10  & (squeeze(mean(prc_rest,1))-squeeze(mean(prc_task,1)))<-5)
+plot(6,6,'o','markeredgecolor','k','markerfacecolor','w','markersize',5)
+plot(igain_atx,iG_atx,'o','markeredgecolor','k','markerfacecolor','r','markersize',5)
+plot(igain_dpz,iG_dpz,'o','markeredgecolor','k','markerfacecolor','b','markersize',5)
+colormap(cmap); axis square tight; tp_editplots; set(gca,'ydir','reverse')
+set(gca,'xtick',[1 6 11],'xticklabel',[-0.1 0 0.1],'fontsize',6); xlabel('Change in gain')
+set(gca,'ytick',[1 6 11],'yticklabel',[0.05 0 -0.05],'fontsize',6); ylabel('Change in coupling')
+
+%%
+fc_emp_mean = squeeze(nanmean(nanmean(fc,1),2));
+
+delta_atx(1) = 100*(fc_emp_mean(2,1)-fc_emp_mean(1,1))./fc_emp_mean(1,1);
+delta_atx(2) = 100*(fc_emp_mean(2,2)-fc_emp_mean(1,2))./fc_emp_mean(1,2);
+delta_dpz(1) = 100*(fc_emp_mean(3,1)-fc_emp_mean(1,1))./fc_emp_mean(1,1);
+delta_dpz(2) = 100*(fc_emp_mean(3,2)-fc_emp_mean(1,2))./fc_emp_mean(1,2);
+
+itask = 4;
+
+baseline_gain = find(Gains==0);
+baseline_coup = find(Gg==1.15);
 
 igain_atx = 11; iG_atx = 6
 igain_dpz = 8; iG_dpz = 10
 
 figure_w
 subplot(2,2,1); hold on
-h=squeeze(ttest(fc_mod_rest(:,:,:,itask,2),fc_mod_rest(:,:,:,itask,1),'dim',1));
-par_rest = squeeze(mean(fc_mod_rest(:,:,:,itask,2))-mean(fc_mod_rest(:,:,:,itask,1))); par_rest(isgla(par_rest))=0; h(isgla(h))=0;
-imagesc(par_rest.*squeeze(h),[-0.01 0.01])
+par_rest = 100*squeeze(mean(fc_mod_rest(:,:,:,itask,2))-mean(fc_mod_rest(:,:,:,itask,1)))./squeeze(mean(fc_mod_rest(:,:,:,itask,1)))
+par_rest = squeeze(mean(fc_mod_rest(:,:,:,itask,2))-mean(fc_mod_rest(:,:,:,itask,1))); par_rest(isnan(par_rest))=0; h(isnan(h))=0;
+imagesc(par_rest,[-0.01 0.01])
 plot(6,6,'o','markeredgecolor','k','markerfacecolor','w','markersize',5)
 plot(igain_atx,iG_atx,'o','markeredgecolor','k','markerfacecolor','r','markersize',5)
 plot(igain_dpz,iG_dpz,'o','markeredgecolor','k','markerfacecolor','b','markersize',5)
@@ -645,8 +682,7 @@ set(gca,'ytick',[1 6 11],'yticklabel',[0.05 0 -0.05],'fontsize',6); ylabel('Chan
 
 
 subplot(2,2,2); hold on
-h=squeeze(ttest(fc_mod_task(:,:,:,3,2),fc_mod_task(:,:,:,itask,1),'dim',1));
-par_task = squeeze(mean(fc_mod_task(:,:,:,itask,2))-mean(fc_mod_task(:,:,:,itask,1))); par_task(isgla(par_task))=0; h(isgla(h))=0;
+par_task = squeeze(mean(fc_mod_task(:,:,:,itask,2))-mean(fc_mod_task(:,:,:,itask,1))); par_task(isnan(par_task))=0; h(isnan(h))=0;
 imagesc(par_task,[-0.01 0.01]); 
 plot(6,6,'o','markeredgecolor','k','markerfacecolor','w','markersize',5)
 plot(igain_atx,iG_atx,'o','markeredgecolor','k','markerfacecolor','r','markersize',5)
@@ -657,7 +693,7 @@ set(gca,'ytick',[1 6 11],'yticklabel',[0.05 0 -0.05],'fontsize',6); ylabel('Chan
 
 
 subplot(2,2,3); hold on
-imagesc(par_rest-par_task,[-0.01 0.01]); par(isgla(par))=0; h(isgla(h))=0;
+imagesc(par_rest-par_task,[-0.01 0.01]); par(isnan(par))=0; h(isnan(h))=0;
 plot(6,6,'o','markeredgecolor','k','markerfacecolor','w','markersize',5)
 plot(igain_atx,iG_atx,'o','markeredgecolor','k','markerfacecolor','r','markersize',5)
 plot(igain_dpz,iG_dpz,'o','markeredgecolor','k','markerfacecolor','b','markersize',5)
@@ -672,7 +708,7 @@ dpz_bin = -1*dpz_bin;
 par = atx_bin+dpz_bin;
 
 subplot(2,2,4); hold on
-imagesc(par,[-0.01 0.01]); par(isgla(par))=0; h(isgla(h))=0;
+imagesc(par,[-0.01 0.01]); par(isnan(par))=0; h(isnan(h))=0;
 plot(6,6,'o','markeredgecolor','k','markerfacecolor','w','markersize',5)
 plot(igain_atx,iG_atx,'o','markeredgecolor','k','markerfacecolor','r','markersize',5)
 plot(igain_dpz,iG_dpz,'o','markeredgecolor','k','markerfacecolor','b','markersize',5)

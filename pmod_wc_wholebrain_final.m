@@ -36,11 +36,21 @@ outdir = '~/pmod/proc/';
 %-------------------------------------------------------------------------
 % VERSION 3: M
 % %-------------------------------------------------------------------------
-v           = 3;
+% v           = 3;
+% Ies         = -4:0.025:-1;
+% Iis         = -5:0.025:-2;
+% Gg          = [1.2:-0.01:1.10];
+% Gains       = [-0.1:0.02:0.12]; 
+% nTrials     = 1;
+% tmax        = 6500;  % in units of tauE
+%-------------------------------------------------------------------------
+% VERSION 4: ENTROPY (01-03-2021)
+% %-------------------------------------------------------------------------
+v           = 4;
 Ies         = -4:0.025:-1;
 Iis         = -5:0.025:-2;
-Gg          = [1.2:-0.01:1.10];
-Gains       = [-0.1:0.02:0.12]; 
+Gg          = [1.15 1.11];
+Gains       = [0 0.04 0.1]; 
 nTrials     = 1;
 tmax        = 6500;  % in units of tauE
 %-------------------------------------------------------------------------
@@ -90,13 +100,13 @@ isub = find( triu(ones(N)) - eye(N) );
 % ----------------
 % WAVELETS
 % ----------------
-[wavelet,f]=tp_mkwavelet(11.3137,0.5,(1/resol));
-delta_time = 6/pi./(f(2)-f(1));
-delta_time = round(delta_time*1000)/1000;
-t_shift    = delta_time;
-n_win      = round(delta_time*(1/resol));
-n_shift    = round(t_shift*(1/resol));
-nseg=floor((L/10-n_win)/n_shift+1);
+% [wavelet,f]=tp_mkwavelet(11.3137,0.5,(1/resol));
+% delta_time = 6/pi./(f(2)-f(1));
+% delta_time = round(delta_time*1000)/1000;
+% t_shift    = delta_time;
+% n_win      = round(delta_time*(1/resol));
+% n_shift    = round(t_shift*(1/resol));
+% nseg=floor((L/10-n_win)/n_shift+1);
 % ----------------
 % BAND PASS FILTER
 % ----------------
@@ -110,8 +120,8 @@ Wn    = [flp/fnq fhi/fnq]; % butterworth bandpass non-dimensional frequency
 
 % LOAD REGIONS THAT ARE SIGNIFICANTLY (P<0.05) ALTERED BY TASK (mostly
 % decreased), in the relevant freq range
-v = 33; % AAL
-load(sprintf('~/pupmod/proc/src/pupmod_src_pow_taskmodulationindex_v%d.mat',v))
+% v = 33; % AAL
+% load(sprintf('~/pupmod/proc/src/pupmod_src_pow_taskmodulationindex_v%d.mat',v))
 
 %%
 
@@ -208,6 +218,9 @@ for igain = 1:length(Gains)
           rc       	= corrcoef(rE);
           fc      	= rc(isub);
           
+          covariance = cov(rE);
+          out.hc = diff_entropy(covariance);
+          
           out.fc_FR = rc;
           
           for i=1:N
@@ -232,12 +245,12 @@ for igain = 1:length(Gains)
           % ----------------------------------
           % WAVELET ANALYSIS
           % ----------------------------------
-          for j=1:nseg
-            dloc2=rE((j-1)*n_shift+1:(j-1)*n_shift+n_win,:)';
-            dataf(j,:)=abs(dloc2*wavelet).^2; 
-          end
-          out.rc_wl = corr(dataf);
-          out.rc_wl_cov = cov(dataf);
+%           for j=1:nseg
+%             dloc2=rE((j-1)*n_shift+1:(j-1)*n_shift+n_win,:)';
+%             dataf(j,:)=abs(dloc2*wavelet).^2; 
+%           end
+%           out.rc_wl = corr(dataf);
+%           out.rc_wl_cov = cov(dataf);
           % ----------------------------------
           % EXTRACT PEAK FREQ
           % ---------------------------
