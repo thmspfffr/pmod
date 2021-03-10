@@ -136,6 +136,8 @@ task_inh = 17;
 task_Es = 0;
 task_Is = 0;
 
+task_mod = [-9 -6 -3 0 3 6 9]
+
 %%
 
 for isubj = 1:size(idx_rest.exc,2)
@@ -303,14 +305,18 @@ mask = logical(tril(ones(76,76),-1));
 for isubj = 1 : 28
   
     load(sprintf('~/pmod/proc/numerical/peakfreq/v%d/pmod_wc_wholebrain_peakfreq_isubj%d_v%d.mat',v,isubj,v))
-    tmp1 = squeeze(nanmean(out.fc_FR(:,:,6,6,1,:),6));
-    fc_model(:,isubj,1)=tmp1(mask);
-    tmp2 = squeeze(nanmean(out.fc_FR(:,:,6,6,2,:),6));
-    fc_model(:,isubj,2)=tmp2(mask);
+    for igain = 1: 12
+      for iG = 1 : 11
+        tmp1 = squeeze(nanmean(out.fc_FR(:,:,igain,iG,1,:),6));
+        tmp2 = squeeze(nanmean(out.fc_FR(:,:,igain,iG,2,:),6));
+        
+        fc_model(:,igain,iG,1,isubj) = tmp1(mask);
+        fc_model(:,igain,iG,2,isubj) = tmp2(mask);
+      end
+    end
+
+%       fc_model(:,isubj,1)=tmp1(mask);
 %   pf(:,:,:,isubj) = out.peakfreq;
-%   KOPsd(isubj,:,:,:)=out.KOPsd;
-%   KOPmean(isubj,:,:,:)=out.KOPmean;
-%   hc(:,:,:,isubj) = out.hc;
 end
 
 figure_w
@@ -347,72 +353,74 @@ bar([1 2],[m_m_rest m_m_task])
 axis square; tp_editplots
 axis([0.5 2.5 0 0.04])
 
-% 
-% figure_w;
-% subplot(2,2,1);
-% imagesc(hc(:,:,1,1),[-5 5]); colormap(cmap); axis square
-% set(gca,'xtick',[1 6 11],'xticklabel',[-0.1 0 0.1],'fontsize',6); xlabel('Change in gain')
-% set(gca,'ytick',[1 6 11],'yticklabel',[0.05 0 -0.05],'fontsize',6); ylabel('Change in coupling')
-% tp_editplots
-% subplot(2,2,2);
-% imagesc(hc(:,:,1,2),[-5 5]); colormap(cmap); axis square
-% set(gca,'xtick',[1 6 11],'xticklabel',[-0.1 0 0.1],'fontsize',6); xlabel('Change in gain')
-% set(gca,'ytick',[1 6 11],'yticklabel',[0.05 0 -0.05],'fontsize',6); ylabel('Change in coupling')
-% tp_editplots
-% subplot(2,2,3);
-% imagesc(hc(:,:,1,3),[-5 5]); colormap(cmap); axis square
-% set(gca,'xtick',[1 6 11],'xticklabel',[-0.1 0 0.1],'fontsize',6); xlabel('Change in gain')
-% set(gca,'ytick',[1 6 11],'yticklabel',[0.05 0 -0.05],'fontsize',6); ylabel('Change in coupling')
-% tp_editplots
-% subplot(2,2,4);
-% imagesc(hc(:,:,1,4),[-5 5]); colormap(cmap); axis square
-% set(gca,'xtick',[1 6 11],'xticklabel',[-0.1 0 0.1],'fontsize',6); xlabel('Change in gain')
-% set(gca,'ytick',[1 6 11],'yticklabel',[0.05 0 -0.05],'fontsize',6); ylabel('Change in coupling')
-% tp_editplots
-% 
-% print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_entropy_v%d.pdf',v))
 %%
+fc_model = mean(fc_model,5);
+fc_model = permute(fc_model,[1 3 2 4]);
 
+itask = 4;
+
+baseline_gain = find(Gains==0);
+baseline_coup = find(Gg==1.15);
+
+igain_atx = 11; iG_atx = 6
+igain_dpz = 8; iG_dpz = 10
 
 figure_w
-k=subplot(2,2,1); hold on
-imagesc(squeeze(nanmean(KOPmean(:,:,:,1),1))-squeeze(nanmean(KOPmean(:,6,6,1),1)),[-0.05 0.05])
+subplot(2,2,1); hold on
+par_rest = squeeze(mean(fc_model(:,:,:,1))-mean(fc_model(:,baseline_gain,baseline_coup,1))); par_rest(isnan(par_rest))=0; 
+imagesc(par_rest,[-0.01 0.01])
 plot(6,6,'o','markeredgecolor','k','markerfacecolor','w','markersize',5)
-colormap(k,cmap); axis square tight; tp_editplots; set(gca,'ydir','reverse')
 plot(igain_atx,iG_atx,'o','markeredgecolor','k','markerfacecolor','r','markersize',5)
 plot(igain_dpz,iG_dpz,'o','markeredgecolor','k','markerfacecolor','b','markersize',5)
+colormap(cmap); axis square tight; tp_editplots; set(gca,'ydir','reverse')
 set(gca,'xtick',[1 6 11],'xticklabel',[-0.1 0 0.1],'fontsize',6); xlabel('Change in gain')
 set(gca,'ytick',[1 6 11],'yticklabel',[0.05 0 -0.05],'fontsize',6); ylabel('Change in coupling')
 
-k=subplot(2,2,2); hold on
-imagesc(squeeze(nanmean(KOPmean(:,:,:,2),1))-squeeze(nanmean(KOPmean(:,6,6,2),1)),[-0.05 0.05])
+
+subplot(2,2,2); hold on
+par_task = squeeze(mean(fc_model(:,:,:,2))-mean(fc_model(:,baseline_gain,baseline_coup,2))); par_rest(isnan(par_task))=0; 
+imagesc(par_task,[-0.01 0.01]); 
 plot(6,6,'o','markeredgecolor','k','markerfacecolor','w','markersize',5)
-colormap(k,cmap); axis square tight; tp_editplots; set(gca,'ydir','reverse')
 plot(igain_atx,iG_atx,'o','markeredgecolor','k','markerfacecolor','r','markersize',5)
 plot(igain_dpz,iG_dpz,'o','markeredgecolor','k','markerfacecolor','b','markersize',5)
+colormap(cmap); axis square tight; tp_editplots; set(gca,'ydir','reverse')
 set(gca,'xtick',[1 6 11],'xticklabel',[-0.1 0 0.1],'fontsize',6); xlabel('Change in gain')
 set(gca,'ytick',[1 6 11],'yticklabel',[0.05 0 -0.05],'fontsize',6); ylabel('Change in coupling')
 
-k=subplot(2,2,3); hold on
-imagesc(squeeze(nanmean(KOPsd(:,:,:,1),1))-squeeze(nanmean(KOPsd(:,6,6,1),1)),[-0.0002 0.0002])
+
+subplot(2,2,3); hold on
+imagesc(par_rest-par_task,[-0.01 0.01]); par(isnan(par))=0;
 plot(6,6,'o','markeredgecolor','k','markerfacecolor','w','markersize',5)
-colormap(k,cmap); axis square tight; tp_editplots; set(gca,'ydir','reverse')
 plot(igain_atx,iG_atx,'o','markeredgecolor','k','markerfacecolor','r','markersize',5)
 plot(igain_dpz,iG_dpz,'o','markeredgecolor','k','markerfacecolor','b','markersize',5)
+colormap(cmap); axis square tight; tp_editplots; set(gca,'ydir','reverse')
 set(gca,'xtick',[1 6 11],'xticklabel',[-0.1 0 0.1],'fontsize',6); xlabel('Change in gain')
 set(gca,'ytick',[1 6 11],'yticklabel',[0.05 0 -0.05],'fontsize',6); ylabel('Change in coupling')
 
-k=subplot(2,2,4); hold on
-imagesc(squeeze(nanmean(KOPsd(:,:,:,2),1))-squeeze(nanmean(KOPsd(:,6,6,2),1)),[-0.0002 0.0002])
+
+atx_bin = (par_task > 0.0015) & abs(par_rest)<0.0015 & (par_rest-par_task)<-0.0015
+dpz_bin = (abs(par_task) < 0.0015) & par_rest<-0.0015 & (par_rest-par_task)<-0.0015
+dpz_bin = -1*dpz_bin;
+par = atx_bin+dpz_bin;
+
+subplot(2,2,4); hold on
+imagesc(par,[-0.01 0.01]); par(isnan(par))=0; 
 plot(6,6,'o','markeredgecolor','k','markerfacecolor','w','markersize',5)
-colormap(k,cmap); axis square tight; tp_editplots; set(gca,'ydir','reverse')
 plot(igain_atx,iG_atx,'o','markeredgecolor','k','markerfacecolor','r','markersize',5)
 plot(igain_dpz,iG_dpz,'o','markeredgecolor','k','markerfacecolor','b','markersize',5)
+colormap(cmap); axis square tight; tp_editplots; set(gca,'ydir','reverse')
 set(gca,'xtick',[1 6 11],'xticklabel',[-0.1 0 0.1],'fontsize',6); xlabel('Change in gain')
 set(gca,'ytick',[1 6 11],'yticklabel',[0.05 0 -0.05],'fontsize',6); ylabel('Change in coupling')
 
-print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_kuramoto_v%d.pdf',v))
+print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_alternativeparams_task%d_v%d.pdf',itask,v))
 
+
+
+
+
+
+
+%%
 
 figure_w
 
@@ -458,6 +466,19 @@ colormap(k,plasma);
 
 print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_peakfreq_v%d.pdf',v))
 
+%% 
+
+figure_w
+subplot(2,2,1);
+bar([1,2],[mean(fc_model(6,6,1,:),4),mean(fc_model(6,6,2,:),4)])
+axis([0.5 2.5 0.01 0.04]); tp_editplots
+
+subplot(2,2,2);
+
+bar([1,2],[mean(fc_rest(mask)),mean(fc_task(mask))])
+axis([0.5 2.5 0.03 0.06]); tp_editplots
+
+print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_Fc_rest_vs_task.pdf'))
 %% EMPIRICAL KURA
 SUBJLIST        = [4 5 6 7 8 9 10 11 12 13 15 16 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34];
 ord    = pconn_randomization;

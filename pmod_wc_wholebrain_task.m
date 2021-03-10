@@ -36,7 +36,7 @@ outdir = '~/pmod/proc/';
 %-------------------------------------------------------------------------
 % VERSION 3: M
 % %-------------------------------------------------------------------------
-v           = 4;
+v           = 5;
 Ies         = -4:0.025:-1;
 Iis         = -5:0.025:-2;
 Gg          = [1.2:-0.01:1.10];
@@ -137,6 +137,9 @@ task_Is = [-0.5:0.025:1.5];
 task_exc = 10;
 task_inh = 17;
 % --------------------
+add_task_inp_E = [0 2 4 6]% 8];
+add_task_inp_I = [0 3 7 10]% 14];
+
 %%
 for isubj = 1:size(idx_rest.exc,2)
   
@@ -159,130 +162,132 @@ for isubj = 1:size(idx_rest.exc,2)
     continue
   end
   
-  out.fc_FR = zeros(76,76,length(task_Es),length(task_Is));
+  out.fc_FR = zeros(76,76,length(Gains),length(Gg),length(add_task_inp_E),2);
   tic
   % REST (1) OR TASK (2)
   for icond = 1 : 2
-  for igain = 1:length(Gains) % find(Gains==0)%
-    for iG = 1:length(Gg) % find(Gg==1.15)
-
-      toc
-      fprintf('Subject%d, Gain%d, Coupl%d...\n',isubj,igain,iG)
-      
-      tic
-      g = Gg(iG);
-      W = [wEE*eye(N)+g*C -wEI*eye(N); wIE*eye(N) -wII*eye(N)];
-      
-      % transfer function:
-      gE = 1 + Gains(igain);
-      gI = 1 + Gains(igain);
-      aE  = 1/gE;
-      aI  = 1/gI;
-      Fe  = @(x) 1./(1 + exp(-x/aE) );
-      Fi  = @(x) 1./(1 + exp(-x/aI) );
-      F   = @(x) [feval(Fe,x(1:N));feval(Fi,x(N+1:2*N))];
-      
-      % Working point:
-      if icond == 1
-        Io       = zeros(2*N,1);
-        Io(1:N)  = Ies(iies);
-        Io(N+1:2*N)= Iis(iiis);
-      else
-        Io          = zeros(2*N,1);
-        Io(find(task_idx))  = Ies(iies+task_exc);
-        Io(find(~task_idx)) = Ies(iies);
-
-        Io(find(task_idx)+N) = Iis(iiis+task_inh);
-        Io(find(~task_idx)+N)= Iis(iiis);
-      end
-
-      
-      T           = Tds*resol; %% define time of interval
-      freqs       = (0:Tds/2)/T; %% find the corresponding frequency in Hz
-      freq100     = freqs(freqs<100 & freqs>1);
-      pp          = 1:10:length(freq100);
-      PSD         = zeros(length(pp),N,nTrials);
-      frequencies = freq100(1:10:end)';
-      
-      % RUN SIMULATION
-      % ---------------------
-      
-      for tr=1:nTrials
-        r   = 0.001*rand(2*N,1);
-        R   = zeros(Tds,N);
-        Ri  = zeros(Tds,N);
-        tt  = 0;
-        %         transient:
-        for t = 1:20000
-          u = W*r + Io;
-          K = feval(F,u);
-          r = r + dt*(-r + K)./tau + sqrt(dt)*sigma*randn(2*N,1);
-        end
-        %         simulation
-        for t = 1:L
-          %           100*t/L
-          u = W*r + Io;
-          K = feval(F,u);
-          r = r + dt*(-r+ K)./tau + sqrt(dt)*sigma*randn(2*N,1);
-          if mod(t,ds)==0
-            tt=tt+1;
-            R(tt,:)  = r(1:N);
-            Ri(tt,:)  = r(N+1:end);
+    for igain = 1:length(Gains) % find(Gains==0)%
+      for iG = 1:length(Gg) % find(Gg==1.15)
+        for iadd_task_inp = 1 : length(add_task_inp_E)
+          
+          toc
+          fprintf('Subject%d, Gain%d, Coupl%d...\n',isubj,igain,iG)
+          
+          tic
+          g = Gg(iG);
+          W = [wEE*eye(N)+g*C -wEI*eye(N); wIE*eye(N) -wII*eye(N)];
+          
+          % transfer function:
+          gE = 1 + Gains(igain);
+          gI = 1 + Gains(igain);
+          aE  = 1/gE;
+          aI  = 1/gI;
+          Fe  = @(x) 1./(1 + exp(-x/aE) );
+          Fi  = @(x) 1./(1 + exp(-x/aI) );
+          F   = @(x) [feval(Fe,x(1:N));feval(Fi,x(N+1:2*N))];
+          
+          % Working point:
+          if icond == 1
+            Io       = zeros(2*N,1);
+            Io(1:N)  = Ies(iies);
+            Io(N+1:2*N)= Iis(iiis);
+          else
+            Io          = zeros(2*N,1);
+            Io(find(task_idx))  = Ies(iies+task_exc+add_task_inp_E(iadd_task_inp));
+            Io(find(~task_idx)) = Ies(iies);
+            
+            Io(find(task_idx)+N) = Iis(iiis+task_inh++add_task_inp_I(iadd_task_inp));
+            Io(find(~task_idx)+N)= Iis(iiis);
           end
-        end
-        
-        rE = R;
-        rI = Ri;
-        clear R Ri rI
-        
-        % FC matrix
-        % ---------------------
-        rc       	= corrcoef(rE);
-        fc      	= rc(isub);
-        
-        out.fc_FR(:,:,igain,iG,icond) = rc;
-        
-        for i=1:N
           
-          % COMPUTE POWER SPECTRUM
-          % ---------------------------
-          f = rE(:,i) - mean(rE(:,i));
-          xdft = fft(f);
-          xdft = xdft(1:floor(Tds/2)+1);
-          pw = (1/(Tds/2)) * abs(xdft).^2;
-          psd = pw(freqs<100 & freqs>1);
-          f = freqs(freqs<100 & freqs>1);
-          fnew = f(1:10:end);
-          psd  = psd(1:10:end);
-          PSD(:,i,tr) = psd';
-          f = fnew;
+          
+          T           = Tds*resol; %% define time of interval
+          freqs       = (0:Tds/2)/T; %% find the corresponding frequency in Hz
+          freq100     = freqs(freqs<100 & freqs>1);
+          pp          = 1:10:length(freq100);
+          PSD         = zeros(length(pp),N,nTrials);
+          frequencies = freq100(1:10:end)';
+          
+          % RUN SIMULATION
+          % ---------------------
+          
+          for tr=1:nTrials
+            r   = 0.001*rand(2*N,1);
+            R   = zeros(Tds,N);
+            Ri  = zeros(Tds,N);
+            tt  = 0;
+            %         transient:
+            for t = 1:20000
+              u = W*r + Io;
+              K = feval(F,u);
+              r = r + dt*(-r + K)./tau + sqrt(dt)*sigma*randn(2*N,1);
+            end
+            %         simulation
+            for t = 1:L
+              %           100*t/L
+              u = W*r + Io;
+              K = feval(F,u);
+              r = r + dt*(-r+ K)./tau + sqrt(dt)*sigma*randn(2*N,1);
+              if mod(t,ds)==0
+                tt=tt+1;
+                R(tt,:)  = r(1:N);
+                Ri(tt,:)  = r(N+1:end);
+              end
+            end
+            
+            rE = R;
+            rI = Ri;
+            clear R Ri rI
+            
+            % FC matrix
+            % ---------------------
+            rc       	= corrcoef(rE);
+            fc      	= rc(isub);
+            
+            out.fc_FR(:,:,igain,iG,iadd_task_inp,icond) = rc;
+            
+            for i=1:N
+              
+              % COMPUTE POWER SPECTRUM
+              % ---------------------------
+              f = rE(:,i) - mean(rE(:,i));
+              xdft = fft(f);
+              xdft = xdft(1:floor(Tds/2)+1);
+              pw = (1/(Tds/2)) * abs(xdft).^2;
+              psd = pw(freqs<100 & freqs>1);
+              f = freqs(freqs<100 & freqs>1);
+              fnew = f(1:10:end);
+              psd  = psd(1:10:end);
+              PSD(:,i,tr) = psd';
+              f = fnew;
+              
+            end
+            
+            %           out.alphapow(:,tr) = squeeze(mean(PSD(frequencies>=flp&frequencies<=fhi,:,:),1));
+            
+            % ----------------------------------
+            % WAVELET ANALYSIS
+            % ----------------------------------
+            %           for j=1:nseg
+            %             dloc2=rE((j-1)*n_shift+1:(j-1)*n_shift+n_win,:)';
+            %             dataf(j,:)=abs(dloc2*wavelet).^2;
+            %           end
+            %           out.rc_wl = corr(dataf);
+            %           out.rc_wl_cov = cov(dataf);
+            % ----------------------------------
+            % EXTRACT PEAK FREQ
+            % ---------------------------
+            [~,peak_idx]=max(smooth(mean(PSD(f>4,:),2),20));
+            out.peakfreq(igain,iG,iadd_task_inp,icond) = f(peak_idx+find(f<4,1,'last'));
+            clear PSD rc fc_env
+            
+          end
+          
           
         end
-        
-        %           out.alphapow(:,tr) = squeeze(mean(PSD(frequencies>=flp&frequencies<=fhi,:,:),1));
-        
-        % ----------------------------------
-        % WAVELET ANALYSIS
-        % ----------------------------------
-        %           for j=1:nseg
-        %             dloc2=rE((j-1)*n_shift+1:(j-1)*n_shift+n_win,:)';
-        %             dataf(j,:)=abs(dloc2*wavelet).^2;
-        %           end
-        %           out.rc_wl = corr(dataf);
-        %           out.rc_wl_cov = cov(dataf);
-        % ----------------------------------
-        % EXTRACT PEAK FREQ
-        % ---------------------------
-        [~,peak_idx]=max(smooth(mean(PSD(f>4,:),2),20));
-        out.peakfreq(igain,iG,icond) = f(peak_idx+find(f<4,1,'last'));
-        clear PSD rc fc_env
-        
+        % end
       end
-      
-      
     end
-    % end
-  end
   end
   save(sprintf([outdir '/%s.mat'],fn),'out')
   %
@@ -300,21 +305,106 @@ for isubj = 1:size(idx_rest.exc,2)
 end
 error('!')
 %%
-v_sim = 4;
+
+
+v_sim = 5;
 
 mask = logical(tril(ones(76,76),-1));
-fc_all = zeros((76*76-76)/2, 12, 11,28);
+fc_all = zeros((76*76-76)/2, 12, 11,4,2,28);
 for isubj = 1 : 28
   isubj
-%   load(sprintf('~/pmod/proc/detosc/task/v%d/pmod_wc_wholebrain_detosc_task_isubj%d_v%d.mat',v_sim,isubj,v_sim))
-%   osc(isubj,:,:) = squeeze(nanmean(out.osc1,1)>0.5);
-%   osc(isubj,21,21)
+  %   load(sprintf('~/pmod/proc/detosc/task/v%d/pmod_wc_wholebrain_detosc_task_isubj%d_v%d.mat',v_sim,isubj,v_sim))
+  %   osc(isubj,:,:) = squeeze(nanmean(out.osc1,1)>0.5);
+  %   osc(isubj,21,21)
   load(sprintf('~/pmod/proc/numerical/task/v%d/pmod_wc_wholebrain_task_isubj%d_v%d.mat',v_sim,isubj,v_sim))
   
-  tmp_fc = squeeze(out.fc_FR(:,:,1:length(Gains),1:length(Gg)));
-  fc_all(:,:,:,isubj) = reshape(tmp_fc(repmat(mask,[1 1 12 11])),[(76*76-76)/2 12 11]);
+  tmp_fc = squeeze(out.fc_FR(:,:,1:length(Gains),1:length(Gg),1:4,:));
+  fc_all(:,:,:,:,:,isubj) = reshape(tmp_fc(repmat(mask,[1 1 12 11 4 2])),[(76*76-76)/2 12 11 4 2]);
   
 end
+
+%%
+% ATX EFFECT
+
+
+itask = 2;
+igain = 11; iG = 6; % MANUSCRIPT VERSION
+
+atx_rest=100*(squeeze(nanmean(fc_all(:,igain,iG,itask,1,:),1))-squeeze(nanmean(fc_all(:,6,6,itask,1,:),1)))./squeeze(nanmean(fc_all(:,6,6,itask,1,:),1));
+atx_task=100*(squeeze(nanmean(fc_all(:,igain,iG,itask,2,:),1))-squeeze(nanmean(fc_all(:,6,6,itask,2,:),1)))./squeeze(nanmean(fc_all(:,6,6,itask,2,:),1));
+
+% DPZ EFFECT
+igain = 8; iG = 10; % MANUSCRIPT VERSION
+dpz_rest=100*(squeeze(nanmean(fc_all(:,igain,iG,itask,1,:),1))-squeeze(nanmean(fc_all(:,6,6,itask,1,:),1)))./squeeze(nanmean(fc_all(:,6,6,itask,1,:),1));
+dpz_task=100*(squeeze(nanmean(fc_all(:,igain,iG,itask,2,:),1))-squeeze(nanmean(fc_all(:,6,6,itask,2,:),1)))./squeeze(nanmean(fc_all(:,6,6,itask,2,:),1));
+
+
+[~,p_rest_dpz]=ttest(dpz_rest);
+[~,p_task_dpz]=ttest(dpz_task);
+
+[~,p_rest_atx]=ttest(atx_rest);
+[~,p_task_atx]=ttest(atx_task);
+
+
+figure_w;
+
+subplot(2,2,1); hold on
+bar(1,mean(atx_rest),'edgecolor',[0 0 0],'facecolor',[0.95 0.95 0.95])
+bar(2,mean(atx_task),'edgecolor',[0 0 0],'facecolor',[1 1 0])
+axis square; tp_editplots
+axis([0.5 2.5 -40 40])
+
+
+if p_rest_atx<0.001
+  text(1,25,'***','horizontalalignment','center','verticalalignment','bottom')
+elseif p_rest_atx <0.01
+  text(1,25,'**','horizontalalignment','center','verticalalignment','bottom')
+elseif p_rest_atx < 0.05
+  text(1,25,'*','horizontalalignment','center','verticalalignment','bottom')
+else 
+  text(1,25,'n.s.','horizontalalignment','center','verticalalignment','bottom')
+end
+  
+if p_task_atx<0.001
+  text(2,25,'***','horizontalalignment','center','verticalalignment','bottom')
+elseif p_task_atx <0.01
+  text(2,25,'**','horizontalalignment','center','verticalalignment','bottom')
+elseif p_task_atx < 0.05
+  text(2,25,'*','horizontalalignment','center','verticalalignment','bottom')
+else 
+  text(2,25,'n.s.','horizontalalignment','center','verticalalignment','bottom')
+end
+
+subplot(2,2,2); hold on
+bar(1,mean(dpz_rest),'edgecolor',[0 0 0],'facecolor',[0.95 0.95 0.95])
+bar(2,mean(dpz_task),'edgecolor',[0 0 0],'facecolor',[1 1 0])
+axis square; tp_editplots
+axis([0.5 2.5 -40 40])
+
+
+if p_rest_dpz<0.001
+  text(1,25,'***','horizontalalignment','center','verticalalignment','bottom')
+elseif p_rest_dpz <0.01
+  text(1,25,'**','horizontalalignment','center','verticalalignment','bottom')
+elseif p_rest_dpz < 0.05
+  text(1,25,'*','horizontalalignment','center','verticalalignment','bottom')
+else 
+  text(1,25,'n.s.','horizontalalignment','center','verticalalignment','bottom')
+end
+  
+if p_task_dpz<0.001
+  text(2,25,'***','horizontalalignment','center','verticalalignment','bottom')
+elseif p_task_dpz <0.01
+  text(2,25,'**','horizontalalignment','center','verticalalignment','bottom')
+elseif p_task_dpz < 0.05
+  text(2,25,'*','horizontalalignment','center','verticalalignment','bottom')
+else 
+  text(2,25,'n.s.','horizontalalignment','center','verticalalignment','bottom')
+end
+
+print(gcf,'-dpdf',sprintf('~/pmod/plots/pmod_wc_heterog_task_itask%d.pdf',itask))
+
+
 
 
 

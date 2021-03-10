@@ -361,7 +361,7 @@ load redblue.mat
 
 % ATX: 
 igain = 11; iG = 6; % MANUSCRIPT VERSION
-% 
+ 
 % DPZ: 
 % igain = 8; iG = 10; % MANUSCRIPT VERSION
   
